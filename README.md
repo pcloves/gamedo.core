@@ -1,0 +1,1 @@
+gamedo.core是gamedo游戏服务器框架的核心模块（正在开发中）

@@ -1,4 +1,4 @@
-package org.gamedo.ecs.impl;
+package org.gamedo.ecs;
 
 import lombok.EqualsAndHashCode;
 import org.gamedo.ecs.interfaces.IComponent;

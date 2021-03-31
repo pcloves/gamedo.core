@@ -2,8 +2,6 @@ package org.gamedo.event.interfaces;
 
 import org.gamedo.ecs.interfaces.IComponent;
 
-import java.util.Optional;
-
 /**
  * 事件总线接口
  */
@@ -13,11 +11,16 @@ public interface IEventBus extends IComponent {
      *
      * @param <E>          事件类型
      * @param eventType    事件类型
-     * @param eventHandler 事件处理器，必须被final修饰
-     * @param priority     事件处理器的优先级，事件被分发时，优先级遵循两个原则：1、EEventPriority高的优先 分发；2、先注册的优先分发
-     * @return 注册结果
+     * @param eventHandler 事件处理器，当事件处理器是一个lambada或者是函数引用时，由于java的底层机制，会导致重复注册，因此在实际开发时，最佳
+     *                     实践是将lamda或函数引用声明为类的成员或者final的静态变量，错误的使用场景可以参考单元测试：EventBusTest#registerEventUsingLambda
+     *                     和EventBusTest#registerEventUsingMethodReference，正确的使用场景参考单元测试：EventBusTest#registerEventUsingField和
+     *                     EventBusTest#registerEventUsingStaticField
+     * @param priority     事件处理器的优先级，当事件总线接受到一个事件时，处理该事件的规则为：1、EEventPriority高的优先分发；2、如果优先级
+     *                     相同，先注册的优先分发
+     * @return true表示注册成功，否则表示注册失败
+     * @see <a href="ttps://stackoverflow.com/questions/24095875/is-there-a-way-to-compare-lambdas StackOverflow">Is there a way to compare lambdas?</a>
      */
-    <E extends IEvent, R> boolean registerEvent(Class<E> eventType, IEventHandler<E, R> eventHandler, EventPriority priority);
+    <E extends IEvent> boolean registerEvent(Class<E> eventType, IEventHandler<E> eventHandler, EventPriority priority);
 
     /**
      * 反注册某个事件处理器
@@ -26,10 +29,11 @@ public interface IEventBus extends IComponent {
      * @param eventHandler 事件处理器，必须被final修饰
      * @param <E>          事件类型
      */
-    <E extends IEvent, R> void unRegisterEvent(Class<E> eventType, IEventHandler<E, R> eventHandler);
+    <E extends IEvent> void unRegisterEvent(Class<E> eventType, IEventHandler<E> eventHandler);
 
     /**
-     * 为某个事件添加一个事件过滤器，{@link IEventBus}会在sendEvent时，首先调用所有的事件过滤器，任何一个过滤器截 获事件，都会导致事件不会被分发到{@link IEventHandler}上去
+     * 为某个事件添加一个事件过滤器，{@link IEventBus}会在sendEvent时，首先调用所有的事件过滤器，任何一个过滤器过滤该事件，都会导致事件不会被
+     * 消费
      *
      * @param eventType   事件类型
      * @param eventFilter 事件过滤器
@@ -51,9 +55,9 @@ public interface IEventBus extends IComponent {
      *
      * @param <E>   事件类型
      * @param event 要发送的事件
-     * @return {@link IEventHandler#apply(Object)} 返回值
+     * @return 正常消费该event的事件处理的数量（抛出异常的事件处理器不包含在内）
      */
-    <E extends IEvent, T> Optional<T> sendEvent(E event);
+    <E extends IEvent> int sendEvent(E event);
 
     /**
      * 投递一个事件，该事件不会被立即消费，而是被{@link IEventBus}缓存，直到被调用

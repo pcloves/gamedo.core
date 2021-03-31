@@ -5,11 +5,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class NamedThreadFactory implements ThreadFactory {
 
-    private static AtomicInteger id = new AtomicInteger(1);
+    private static final AtomicInteger ID = new AtomicInteger(1);
     private final String name;
 
     public NamedThreadFactory(final String namePrefix) {
-        name = namePrefix + '-' + id.getAndIncrement();
+        name = namePrefix + '-' + ID.getAndIncrement();
     }
 
     @Override

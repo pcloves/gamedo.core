@@ -1,8 +1,11 @@
 package org.gamedo.event.interfaces;
 
-import java.util.function.Function;
+import java.io.Serializable;
+import java.util.function.Consumer;
 
 @FunctionalInterface
-public interface IEventHandler<E extends IEvent, R> extends Function<E, R> {
-
+public interface IEventHandler<E extends IEvent> extends Consumer<E>, Serializable
+{
+    @Override
+    void accept(E e);
 }

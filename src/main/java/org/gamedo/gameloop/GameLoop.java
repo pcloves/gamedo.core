@@ -1,22 +1,20 @@
 package org.gamedo.gameloop;
 
 import lombok.Synchronized;
+import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.gamedo.concurrent.NamedThreadFactory;
-import org.gamedo.ecs.impl.Entity;
+import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IGameLoopAction;
-import org.gamedo.event.imp.EventBus;
+import org.gamedo.ecs.interfaces.IGameLoopFunction;
+import org.gamedo.event.EventBus;
 import org.gamedo.event.interfaces.IEventBus;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Slf4j
 public class GameLoop extends Entity implements IGameLoop
@@ -25,6 +23,7 @@ public class GameLoop extends Entity implements IGameLoop
     private final Optional<IGameLoop> gameLoopOptional = Optional.of(this);
     private final IEventBus eventBus;
     private final List<IEntity> entityList = new ArrayList<>();
+    @Delegate(types = ExecutorService.class)
     private final ScheduledExecutorService scheduledExecutorService;
 
     private ScheduledFuture<?> future;
@@ -97,15 +96,6 @@ public class GameLoop extends Entity implements IGameLoop
     }
 
     @Override
-    public boolean shutdown(long timeout, TimeUnit timeUnit) throws InterruptedException {
-
-        //TODO:这里还得好好想一下
-        scheduledExecutorService.shutdown();
-
-        return scheduledExecutorService.awaitTermination(timeout, timeUnit);
-    }
-
-    @Override
     public boolean registerEntity(IEntity entity) {
 
         if (inGameLoop()) {
@@ -122,24 +112,19 @@ public class GameLoop extends Entity implements IGameLoop
     }
 
     @Override
-    public <T> CompletableFuture<T> executeAsync(IGameLoopAction<T> action) {
+    public <T> CompletableFuture<T> submit(IGameLoopFunction<T> function) {
 
         if (inGameLoop()) {
-            return CompletableFuture.completedFuture(action.apply(this));
+            return CompletableFuture.completedFuture(function.apply(this));
         }
         else {
-            return CompletableFuture.supplyAsync(() -> action.apply(this), this);
+            return CompletableFuture.supplyAsync(() -> function.apply(this), this);
         }
     }
 
     @Override
     public void tick(long elapse) {
         entityList.forEach(entity -> safeTick(entity, elapse));
-    }
-
-    @Override
-    public void execute(Runnable command) {
-        scheduledExecutorService.execute(command);
     }
 
     private static void safeTick(final IEntity entity, long elapse) {

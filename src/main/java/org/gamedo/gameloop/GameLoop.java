@@ -5,24 +5,24 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.gamedo.concurrent.NamedThreadFactory;
 import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.components.EntityManager;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IGameLoopFunction;
+import org.gamedo.ecs.interfaces.IEntityManager;
 import org.gamedo.event.EventBus;
 import org.gamedo.event.interfaces.IEventBus;
+import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 @Slf4j
-public class GameLoop extends Entity implements IGameLoop
-{
+public class GameLoop extends Entity implements IGameLoop {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<IGameLoop> gameLoopOptional = Optional.of(this);
-    private final IEventBus eventBus;
-    private final List<IEntity> entityList = new ArrayList<>();
+    private final IEntityManager entityMgr;
+
     @Delegate(types = ExecutorService.class)
     private final ScheduledExecutorService scheduledExecutorService;
 
@@ -35,27 +35,35 @@ public class GameLoop extends Entity implements IGameLoop
 
         super(id);
 
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(id)) {
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("GameLooop-" + id)) {
             @Override
             protected void beforeExecute(Thread t, Runnable r) {
                 super.beforeExecute(t, r);
 
                 thread = Thread.currentThread();
-                GameLoops.GAME_LOOP_THREAD_LOCAL.set(gameLoopOptional);
+                IGameLoop.GAME_LOOP_THREAD_LOCAL.set(gameLoopOptional);
             }
 
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
 
-                GameLoops.GAME_LOOP_THREAD_LOCAL.set(Optional.empty());
+                IGameLoop.GAME_LOOP_THREAD_LOCAL.set(Optional.empty());
                 thread = null;
             }
         };
 
-        eventBus = new EventBus(this);
-        addComponent(IEventBus.class, eventBus);
+        //直接缓存起来，不用每次都查询组件了
+        entityMgr = new EntityManager(this, null);
+
+        addComponent(IEventBus.class, new EventBus(this));
+        addComponent(IEntityManager.class, entityMgr);
     }
+
+    public GameLoop(final Supplier<String> idSupplier) {
+        this(idSupplier.get());
+    }
+
 
     @Override
     public boolean inGameLoop() {
@@ -72,59 +80,33 @@ public class GameLoop extends Entity implements IGameLoop
 
         lastTickMilliSecond = System.currentTimeMillis();
 
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final long currentTimeMillis = System.currentTimeMillis();
+        final Runnable runnable = () -> {
+                final long currentTimeMillis = System.currentTimeMillis();
 
-                    lastTickInterval = currentTimeMillis - lastTickMilliSecond;
-                    lastTickMilliSecond = currentTimeMillis;
+                lastTickInterval = currentTimeMillis - lastTickMilliSecond;
+                lastTickMilliSecond = currentTimeMillis;
 
-                    tick(lastTickInterval);
-
-                    log.info("tick elapse:{}", System.currentTimeMillis() - currentTimeMillis);
-                } catch (Throwable t) {
-                    log.error("exception caught.", t);
-                }
-            }
+                tick(lastTickInterval);
         };
 
         future = scheduledExecutorService.scheduleAtFixedRate(runnable, initialDelay, period, periodTimeUnit);
-
         return true;
     }
 
     @Override
-    public boolean registerEntity(IEntity entity) {
-
-        if (inGameLoop()) {
-            if (entityList.contains(entity)) {
-                return false;
-            }
-
-            return entityList.add(entity);
-        }
-        else {
-            log.error("should not register an entity in another thread, entity:" + entity, new Throwable());
-            throw new RuntimeException("should not register an entity in another thread, entity:" + entity);
-        }
-    }
-
-    @Override
-    public <T> CompletableFuture<T> submit(IGameLoopFunction<T> function) {
+    public <R> CompletableFuture<R> submit(GameLoopFunction<R> function) {
 
         if (inGameLoop()) {
             return CompletableFuture.completedFuture(function.apply(this));
-        }
-        else {
+        } else {
             return CompletableFuture.supplyAsync(() -> function.apply(this), this);
         }
     }
 
     @Override
     public void tick(long elapse) {
-        entityList.forEach(entity -> safeTick(entity, elapse));
+        //这里要是用副本，否则在tick期间可能会出现修改map的情况，当然有这里还有优化空间
+        entityMgr.getEntityMap().forEach((entityId, entity) -> safeTick(entity, elapse));
     }
 
     private static void safeTick(final IEntity entity, long elapse) {

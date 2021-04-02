@@ -60,19 +60,10 @@ public interface IEventBus extends IComponent {
     <E extends IEvent> int sendEvent(E event);
 
     /**
-     * 投递一个事件，该事件不会被立即消费，而是被{@link IEventBus}缓存，直到被调用
-     * {@link #dispatchCachedEvent(int)}才会触发
+     * 投递一个事件，该事件不会被立即消费，而是被{@link IEventBus}缓存，直到下一个tick才会被触发
      *
      * @param event 要投递的事件
      * @param <E>   事件类型
      */
     <E extends IEvent> void postEvent(E event);
-
-    /**
-     * 分发事件，对所有缓存的时间进行分发
-     *
-     * @param maxDispatchCount 表示最多从缓存中分发多少事件
-     * @return 分发事件的数量
-     */
-    int dispatchCachedEvent(int maxDispatchCount);
 }

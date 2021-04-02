@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @EqualsAndHashCode(of = "id")
 public class Entity implements IEntity
@@ -23,6 +24,11 @@ public class Entity implements IEntity
 
     public Entity(String id) {
         this(id, Optional.empty());
+    }
+
+    public Entity(Supplier<String> idSupplier)
+    {
+        this(idSupplier.get());
     }
 
     @Override

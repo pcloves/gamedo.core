@@ -1,22 +1,23 @@
 package org.gamedo.gameloop;
 
-import org.gamedo.gameloop.interfaces.GameLoopSelector;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class GameLoopGroup implements IGameLoopGroup
 {
     private final AtomicInteger idx = new AtomicInteger(0);
-    private final GameLoop[] gameLoops;
+    private final IGameLoop[] gameLoops;
 
-    public GameLoopGroup(GameLoop... gameLoops) {
+    public GameLoopGroup(IGameLoop... gameLoops) {
         this.gameLoops = gameLoops.clone();
     }
 
@@ -36,68 +37,112 @@ public class GameLoopGroup implements IGameLoopGroup
 
     @Override
     public boolean isShutdown() {
-        return Arrays.stream(gameLoops).allMatch(GameLoop::isShutdown);
+        return Arrays.stream(gameLoops).allMatch(IGameLoop::isShutdown);
     }
 
     @Override
     public boolean isTerminated() {
-        return Arrays.stream(gameLoops).allMatch(GameLoop::isTerminated);
+        return Arrays.stream(gameLoops).allMatch(IGameLoop::isTerminated);
     }
 
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        //TODO:
-        return true;
+
+        final boolean allTerminated = Arrays.stream(gameLoops)
+                .parallel()
+                .allMatch(iGameLoop -> {
+                    try {
+                        return iGameLoop.awaitTermination(timeout, unit);
+                    } catch (InterruptedException e) {
+                        return false;
+                    }
+                });
+
+        if (Thread.interrupted()) {
+            throw new InterruptedException();
+        }
+
+        return allTerminated;
     }
 
     @Override
     public <T> Future<T> submit(Callable<T> task) {
-        return null;
+        return selectNext().submit(task);
     }
 
     @Override
     public <T> Future<T> submit(Runnable task, T result) {
-        return null;
+        return selectNext().submit(task, result);
     }
 
     @Override
     public Future<?> submit(Runnable task) {
-        return null;
+        return selectNext().submit(task);
     }
 
     @Override
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
-        return null;
+        return selectNext().invokeAll(tasks);
     }
 
     @Override
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
-        return null;
+        return selectNext().invokeAll(tasks, timeout, unit);
     }
 
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
-        return null;
+        return selectNext().invokeAny(tasks);
     }
 
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        return null;
+        return selectNext().invokeAny(tasks, timeout, unit);
     }
 
     @Override
     public void execute(Runnable command) {
-
+        selectNext().execute(command);
     }
 
     @Override
-    public GameLoop next() {
+    public List<IGameLoop> run(long initialDelay, long period, TimeUnit periodTimeUnit) {
+
+        return Arrays.stream(gameLoops)
+                .filter(iGameLoop -> !iGameLoop.run(initialDelay, period, periodTimeUnit))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public IGameLoop selectNext() {
         return gameLoops[Math.abs(idx.getAndIncrement() % gameLoops.length)];
     }
 
     @Override
-    public <T> List<IGameLoop> select(GameLoopSelector<T> selector) {
+    public <C extends Comparable<? super C>> List<IGameLoop> select(GameLoopFunction<C> chooser,
+                                                            Comparator<C> comparator,
+                                                            int limit) {
+        @Value
+        class Pair<K, V>
+        {
+            K k;
+            V v;
+        }
 
-        return null;
+        return Arrays.stream(gameLoops)
+                .parallel()
+                .map(iGameLoop -> {
+                    try {
+                        return new Pair<C, IGameLoop>(iGameLoop.submit(chooser).join(), iGameLoop);
+                    } catch (Throwable t) {
+                        log.error("exception caught.", t);
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(Pair::getK, comparator))
+                .limit(limit)
+                .map(Pair::getV)
+                .collect(Collectors.toList());
     }
 }

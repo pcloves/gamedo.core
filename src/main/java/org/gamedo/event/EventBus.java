@@ -7,20 +7,26 @@ import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.event.interfaces.*;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Slf4j
 @ToString
 public class EventBus extends Component implements IEventBus {
     private static long index;
 
-    private final Map<Class<?>, List<EventHandlerData<?>>> eventType2HandlerDataListMap = new HashMap<>(512);
-    private final Map<IEventHandler<?>, EventHandlerData<?>> eventHandler2HandlerDataMap = new HashMap<>(2048);
-    private final Queue<IEvent> cachedEventQueue = new ConcurrentLinkedQueue<>();
-    private final Map<Class<?>, Set<IEventFilter<IEvent>>> eventType2EventFilterSetMap = new HashMap<>(512);
+    private final Map<Class<?>, List<EventHandlerData<?>>> eventType2HandlerDataListMap = new HashMap<>(64);
+    private final Map<IEventHandler<?>, EventHandlerData<?>> eventHandler2HandlerDataMap = new HashMap<>(64);
+    private final Queue<IEvent> cachedEventQueue = new LinkedList<>();
+    private final Map<Class<?>, Set<IEventFilter<IEvent>>> eventType2EventFilterSetMap = new HashMap<>(32);
 
     public EventBus(IEntity owner) {
         super(owner);
+    }
+
+    @Override
+    public void tick(long elapse) {
+        super.tick(elapse);
+
+        dispatchCachedEvent(Integer.MAX_VALUE);
     }
 
     @Override
@@ -107,8 +113,7 @@ public class EventBus extends Component implements IEventBus {
         cachedEventQueue.add(event);
     }
 
-    @Override
-    public int dispatchCachedEvent(final int maxDispatchCount) {
+    private int dispatchCachedEvent(final int maxDispatchCount) {
         int dispatchCount = Math.min(cachedEventQueue.size(), maxDispatchCount);
         while (dispatchCount > 0) {
             dispatchCount--;

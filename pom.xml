@@ -8,6 +8,7 @@
     <groupId>org.gamedo</groupId>
     <artifactId>gamedo-pom</artifactId>
     <version>1.0.0</version>
+    <relativePath/>
   </parent>
 
   <artifactId>gamedo.core</artifactId>

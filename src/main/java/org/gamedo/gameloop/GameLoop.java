@@ -35,7 +35,7 @@ public class GameLoop extends Entity implements IGameLoop {
 
         super(id);
 
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("GameLooop-" + id)) {
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(id + "-GameLoop")) {
             @Override
             protected void beforeExecute(Thread t, Runnable r) {
                 super.beforeExecute(t, r);

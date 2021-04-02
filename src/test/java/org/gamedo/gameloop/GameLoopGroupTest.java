@@ -19,7 +19,6 @@ class GameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
 
-
     private enum GameLoopId implements Supplier<String> {
         GameLoop1("GameLoop1"),
         GameLoop2("GameLoop2"),
@@ -27,6 +26,8 @@ class GameLoopGroupTest {
         GameLoop4("GameLoop4"),
         GameLoop5("GameLoop5"),
         GameLoop6("GameLoop6"),
+        GameLoop7("GameLoop7"),
+        GameLoop8("GameLoop8"),
         ;
 
         public final String id;
@@ -114,7 +115,7 @@ class GameLoopGroupTest {
     @Test
     void testBenchmark() {
 
-        gameLoopGroup.run(0, 10, TimeUnit.MILLISECONDS);
+        gameLoopGroup.run(0, 20, TimeUnit.MILLISECONDS);
 
         final int entityCountBase = 100000;
         final int gameLoopCount = GameLoopId.values().length;
@@ -152,7 +153,7 @@ class GameLoopGroupTest {
                 .parallel()
                 .map(f -> {
                     try {
-                        return f.get(10, TimeUnit.MILLISECONDS);
+                        return f.get(100, TimeUnit.MILLISECONDS);
                     } catch (Throwable ignored) {
                     }
                     return false;

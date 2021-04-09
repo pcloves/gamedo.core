@@ -1,7 +1,8 @@
 package org.gamedo.gameloop;
 
 import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
+import org.gamedo.ecs.Entity;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
@@ -10,15 +11,28 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-@Slf4j
-public class GameLoopGroup implements IGameLoopGroup
-{
+@Log4j2
+public class GameLoopGroup extends Entity implements IGameLoopGroup {
     private final AtomicInteger idx = new AtomicInteger(0);
     private final IGameLoop[] gameLoops;
 
-    public GameLoopGroup(IGameLoop... gameLoops) {
+    public GameLoopGroup(String id, IGameLoop... gameLoops) {
+        super(id);
         this.gameLoops = gameLoops.clone();
+    }
+
+    public GameLoopGroup(String id, int gameLoopCount) {
+        super(id);
+
+        gameLoops = IntStream.rangeClosed(1, gameLoopCount)
+                .mapToObj(value -> new GameLoop(id + '-' + value))
+                .toArray(GameLoop[]::new);
+    }
+
+    public GameLoopGroup(String id) {
+        this(id, Runtime.getRuntime().availableProcessors());
     }
 
     @Override
@@ -114,14 +128,19 @@ public class GameLoopGroup implements IGameLoopGroup
     }
 
     @Override
+    public IGameLoop[] selectAll() {
+        return gameLoops.clone();
+    }
+
+    @Override
     public IGameLoop selectNext() {
         return gameLoops[Math.abs(idx.getAndIncrement() % gameLoops.length)];
     }
 
     @Override
     public <C extends Comparable<? super C>> List<IGameLoop> select(GameLoopFunction<C> chooser,
-                                                            Comparator<C> comparator,
-                                                            int limit) {
+                                                                    Comparator<C> comparator,
+                                                                    int limit) {
         @Value
         class Pair<K, V>
         {

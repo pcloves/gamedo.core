@@ -2,22 +2,24 @@ package org.gamedo.gameloop;
 
 import lombok.Synchronized;
 import lombok.experimental.Delegate;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.concurrent.NamedThreadFactory;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.components.EntityManager;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.ecs.interfaces.IEntityManager;
-import org.gamedo.event.EventBus;
-import org.gamedo.event.interfaces.IEventBus;
+import org.gamedo.eventbus.EventBus;
+import org.gamedo.eventbus.interfaces.IEventBus;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.scheduling.component.ScheduleRegister;
+import org.gamedo.scheduling.interfaces.IScheduleRegister;
 
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
-@Slf4j
+@Log4j2
 public class GameLoop extends Entity implements IGameLoop {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<IGameLoop> gameLoopOptional = Optional.of(this);
@@ -35,7 +37,7 @@ public class GameLoop extends Entity implements IGameLoop {
 
         super(id);
 
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(id + "-GameLoop")) {
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(id)) {
             @Override
             protected void beforeExecute(Thread t, Runnable r) {
                 super.beforeExecute(t, r);
@@ -54,16 +56,16 @@ public class GameLoop extends Entity implements IGameLoop {
         };
 
         //直接缓存起来，不用每次都查询组件了
-        entityMgr = new EntityManager(this, null);
+        entityMgr = new EntityManager(this, this, null);
 
         addComponent(IEventBus.class, new EventBus(this));
         addComponent(IEntityManager.class, entityMgr);
+        addComponent(IScheduleRegister.class, new ScheduleRegister(this, this));
     }
 
     public GameLoop(final Supplier<String> idSupplier) {
         this(idSupplier.get());
     }
-
 
     @Override
     public boolean inGameLoop() {

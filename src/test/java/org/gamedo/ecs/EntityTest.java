@@ -1,6 +1,6 @@
 package org.gamedo.ecs;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -11,44 +11,47 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
-@Slf4j
+@Log4j2
 class EntityTest {
 
     @Test
     public void testNotInGameLoop() {
         final Entity entity = new Entity(UUID.randomUUID().toString());
 
-        assertEquals(Optional.empty(), entity.gameLoop());
+        assertFalse(entity.isInGameLoop());
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     public void testInGameLoop() {
 
         final CompletableFuture<Boolean> future = new CompletableFuture<>();
+        final CompletableFuture<Optional<IGameLoop>> futureGameLoop = new CompletableFuture<>();
         final GameLoop gameLoop = new GameLoop(UUID.randomUUID().toString());
         final Entity entity = new Entity(UUID.randomUUID().toString()) {
             @Override
             public void tick(long elapse) {
                 super.tick(elapse);
 
-                try {
-                    @SuppressWarnings("OptionalGetWithoutIsPresent")
-                    final IGameLoop iGameLoop = assertDoesNotThrow(() -> gameLoop().get());
-                    assertEquals(iGameLoop, gameLoop);
-                } catch (Throwable e) {
-                    future.completeExceptionally(e);
-                }
-
-                future.complete(true);
+                futureGameLoop.complete(getBelongedGameLoop());
+                future.complete(isInGameLoop());
             }
         };
 
         gameLoop.run(0, 10, TimeUnit.MICROSECONDS);
         gameLoop.submit(IEntityManagerFunction.registerEntity(entity));
 
-        assertDoesNotThrow(() -> future.get());
+        final Boolean inGameLoop = assertDoesNotThrow(() -> future.get());
+        assertTrue(inGameLoop);
+
+        final IGameLoop gameLoop1 = assertDoesNotThrow(() -> futureGameLoop.get().get());
+        assertEquals(gameLoop, gameLoop1);
+
+        final CompletableFuture<Boolean> future1 = CompletableFuture.supplyAsync(() -> entity.isInGameLoop());
+        final Boolean inGameLoop1 = assertDoesNotThrow(() -> future1.get());
+        assertFalse(inGameLoop1);
+
     }
 }

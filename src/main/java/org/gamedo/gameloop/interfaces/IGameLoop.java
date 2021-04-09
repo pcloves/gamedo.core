@@ -1,13 +1,14 @@
 package org.gamedo.gameloop.interfaces;
 
-import org.gamedo.ITimer;
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.ecs.interfaces.IEntityManager;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
-import org.gamedo.event.interfaces.IEvent;
-import org.gamedo.event.interfaces.IEventBus;
-import org.gamedo.event.interfaces.IEventBusFunction;
+import org.gamedo.eventbus.interfaces.IEvent;
+import org.gamedo.eventbus.interfaces.IEventBus;
+import org.gamedo.eventbus.interfaces.IEventBusFunction;
+import org.gamedo.scheduling.interfaces.IScheduleRegister;
+import org.gamedo.timer.ITimer;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
  * <li> {@link IEntityManager} 提供{@link IEntity}的管理机制，可以使用{@link IEntityManagerFunction#registerEntity(IEntity)}实现将某个实体注册
  * 到该{@link IGameLoop}中
  * <li> {@link ITimer} 提供线程内的延迟和定时回调机制
+ * <li> {@link IScheduleRegister} 提供线程内的cron调度策略
  * </ul>
  */
 public interface IGameLoop extends ExecutorService, IEntity {
@@ -32,7 +34,7 @@ public interface IGameLoop extends ExecutorService, IEntity {
     ThreadLocal<Optional<IGameLoop>> GAME_LOOP_THREAD_LOCAL = ThreadLocal.withInitial(Optional::empty);
 
     /**
-     * 返回当前所归属的{@link IGameLoop}，当且仅当该方法在某个{@link IGameLoop}线程内调用时，返回所属的{@link IGameLoop}，否则返回
+     * 返回当前的{@link IGameLoop}，当且仅当该方法在某个{@link IGameLoop}线程内调用时，返回所属的{@link IGameLoop}，否则返回
      * {@link Optional#empty()}
      */
     static Optional<IGameLoop> currentGameLoop() {
@@ -68,7 +70,7 @@ public interface IGameLoop extends ExecutorService, IEntity {
      * @param event 要提交的事件
      * @return 该事件被成功（如果抛出异常，就不算成功）消费的个数
      */
-    default CompletableFuture<Integer> submitEvent(IEvent event) {
-        return submit(IEventBusFunction.sendEvent(event));
+    default CompletableFuture<Integer> postEvent(IEvent event) {
+        return submit(IEventBusFunction.post(event));
     }
 }

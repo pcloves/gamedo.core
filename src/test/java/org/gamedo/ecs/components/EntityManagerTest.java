@@ -18,7 +18,7 @@ class EntityManagerTest {
 
     @BeforeEach
     void setUp() {
-        entityMgr = new EntityManager(entity, null);
+        entityMgr = new EntityManager(null, entity, null);
     }
 
     @Test

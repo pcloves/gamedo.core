@@ -1,4 +1,4 @@
-package org.gamedo;
+package org.gamedo.timer;
 
 import org.gamedo.ecs.interfaces.IComponent;
 

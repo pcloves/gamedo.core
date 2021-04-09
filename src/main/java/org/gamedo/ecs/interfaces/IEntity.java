@@ -13,26 +13,33 @@ public interface IEntity extends ITickable {
     /**
      * 本实体当前归属的{@link IGameLoop}，如果在其他线程调用该函数，可能会返回{@link Optional#empty()}
      */
-    default Optional<IGameLoop> gameLoop() {
-        return IGameLoop.currentGameLoop();
+    Optional<IGameLoop> getBelongedGameLoop();
+
+    /**
+     * 设置当前归属的{@link IGameLoop}
+     */
+    void setBelongedGameLoop(IGameLoop belongedGameLoop);
+
+    default boolean isInGameLoop() {
+        return getBelongedGameLoop().isPresent() && getBelongedGameLoop().equals(IGameLoop.currentGameLoop());
     }
 
     /**
      * 是否拥有某种类型的组件
      *
      * @param clazz 要检测的组件
-     * @see IEntity#addComponent(Class, IComponent)
+     * @see IEntity#addComponent(Class, Object)
      */
-    boolean hasComponent(Class<IComponent> clazz);
+    <T> boolean hasComponent(Class<T> clazz);
 
     /**
      * 返回某种类型的组件
      *
-     * @param clazz 要获取的类型
      * @param <T>   组件的类型
+     * @param clazz 要获取的类型
      * @return 如果没有指定类型的组件，返回{@link Optional#empty()}
      */
-    <T extends IComponent> Optional<T> getComponent(Class<T> clazz);
+    <T> Optional<T> getComponent(Class<T> clazz);
 
     /**
      * 添加一个组件到该实体上，使之具备了该组件的功能，该方法只是将clazz作为key，将component作为value添加到一个Map中，并不会将clazz的父接口以
@@ -46,5 +53,5 @@ public interface IEntity extends ITickable {
      * @param <T>       组件的类型
      * @return 如果之前存在相同clazz的组件，则返回旧组件的{@link Optional}，否则返回{@link Optional#empty()}
      */
-    <T extends IComponent> Optional<T> addComponent(Class<T> clazz, T component);
+    <T> Optional<T> addComponent(Class<T> clazz, T component);
 }

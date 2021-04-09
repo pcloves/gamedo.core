@@ -1,15 +1,11 @@
 package org.gamedo.gameloop;
 
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.ecs.interfaces.IEntityManager;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
-import org.gamedo.event.interfaces.EventPriority;
-import org.gamedo.event.interfaces.IEvent;
-import org.gamedo.event.interfaces.IEventBus;
-import org.gamedo.event.interfaces.IEventBusFunction;
+import org.gamedo.eventbus.interfaces.IEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -24,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-@Slf4j
+@Log4j2
 class GameLoopTest {
     private static final int DEFAULT_WAIT_TIMEOUT = 5;
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MINUTES;
@@ -100,7 +96,7 @@ class GameLoopTest {
                         future7.complete(inGameLoopList);
                     }
                     else {
-                        Optional<IGameLoop> iGameLoop = inGameLoopList.size() % 2 == 0 ? gameLoop() : IGameLoop.currentGameLoop();
+                        Optional<IGameLoop> iGameLoop = inGameLoopList.size() % 2 == 0 ? getBelongedGameLoop() : IGameLoop.currentGameLoop();
                         inGameLoopList.add(iGameLoop
                                 .map(gameLoop -> gameLoop.inGameLoop())
                                 .orElse(false));
@@ -117,31 +113,6 @@ class GameLoopTest {
         final List<Boolean> list = Assertions.assertDoesNotThrow(() -> future7.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertEquals(listSize, list.size());
         Assertions.assertTrue(list.stream().allMatch(Boolean::booleanValue));
-    }
-
-    @Test
-    void testSendEvent() {
-
-        @Value
-        class MyEvent implements IEvent
-        {
-            int value;
-        }
-
-        final int value = Integer.MAX_VALUE;
-        final CompletableFuture<Integer> futureEventHandler = new CompletableFuture<>();
-        final CompletableFuture<Boolean> futureResult1 = gameLoop.submit(IEventBusFunction.registerEvent(
-                MyEvent.class,
-                myEvent -> futureEventHandler.complete(myEvent.value),
-                EventPriority.Normal));
-
-        Assertions.assertTrue(Assertions.assertDoesNotThrow(() -> futureResult1.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT)));
-        Assertions.assertFalse(futureEventHandler.isDone());
-
-        final CompletableFuture<Integer> futureResult2 = gameLoop.submitEvent(new MyEvent(value));
-        Assertions.assertEquals(1, Assertions.assertDoesNotThrow(() -> futureResult2.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT)));
-
-        Assertions.assertEquals(value, Assertions.assertDoesNotThrow(() -> futureEventHandler.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT)));
     }
 
     @Test

@@ -1,7 +1,8 @@
 package org.gamedo.gameloop;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.interfaces.IEntityFunction;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
@@ -9,47 +10,35 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Supplier;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
-@Slf4j
+@Log4j2
+@SpringBootTest
+@SpringBootApplication
+@EnableScheduling
 class GameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
-
-    private enum GameLoopId implements Supplier<String> {
-        GameLoop1("GameLoop1"),
-        GameLoop2("GameLoop2"),
-        GameLoop3("GameLoop3"),
-        GameLoop4("GameLoop4"),
-        GameLoop5("GameLoop5"),
-        GameLoop6("GameLoop6"),
-        GameLoop7("GameLoop7"),
-        GameLoop8("GameLoop8"),
-        ;
-
-        public final String id;
-
-        GameLoopId(String id) {
-            this.id = id;
-        }
-
-        @Override
-        public String get() {
-            return id;
-        }
-    }
+    @Autowired
+    private TaskScheduler taskScheduler;
 
     @BeforeEach
     void setUp() {
-
-        final GameLoop[] gameLoops = Arrays.stream(GameLoopId.values())
-                .map(gameLoopId -> new GameLoop(gameLoopId))
-                .toArray(GameLoop[]::new);
-
-        gameLoopGroup = new GameLoopGroup(gameLoops);
+        gameLoopGroup = new GameLoopGroup("GameLoopGroup");
+        final int gameLoopCount = gameLoopGroup.selectAll().length;
+        IntStream.rangeClosed(1, gameLoopCount)
+                .mapToObj(value -> gameLoopGroup.selectNext())
+                .forEach(iGameLoop -> iGameLoop.submit(IEntityFunction.addComponent(TaskScheduler.class, taskScheduler)));
     }
 
     @AfterEach
@@ -66,7 +55,7 @@ class GameLoopGroupTest {
 
 
         final List<IGameLoop> gameLoopList1 = gameLoopGroup.run(10, 10, TimeUnit.MILLISECONDS);
-        Assertions.assertEquals(GameLoopId.values().length, gameLoopList1.size());
+        Assertions.assertEquals(gameLoopGroup.selectAll().length, gameLoopList1.size());
     }
 
     @Test
@@ -85,7 +74,7 @@ class GameLoopGroupTest {
     @Test
     void testSelectNext() {
         IGameLoop iGameLoop1 = gameLoopGroup.selectNext();
-        Assertions.assertEquals(GameLoopId.GameLoop1.get(), iGameLoop1.getId());
+        Assertions.assertEquals(gameLoopGroup.getId() + "-1", iGameLoop1.getId());
 
         for (int i = 0; i < 1000000; i++) {
             final IGameLoop iGameLoop2 = gameLoopGroup.selectNext();
@@ -118,7 +107,7 @@ class GameLoopGroupTest {
         gameLoopGroup.run(0, 20, TimeUnit.MILLISECONDS);
 
         final int entityCountBase = 100000;
-        final int gameLoopCount = GameLoopId.values().length;
+        final int gameLoopCount = gameLoopGroup.selectAll().length;
         final int mod = entityCountBase % gameLoopCount;
         final int entityCount = Math.max(gameLoopCount, entityCountBase - mod);
 
@@ -162,6 +151,9 @@ class GameLoopGroupTest {
                 .count();
 
         Assertions.assertEquals(0, tickFailedcount);
+
+        gameLoopGroup.shutdown();
+        Assertions.assertDoesNotThrow(() -> gameLoopGroup.awaitTermination(10, TimeUnit.SECONDS));
     }
 
 

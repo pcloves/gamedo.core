@@ -12,7 +12,7 @@ public interface IEntityManager extends IComponent {
      * 注册一个实体到本{@link IEntityManager 管理器}中
      *
      * @param entity 要注册的实体
-     * @return 当且仅当注册成功时返回true，如果还存在另外一个实体，满足{@link IEntity#equals(Object)}本实体则注册失败
+     * @return 当且仅当注册成功时返回true，如果已经存在一个相同Id的实体，则注册失败
      */
     boolean registerEntity(IEntity entity);
 
@@ -32,12 +32,13 @@ public interface IEntityManager extends IComponent {
 
     /**
      * 返回实体的数量
+     * @return 实体的数量
      */
     int getEntityCount();
 
     /**
      * 返回一个无法被修改的{@link java.util.Collections#unmodifiableMap(Map) Map}副本
-     * @return key --> value: 实体的Id --> 实体本身
+     * @return key : value: 实体的Id : 实体本身
      */
     Map<String, IEntity> getEntityMap();
 }

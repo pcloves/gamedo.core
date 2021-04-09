@@ -7,16 +7,19 @@ import java.util.Optional;
 public interface IEntity extends ITickable {
     /**
      * 本实体的唯一Id
+     * @return 唯一Id
      */
     String getId();
 
     /**
      * 本实体当前归属的{@link IGameLoop}，如果在其他线程调用该函数，可能会返回{@link Optional#empty()}
+     * @return 所归属的{@link IGameLoop}
      */
     Optional<IGameLoop> getBelongedGameLoop();
 
     /**
      * 设置当前归属的{@link IGameLoop}
+     * @param belongedGameLoop 所归属的{@link IGameLoop}
      */
     void setBelongedGameLoop(IGameLoop belongedGameLoop);
 
@@ -28,6 +31,8 @@ public interface IEntity extends ITickable {
      * 是否拥有某种类型的组件
      *
      * @param clazz 要检测的组件
+     * @param <T> 组件的类型
+     * @return true表示拥有该组件
      * @see IEntity#addComponent(Class, Object)
      */
     <T> boolean hasComponent(Class<T> clazz);
@@ -43,8 +48,8 @@ public interface IEntity extends ITickable {
 
     /**
      * 添加一个组件到该实体上，使之具备了该组件的功能，该方法只是将clazz作为key，将component作为value添加到一个Map中，并不会将clazz的父接口以
-     * 及祖先接口添加到Map中，因此假如某组件的继承关系为：<br/>
-     * IComponent <-- A <-- B <-- ComponentImpl<br/>
+     * 及祖先接口添加到Map中，因此假如某组件的继承关系为：<br>
+     * IComponent &lt;-- A &lt;-- B &lt;-- ComponentImpl<br>
      * 当调用{@link IEntity#addComponent}将B添加到实体中后，只能通过本方法获取到B，而无无法
      * 获取到A，除非也将A加入到实体中
      *

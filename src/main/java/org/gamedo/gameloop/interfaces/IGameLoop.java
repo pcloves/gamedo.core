@@ -36,6 +36,7 @@ public interface IGameLoop extends ExecutorService, IEntity {
     /**
      * 返回当前的{@link IGameLoop}，当且仅当该方法在某个{@link IGameLoop}线程内调用时，返回所属的{@link IGameLoop}，否则返回
      * {@link Optional#empty()}
+     * @return 当前锁归属的IGameLoop
      */
     static Optional<IGameLoop> currentGameLoop() {
         return GAME_LOOP_THREAD_LOCAL.get();
@@ -61,6 +62,7 @@ public interface IGameLoop extends ExecutorService, IEntity {
      *
      * @param function 要提交的function
      * @param <R>      提交后的返回值类型
+     * @return 操作返回结果
      */
     <R> CompletableFuture<R> submit(GameLoopFunction<R> function);
 

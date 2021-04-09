@@ -26,6 +26,7 @@ public interface IGameLoopGroup extends ExecutorService, IEntity {
 
     /**
      * 轮询选择下一个线程
+     * @return 返回下一个IGameLoop
      */
     IGameLoop selectNext();
 
@@ -37,6 +38,7 @@ public interface IGameLoopGroup extends ExecutorService, IEntity {
      * @param comparator 元素比较器
      * @param limit      最大返回的{@link IGameLoop}的个数
      * @param <C>        比较元素的类型
+     * @return 返回有效的IGameLoop集合
      */
     <C extends Comparable<? super C>> List<IGameLoop> select(GameLoopFunction<C> chooser,
                                                      Comparator<C> comparator,

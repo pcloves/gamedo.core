@@ -1,12 +1,11 @@
-package org.gamedo.scheduling.component;
+package org.gamedo.scheduling;
 
 import lombok.Value;
 import org.apache.logging.log4j.Logger;
-import org.gamedo.gameloop.interfaces.IGameLoop;
 
 @Value
 class ScheduleFunctionData {
-    IGameLoop iGameLoop;
+    Scheduler scheduleRegister;
     String cron;
     Logger log;
 }

@@ -1,4 +1,4 @@
-package org.gamedo.scheduling.component;
+package org.gamedo.scheduling;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;

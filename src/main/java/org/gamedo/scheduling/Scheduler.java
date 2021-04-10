@@ -1,59 +1,64 @@
-package org.gamedo.scheduling.component;
+package org.gamedo.scheduling;
 
 import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.Logger;
 import org.gamedo.ecs.Component;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.CronScheduled;
-import org.gamedo.scheduling.interfaces.IScheduleRegister;
-import org.gamedo.scheduling.interfaces.IScheduleRegisterFunction;
+import org.gamedo.scheduling.interfaces.IScheduler;
+import org.gamedo.scheduling.interfaces.ISchedulerFunction;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-public class ScheduleRegister extends Component implements IScheduleRegister {
+public class Scheduler extends Component implements IScheduler {
 
-    private final IGameLoop iGameLoop;
+    /**
+     * 所归属的{@link IGameLoop}
+     */
+    final IGameLoop iGameLoop;
     /**
      * cron表达式 --> 调度数据
      */
-    private final Map<String, ScheduleData> cronToscheduleDataMap = new HashMap<>(32);
+    private final Map<String, SchedulingRunnable> cronToscheduleDataMap = new HashMap<>(32);
     /**
      * 收到{@link TaskScheduler}
      */
     private final Function<ScheduleFunctionData, Runnable> runnableFunction = data -> {
-        //注意：该Runnable并非在本线程中！！！
+        //注意：该Runnable可能在在本线程中，也可能不在本线程中，取决于怎么实现！！！
         return () -> {
 
-            if (data.getIGameLoop().isShutdown()) {
-                data.getLog().debug("the IGameLoop {} has shutdown", () -> data.getIGameLoop().getId());
+            final String cron = data.getCron();
+            final Scheduler scheduleRegister = data.getScheduleRegister();
+            final IGameLoop gameLoop = scheduleRegister.iGameLoop;
+            final Logger log1 = data.getLog();
+            if (gameLoop.isShutdown()) {
+                log1.debug("the IGameLoop {} has shutdown", () -> gameLoop.getId());
                 return;
             }
 
             //投递到本线程中
-            final GameLoopFunction<Integer> schedule = IScheduleRegisterFunction.schedule(data.getCron());
-            final CompletableFuture<Integer> completableFuture = data.getIGameLoop().submit(schedule);
+            final GameLoopFunction<Integer> schedule = ISchedulerFunction.schedule(cron);
+            final CompletableFuture<Integer> completableFuture = gameLoop.submit(schedule);
             completableFuture.whenCompleteAsync((c, t) -> {
                 if (t != null) {
-                    data.getLog().error("exception caught", t);
+                    log1.error("exception caught, cron:" + cron, t);
                 }
-
-                data.getLog().debug("shedule finish, cron:{}, trigger method:{}", () -> data.getCron(), () -> c);
-            });
+            }, gameLoop);
         };
     };
 
-    public ScheduleRegister(IEntity owner, IGameLoop iGameLoop) {
+    public Scheduler(IEntity owner, IGameLoop iGameLoop) {
         super(owner);
         this.iGameLoop = iGameLoop;
     }
@@ -113,7 +118,7 @@ public class ScheduleRegister extends Component implements IScheduleRegister {
             return false;
         }
 
-        if (Arrays.stream(clazz.getDeclaredMethods()).noneMatch(method1 -> method1.equals(method))) {
+        if (Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz)).noneMatch(method1 -> method1.equals(method))) {
             log.error("the object has none method of {}, clazz:{}, cron:{}",
                     method.getName(),
                     clazz.getName(),
@@ -121,23 +126,16 @@ public class ScheduleRegister extends Component implements IScheduleRegister {
             return false;
         }
 
-        //先获取owner上的TaskScheduler组件
-        final Optional<TaskScheduler> taskSchedulerOptional = owner.getComponent(TaskScheduler.class);
-        if (taskSchedulerOptional.isEmpty()) {
-            log.error("getComponent for {} failed.", TaskScheduler.class.getName());
-            return false;
-        }
-
-        final TaskScheduler taskScheduler = taskSchedulerOptional.get();
-        final ScheduleData scheduleData = cronToscheduleDataMap.computeIfAbsent(cron, cron1 -> {
-            final ScheduleFunctionData functionData = new ScheduleFunctionData(iGameLoop, cron1, log);
-            final Runnable apply = runnableFunction.apply(functionData);
+        final SchedulingRunnable schedulingRunnable = cronToscheduleDataMap.computeIfAbsent(cron, cron1 -> {
             final CronTrigger trigger = new CronTrigger(cron1);
-            final ScheduledFuture<?> future = taskScheduler.schedule(apply, trigger);
-            return new ScheduleData(cron1, future);
+            final SimpleTriggerContext context = new SimpleTriggerContext();
+            final ScheduleFunctionData functionData = new ScheduleFunctionData(this, cron1, log);
+            final Runnable runnable = runnableFunction.apply(functionData);
+
+            return new SchedulingRunnable(this, trigger, context, runnable).schedule();
         });
 
-        final Set<ScheduleInvokeData> scheduleInvokeDataSet = scheduleData.getScheduleInvokeDataSet();
+        final Set<ScheduleInvokeData> scheduleInvokeDataSet = schedulingRunnable.getScheduleInvokeDataSet();
         final ScheduleInvokeData scheduleInvokeData = new ScheduleInvokeData(object, method);
         if (scheduleInvokeDataSet.contains(scheduleInvokeData)) {
             log.warn("the method {} has registered, clazz:{}", method.getName(), clazz.getName());
@@ -169,39 +167,35 @@ public class ScheduleRegister extends Component implements IScheduleRegister {
     @Override
     public boolean unregister(Class<?> clazz, Method method) {
 
-        final List<ScheduleData> scheduleDataList = cronToscheduleDataMap.values()
+        final List<SchedulingRunnable> schedulingRunnableList = cronToscheduleDataMap.values()
                 .stream()
-                .filter(scheduleData -> scheduleData.containsMethod(method))
-                .filter(scheduleData -> scheduleData.removeMethod(method))
+                .filter(schedulingRunnable -> schedulingRunnable.containsMethod(method))
+                .filter(schedulingRunnable -> schedulingRunnable.removeMethod(method))
                 .collect(Collectors.toList());
 
-        scheduleDataList.removeIf(scheduleData -> {
-            final boolean empty = scheduleData.getScheduleInvokeDataSet().isEmpty();
-            if (empty) {
-                scheduleData.getFuture().cancel(false);
-                log.info("invokeData set is empty stop schedule, cron:{}", scheduleData.getCron());
-            }
-            return empty;
-        });
+        cronToscheduleDataMap.values().removeIf(schedulingRunnable -> schedulingRunnable.getScheduleInvokeDataSet().isEmpty());
 
-
-        return !scheduleDataList.isEmpty();
+        return !schedulingRunnableList.isEmpty();
     }
 
     @Override
     public int unregisterAll() {
 
-        final int sum = cronToscheduleDataMap.values()
-                .stream()
-                .flatMap(scheduleData -> {
-                    return scheduleData.getScheduleInvokeDataSet()
+        final Collection<SchedulingRunnable> collection = new HashSet<>(cronToscheduleDataMap.values());
+        final int sum = collection.stream()
+                .flatMap(schedulingRunnable -> {
+                    return schedulingRunnable.getScheduleInvokeDataSet()
                             .stream()
                             .map(scheduleInvokeData -> scheduleInvokeData.getObject().getClass());
                 })
                 .mapToInt(this::unregister)
                 .sum();
 
-        cronToscheduleDataMap.clear();
+        if (!cronToscheduleDataMap.isEmpty()) {
+            log.error("There are remaining {} in the map:{}",
+                    SchedulingRunnable.class.getSimpleName(),
+                    cronToscheduleDataMap.values());
+        }
 
         return sum;
     }

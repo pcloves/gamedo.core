@@ -9,8 +9,8 @@ import org.gamedo.eventbus.event.EventPreUnregisterEntity;
 import org.gamedo.eventbus.interfaces.IEventBus;
 import org.gamedo.eventbus.interfaces.Subscribe;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.interfaces.IScheduleRegister;
-import org.gamedo.scheduling.interfaces.IScheduleRegisterFunction;
+import org.gamedo.scheduling.interfaces.IScheduler;
+import org.gamedo.scheduling.interfaces.ISchedulerFunction;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -88,7 +88,7 @@ public class Entity implements IEntity {
         final Optional<T> put = (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
 
         getBelongedGameLoop().ifPresent(iGameLoop -> {
-            final CompletableFuture<Integer> future = iGameLoop.submit(IScheduleRegisterFunction.registerSchedule(component));
+            final CompletableFuture<Integer> future = iGameLoop.submit(ISchedulerFunction.registerSchedule(component));
             future.whenCompleteAsync((i, t) -> {
                 if (t != null) {
                     log.error("exception caught on register schedule after adding component, clazz:" + clazz.getName(), t);
@@ -109,7 +109,7 @@ public class Entity implements IEntity {
     @Subscribe
     public void eventPreRegisterEntity(final EventPreRegisterEntity event) {
         if (id.equals(event.getEntityId())) {
-            final Optional<IScheduleRegister> optional = belongedGameLoop.getComponent(IScheduleRegister.class);
+            final Optional<IScheduler> optional = belongedGameLoop.getComponent(IScheduler.class);
             optional.ifPresent(register -> {
                 final Set<Object> components = new HashSet<>(componentMap.values());
                 components.forEach(object -> register.register(object));
@@ -120,7 +120,7 @@ public class Entity implements IEntity {
     @Subscribe
     public void eventUnregisterEntity(final EventPreUnregisterEntity event) {
         if (id.equals(event.getEntityId())) {
-            final Optional<IScheduleRegister> iScheduleRegister = belongedGameLoop.getComponent(IScheduleRegister.class);
+            final Optional<IScheduler> iScheduleRegister = belongedGameLoop.getComponent(IScheduler.class);
             iScheduleRegister.ifPresent(register -> {
                 final Set<Object> components = new HashSet<>(componentMap.values());
                 components.forEach(object -> register.unregister(object.getClass()));

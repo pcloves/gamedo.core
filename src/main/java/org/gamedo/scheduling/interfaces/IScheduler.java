@@ -6,10 +6,14 @@ import org.gamedo.scheduling.CronScheduled;
 
 import java.lang.reflect.Method;
 
-public interface IScheduleRegister extends IComponent {
+/**
+ * cron调度器，提供在某个{@link IGameLoop}线程上，执行cron调度的功能
+ * @see CronScheduled#value()
+ */
+public interface IScheduler extends IComponent {
 
     /**
-     * 将某个拥有标注{@link CronScheduled}的无参构造方法的类注册到调度注册器中，那么该组件就可以实现线程（也即{@link IGameLoop}）
+     * 将某拥有标注{@link CronScheduled}的无参方法的类注册到调度注册器中，那么该组件就可以实现线程（也即{@link IGameLoop}）
      * 内的cron调度
      *
      * @param object 要注册的类的实体

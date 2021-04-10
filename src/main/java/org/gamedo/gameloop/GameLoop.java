@@ -12,8 +12,8 @@ import org.gamedo.eventbus.EventBus;
 import org.gamedo.eventbus.interfaces.IEventBus;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.component.ScheduleRegister;
-import org.gamedo.scheduling.interfaces.IScheduleRegister;
+import org.gamedo.scheduling.Scheduler;
+import org.gamedo.scheduling.interfaces.IScheduler;
 
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -25,7 +25,7 @@ public class GameLoop extends Entity implements IGameLoop {
     private final Optional<IGameLoop> gameLoopOptional = Optional.of(this);
     private final IEntityManager entityMgr;
 
-    @Delegate(types = ExecutorService.class)
+    @Delegate(types = ScheduledExecutorService.class)
     private final ScheduledExecutorService scheduledExecutorService;
 
     private ScheduledFuture<?> future;
@@ -60,7 +60,7 @@ public class GameLoop extends Entity implements IGameLoop {
 
         addComponent(IEventBus.class, new EventBus(this));
         addComponent(IEntityManager.class, entityMgr);
-        addComponent(IScheduleRegister.class, new ScheduleRegister(this, this));
+        addComponent(IScheduler.class, new Scheduler(this, this));
     }
 
     public GameLoop(final Supplier<String> idSupplier) {

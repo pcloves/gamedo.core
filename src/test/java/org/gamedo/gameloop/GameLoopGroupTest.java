@@ -2,7 +2,6 @@ package org.gamedo.gameloop;
 
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
-import org.gamedo.ecs.interfaces.IEntityFunction;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
@@ -10,22 +9,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 
 @Log4j2
-@SpringBootTest
-@SpringBootApplication
-@EnableScheduling
 class GameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;

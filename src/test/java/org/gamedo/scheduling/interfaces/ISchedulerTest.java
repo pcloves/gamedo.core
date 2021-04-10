@@ -68,7 +68,8 @@ class ISchedulerTest {
         log.info("begin sleep {} seconds", sleepSecond);
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(sleepSecond));
 
-        Assertions.assertTrue(Math.abs(sleepSecond - component.value.get()) <= 1);
+        Assertions.assertTrue(Math.abs(sleepSecond - component.value.get()) <= 1,
+                () -> "expected:" + sleepSecond + ", actual:" + component.value.get());
     }
 
     @Test
@@ -92,8 +93,9 @@ class ISchedulerTest {
         log.info("begin sleep {} seconds", sleepSecond);
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(sleepSecond));
         log.info("finish sleep");
-        final int expect = sleepSecond / 10 + sleepSecond;
-        Assertions.assertTrue(Math.abs(expect - object.value.get()) <= 1);
+        final int expected = sleepSecond / 10 + sleepSecond;
+        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1,
+                () -> "expected:" + expected + ", actual:" + object.value.get());
     }
 
     @Test
@@ -127,7 +129,8 @@ class ISchedulerTest {
         Assertions.assertTrue(result1);
 
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(6));
-        Assertions.assertTrue(Math.abs(1 - object.valueDynamic.get()) <= 1);
+        Assertions.assertTrue(Math.abs(1 - object.valueDynamic.get()) <= 1,
+                () -> "expected:" + expected + ", actual:" + object.value.get());
     }
 
     @Test
@@ -147,7 +150,8 @@ class ISchedulerTest {
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(sleepSecond));
         log.info("finish sleep");
         final int expected = sleepSecond / 10 + sleepSecond;
-        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1, () -> "expected:" + expected + ", actual:" + object.value.get());
+        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1,
+                () -> "expected:" + expected + ", actual:" + object.value.get());
 
         final CompletableFuture<Integer> future1 = iGameLoop.submit(ISchedulerFunction.unregisterSchedule(object.getClass()));
         final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
@@ -159,7 +163,8 @@ class ISchedulerTest {
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(sleepSecond1));
         log.info("finish sleep");
 
-        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1);
+        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1,
+                () -> "expected:" + expected + ", actual:" + object.value.get());
     }
 
     @Test
@@ -193,7 +198,8 @@ class ISchedulerTest {
 
         final int sleepSecond1 = ThreadLocalRandom.current().nextInt(10);
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(sleepSecond1));
-        Assertions.assertTrue(Math.abs(expected + sleepSecond1 - object.value.get()) <= 1);
+        Assertions.assertTrue(Math.abs(expected + sleepSecond1 - object.value.get()) <= 1,
+                () -> "expected:" + expected + ", actual:" + object.value.get());
     }
 
     @Test

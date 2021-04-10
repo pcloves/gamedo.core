@@ -29,16 +29,10 @@ import java.util.stream.IntStream;
 class GameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
-    @Autowired
-    private TaskScheduler taskScheduler;
 
     @BeforeEach
     void setUp() {
         gameLoopGroup = new GameLoopGroup("GameLoopGroup");
-        final int gameLoopCount = gameLoopGroup.selectAll().length;
-        IntStream.rangeClosed(1, gameLoopCount)
-                .mapToObj(value -> gameLoopGroup.selectNext())
-                .forEach(iGameLoop -> iGameLoop.submit(IEntityFunction.addComponent(TaskScheduler.class, taskScheduler)));
     }
 
     @AfterEach
@@ -111,6 +105,8 @@ class GameLoopGroupTest {
         final int mod = entityCountBase % gameLoopCount;
         final int entityCount = Math.max(gameLoopCount, entityCountBase - mod);
 
+        log.info("gameLoop count:{}", gameLoopCount);
+        log.info("entity count:{}", entityCount);
         final List<CompletableFuture<Boolean>> submitFutureList = new ArrayList<>(entityCount);
         final Map<String, CompletableFuture<Boolean>> futureMap = new ConcurrentHashMap<>(entityCount);
         for (int i = 0; i < entityCount; i++) {
@@ -130,11 +126,13 @@ class GameLoopGroupTest {
             submitFutureList.add(submit);
         }
 
+        log.info("begin parallel join");
         final long submitFailedCount = submitFutureList.stream()
                 .parallel()
                 .map(CompletableFuture::join)
                 .filter(b -> !b.booleanValue())
                 .count();
+        log.info("finish parallel join");
 
         Assertions.assertEquals(0, submitFailedCount);
 
@@ -150,6 +148,7 @@ class GameLoopGroupTest {
                 .filter(b -> !b.booleanValue())
                 .count();
 
+        log.info("finish tick");
         Assertions.assertEquals(0, tickFailedcount);
 
         gameLoopGroup.shutdown();

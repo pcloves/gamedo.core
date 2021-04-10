@@ -7,6 +7,7 @@ import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
 
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +25,7 @@ class SchedulingRunnable implements Runnable {
     private final SimpleTriggerContext triggerContext;
     private final Set<ScheduleInvokeData> scheduleInvokeDataSet = new HashSet<>(128);
     private final Runnable runnable;
+    private Date scheduledExecutionTime;
     private CompletableFuture<Void> future;
 
     SchedulingRunnable(Scheduler scheduleRegister, CronTrigger trigger, SimpleTriggerContext triggerContext, Runnable runnable) {
@@ -48,8 +50,8 @@ class SchedulingRunnable implements Runnable {
 
     SchedulingRunnable schedule() {
 
-        final long nextExecutionTime = trigger.nextExecutionTime(triggerContext).getTime();
-        final long delay = nextExecutionTime - triggerContext.getClock().millis();
+        scheduledExecutionTime = trigger.nextExecutionTime(triggerContext);
+        final long delay = scheduledExecutionTime.getTime() - triggerContext.getClock().millis();
         final Executor executor = CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS, scheduleRegister.iGameLoop);
 
         future = CompletableFuture.runAsync(this, executor);
@@ -59,6 +61,7 @@ class SchedulingRunnable implements Runnable {
 
     @Override
     public void run() {
+        final Date actualExecutionTime = new Date(triggerContext.getClock().millis());
         final String threadName = Thread.currentThread().getName();
         try {
             runnable.run();
@@ -66,6 +69,8 @@ class SchedulingRunnable implements Runnable {
                     () -> trigger.getExpression(),
                     () -> threadName);
         } catch (Throwable e) {
+            Date completionTime = new Date(triggerContext.getClock().millis());
+            triggerContext.update(scheduledExecutionTime, actualExecutionTime, completionTime);
             log.error("exception caught when run, cron:" + trigger.getExpression() + ", thread:" + threadName, e);
         }
         finally {

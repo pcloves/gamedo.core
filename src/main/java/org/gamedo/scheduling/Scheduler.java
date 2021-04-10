@@ -138,7 +138,7 @@ public class Scheduler extends Component implements IScheduler {
         final Set<ScheduleInvokeData> scheduleInvokeDataSet = schedulingRunnable.getScheduleInvokeDataSet();
         final ScheduleInvokeData scheduleInvokeData = new ScheduleInvokeData(object, method);
         if (scheduleInvokeDataSet.contains(scheduleInvokeData)) {
-            log.warn("the method {} has registered, clazz:{}", method.getName(), clazz.getName());
+            log.warn("duplicate methods registered, clazz:{}, method:{}", clazz.getName(), method);
             return false;
         }
 
@@ -173,7 +173,16 @@ public class Scheduler extends Component implements IScheduler {
                 .filter(schedulingRunnable -> schedulingRunnable.removeMethod(method))
                 .collect(Collectors.toList());
 
-        cronToscheduleDataMap.values().removeIf(schedulingRunnable -> schedulingRunnable.getScheduleInvokeDataSet().isEmpty());
+        cronToscheduleDataMap.values().removeIf(runnable -> {
+            final boolean empty = runnable.getScheduleInvokeDataSet().isEmpty();
+            if (empty) {
+                log.debug("stop schedule {}", () -> runnable.getTrigger().getExpression());
+                //可能有调度正在等待中，直接取消掉吧
+                runnable.getFuture().cancel(false);
+            }
+
+            return empty;
+        });
 
         return !schedulingRunnableList.isEmpty();
     }

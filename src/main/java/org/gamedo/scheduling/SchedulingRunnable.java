@@ -1,7 +1,7 @@
 package org.gamedo.scheduling;
 
+import lombok.Getter;
 import lombok.ToString;
-import lombok.Value;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
@@ -14,16 +14,24 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@Value
 @Log4j2
+@Getter
 @ToString(onlyExplicitlyIncluded = true)
 class SchedulingRunnable implements Runnable {
-    Scheduler scheduleRegister;
+    private final Scheduler scheduleRegister;
     @ToString.Include
-    CronTrigger trigger;
-    SimpleTriggerContext triggerContext;
-    Set<ScheduleInvokeData> scheduleInvokeDataSet = new HashSet<>(128);
-    Runnable runnable;
+    private final CronTrigger trigger;
+    private final SimpleTriggerContext triggerContext;
+    private final Set<ScheduleInvokeData> scheduleInvokeDataSet = new HashSet<>(128);
+    private final Runnable runnable;
+    private CompletableFuture<Void> future;
+
+    SchedulingRunnable(Scheduler scheduleRegister, CronTrigger trigger, SimpleTriggerContext triggerContext, Runnable runnable) {
+        this.scheduleRegister = scheduleRegister;
+        this.trigger = trigger;
+        this.triggerContext = triggerContext;
+        this.runnable = runnable;
+    }
 
     boolean containsMethod(Method method) {
         return scheduleInvokeDataSet.stream()
@@ -44,7 +52,7 @@ class SchedulingRunnable implements Runnable {
         final long delay = nextExecutionTime - triggerContext.getClock().millis();
         final Executor executor = CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS, scheduleRegister.iGameLoop);
 
-        CompletableFuture.runAsync(this, executor);
+        future = CompletableFuture.runAsync(this, executor);
 
         return this;
     }

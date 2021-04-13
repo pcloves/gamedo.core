@@ -1,7 +1,7 @@
 package org.gamedo.ecs;
 
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.ecs.interfaces.IEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class EntityTest {
         };
 
         gameLoop.run(0, 10, TimeUnit.MICROSECONDS);
-        gameLoop.submit(IEntityManagerFunction.registerEntity(entity));
+        gameLoop.submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
 
         final Boolean inGameLoop = assertDoesNotThrow(() -> future.get());
         assertTrue(inGameLoop);

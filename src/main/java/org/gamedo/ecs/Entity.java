@@ -11,7 +11,7 @@ import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.eventbus.interfaces.Subscribe;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
-import org.gamedo.scheduling.interfaces.ISchedulerFunction;
+import org.gamedo.scheduling.interfaces.IGameLoopSchedulerFunction;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -91,7 +91,7 @@ public class Entity implements IEntity {
         final Optional<T> put = (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
 
         getBelongedGameLoop().ifPresent(iGameLoop -> {
-            final CompletableFuture<Integer> future = iGameLoop.submit(ISchedulerFunction.registerSchedule(component));
+            final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(component));
             future.whenCompleteAsync((i, t) -> {
                 if (t != null) {
                     log.error("exception caught on register schedule after adding component, clazz:" + clazz.getName(), t);

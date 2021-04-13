@@ -6,7 +6,7 @@ import org.gamedo.scheduling.GameLoopScheduled;
 
 import java.lang.reflect.Method;
 
-public interface ISchedulerFunction {
+public interface IGameLoopSchedulerFunction {
 
     /**
      * 定义一个行为：向{@link IGameLoop}的{@link IGameLoopScheduler}组件注册cron调度，object

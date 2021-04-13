@@ -3,7 +3,7 @@ package org.gamedo.eventbus.interfaces;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
-public interface IEventBusFunction {
+public interface IGameLoopEventBusFunction {
 
     /**
      * 定义一个行为：发送一个事件到{@link IGameLoop}的{@link IGameLoopEventBus}组件上

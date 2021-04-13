@@ -3,7 +3,7 @@ package org.gamedo.gameloop;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
 import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
 import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -107,7 +107,7 @@ class GameLoopTest {
             }
         };
 
-        gameLoop.submit(IEntityManagerFunction.registerEntity(entity));
+        gameLoop.submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
         gameLoop.run(0, 10, TimeUnit.MILLISECONDS);
 
         final List<Boolean> list = Assertions.assertDoesNotThrow(() -> future7.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
@@ -142,7 +142,7 @@ class GameLoopTest {
     void testRegisterEntity()
     {
         final String entityId = "test1";
-        final CompletableFuture<Boolean> future = gameLoop.submit(IEntityManagerFunction.registerEntity(new Entity(entityId)));
+        final CompletableFuture<Boolean> future = gameLoop.submit(IGameLoopEntityRegisterFunction.registerEntity(new Entity(entityId)));
         final Boolean registerResult = Assertions.assertDoesNotThrow(() -> future.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(registerResult);
 

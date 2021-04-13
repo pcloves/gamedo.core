@@ -2,7 +2,7 @@ package org.gamedo.gameloop;
 
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
-import org.gamedo.ecs.interfaces.IEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.junit.jupiter.api.AfterEach;
@@ -71,16 +71,16 @@ class GameLoopGroupTest {
     void testSelectFunction() {
         final IGameLoop iGameLoop1 = gameLoopGroup.selectNext();
         final String id = UUID.randomUUID().toString();
-        final CompletableFuture<Boolean> future = iGameLoop1.submit(IEntityManagerFunction.registerEntity(new Entity(id)));
+        final CompletableFuture<Boolean> future = iGameLoop1.submit(IGameLoopEntityRegisterFunction.registerEntity(new Entity(id)));
         future.join();
 
         //选择实体数量最多的一个（实际业务中，是选取实体数量最少的一个，这里是为了方便测试）
-        final List<IGameLoop> gameLoopList1 = gameLoopGroup.select(IEntityManagerFunction.getEntityCount(), Comparator.reverseOrder(), 1);
+        final List<IGameLoop> gameLoopList1 = gameLoopGroup.select(IGameLoopEntityRegisterFunction.getEntityCount(), Comparator.reverseOrder(), 1);
         Assertions.assertEquals(1, gameLoopList1.size());
         Assertions.assertSame(iGameLoop1, gameLoopList1.get(0));
 
         //选择实体所在的那个IGameLoop
-        final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IEntityManagerFunction.hasEntity(id), Comparator.reverseOrder(), 1);
+        final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IGameLoopEntityRegisterFunction.hasEntity(id), Comparator.reverseOrder(), 1);
         Assertions.assertEquals(1, gameLoopList2.size());
         Assertions.assertSame(iGameLoop1, gameLoopList2.get(0));
     }
@@ -112,7 +112,7 @@ class GameLoopGroupTest {
                 }
             };
 
-            final CompletableFuture<Boolean> submit = iGameLoop.submit(IEntityManagerFunction.registerEntity(entity));
+            final CompletableFuture<Boolean> submit = iGameLoop.submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
             submitFutureList.add(submit);
         }
 

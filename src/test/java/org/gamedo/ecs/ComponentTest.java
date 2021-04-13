@@ -2,7 +2,7 @@ package org.gamedo.ecs;
 
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
 import org.gamedo.ecs.interfaces.ITickable;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -40,7 +40,7 @@ class ComponentTest {
 
         Assertions.assertEquals(Optional.empty(), component.getOwnerBelongedGameLoop());
 
-        final CompletableFuture<Boolean> future = iGameLoop.submit(IEntityManagerFunction.registerEntity(entity));
+        final CompletableFuture<Boolean> future = iGameLoop.submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
         future.join();
 
         Assertions.assertEquals(iGameLoop, component.getOwnerBelongedGameLoop().get());

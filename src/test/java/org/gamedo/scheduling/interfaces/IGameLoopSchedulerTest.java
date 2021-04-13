@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Component;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
 import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -57,7 +57,7 @@ class IGameLoopSchedulerTest {
         entity.addComponent(ScheduledComponent.class, component);
 
         log.info("registerEntity begin");
-        final CompletableFuture<Boolean> future = gameLoopGroup.selectNext().submit(IEntityManagerFunction.registerEntity(entity));
+        final CompletableFuture<Boolean> future = gameLoopGroup.selectNext().submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
 
         final Boolean result = Assertions.assertDoesNotThrow(() -> future.get());
         Assertions.assertTrue(result);
@@ -78,12 +78,12 @@ class IGameLoopSchedulerTest {
         final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
 
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(ISchedulerFunction.registerSchedule(object));
+        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
 
-        final CompletableFuture<Integer> future1 = iGameLoop.submit(ISchedulerFunction.registerSchedule(object));
+        final CompletableFuture<Integer> future1 = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(object));
         final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(0, result1);
@@ -104,7 +104,7 @@ class IGameLoopSchedulerTest {
         final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
 
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(ISchedulerFunction.registerSchedule(object));
+        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
@@ -121,7 +121,7 @@ class IGameLoopSchedulerTest {
         Assertions.assertEquals(1, methods.size());
 
         final Method method = methods.get(0);
-        final GameLoopFunction<Boolean> function = ISchedulerFunction.registerSchedule(object, method, CRON_5_SECONDLY_EXPRESSION);
+        final GameLoopFunction<Boolean> function = IGameLoopSchedulerFunction.registerSchedule(object, method, CRON_5_SECONDLY_EXPRESSION);
         final CompletableFuture<Boolean> future1 = iGameLoop.submit(function);
         final boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("registerSchedule method {} using {} dynamiclly finish.", method, CRON_5_SECONDLY_EXPRESSION);
@@ -139,7 +139,7 @@ class IGameLoopSchedulerTest {
         final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
 
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(ISchedulerFunction.registerSchedule(object));
+        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
@@ -152,7 +152,7 @@ class IGameLoopSchedulerTest {
         Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1,
                 () -> "expected:" + expected + ", actual:" + object.value.get());
 
-        final CompletableFuture<Integer> future1 = iGameLoop.submit(ISchedulerFunction.unregisterSchedule(object.getClass()));
+        final CompletableFuture<Integer> future1 = iGameLoop.submit(IGameLoopSchedulerFunction.unregisterSchedule(object.getClass()));
         final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("unregisterSchedule finish.");
         Assertions.assertEquals(2, result1);
@@ -173,7 +173,7 @@ class IGameLoopSchedulerTest {
         final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
 
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(ISchedulerFunction.registerSchedule(object));
+        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
@@ -190,7 +190,7 @@ class IGameLoopSchedulerTest {
         final List<Method> methods = ReflectionUtils.findMethods(object.getClass(), predicate);
         Assertions.assertEquals(1, methods.size());
 
-        final GameLoopFunction<Boolean> function = ISchedulerFunction.unregisterSchedule(object.getClass(), methods.get(0));
+        final GameLoopFunction<Boolean> function = IGameLoopSchedulerFunction.unregisterSchedule(object.getClass(), methods.get(0));
         final CompletableFuture<Boolean> future1 = iGameLoop.submit(function);
         final Boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("unregisterSchedule {} finish.", SCHEDULE_10_SECOND_METHOD_NAME);
@@ -213,7 +213,7 @@ class IGameLoopSchedulerTest {
                 .collect(Collectors.toList());
 
         final List<CompletableFuture<Integer>> completableFutureList = scheduledSubObjectList.stream()
-                .map(scheduledSubObject -> iGameLoop.submit(ISchedulerFunction.registerSchedule(scheduledSubObject)))
+                .map(scheduledSubObject -> iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(scheduledSubObject)))
                 .collect(Collectors.toList());
 
         final List<Integer> failedList = completableFutureList.stream()

@@ -3,7 +3,7 @@ package org.gamedo.ecs.interfaces;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
-public interface IEntityManagerFunction {
+public interface IGameLoopEntityRegisterFunction {
     /**
      * 定义一个行为：将某个{@link IEntity}注册到一个{@link IGameLoop}上
      *

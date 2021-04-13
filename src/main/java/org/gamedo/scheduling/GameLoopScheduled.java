@@ -1,20 +1,60 @@
 package org.gamedo.scheduling;
 
+import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.components.GameLoopEntityRegister;
+import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.lang.annotation.*;
 
+/**
+ * 该注解被标注在一个方法上，代表所归属的类具备在{@link IGameLoop}线程内进行cron调度的能力，一般性的使用方法：
+ * <ul>
+ * <li>定义需要进行cron调度的类，并定义只有一个{@link Long}类型参数的方法（我们称之为cron方法），并且cron方法的数量不受限制（但是如果两个
+ * cron方法配置了相同的cron表达式，gamedo.core也是允许的，仅仅是打印一个warn日志，或许后续的gamedo.core版本会开放出开关配置）
+ * <li>在方法上增加本注解，并配置合法有效的spring cron表达式（如果cron表达式比较复杂，务必先通过第三方的验证器进行验证，防止无谓的时间浪费）
+ * 示例如下：
+ * <pre>
+ *     class MySchedule
+ *     {
+ *         &#064;GameLoopScheduled("*&#47;10 * * * * *")
+ *         private void cron(Long lastTriggerTime)
+ *         {
+ *             //lastTriggerTime代表上一次的运行时间，如果是第一次调用，那么该值为：-1
+ *             //执行自己的逻辑
+ *         }
+ *     }
+ * </pre>
+ * <li>将该类的实例注册到{@link IGameLoop}上，如下所示：
+ * </ul>
+ * <pre>
+ * final IGameLoop iGamLoop = ...
+ * final MySchedule mySchedule = new MySchedule()
+ * final CompletableFuture&lt;Integer&gt; future = iGameLoop.submit(ISchedulerFunction.registerSchedule(mySchedule))
+ * </pre>
+ * 此外，针对如下场景，gamedo.core也提供了便利的机制：
+ * <ul>
+ * <li>对于一个{@link IEntity}实体，当将其注册到某个{@link IGameLoop}中时，对于该实体内的所有组件，将会自动注册包含本注解的方法；
+ * 同理，当该实体从{@link IGameLoop}反注册时，也会自动反注册所有组件中包含本注释的方法，该机制由{@link GameLoopEntityRegister}和{@link Entity}
+ * 共同实现
+ * <li>对于已经被注册到{@link IGameLoop}上的{@link IEntity}实体，当之后为其添加组件时，也会自动该组件的cron方法进行注册
+ * <li>{@link IGameLoopScheduler}作为{@link IGameLoop}的cron调度组件，负责本{@link IGameLoop}下的所有cron方法的注册、反注册等管理
+ * 工作，除了提供上述将某个Object进行注册的方式外（会注册所有的cron方法），还提供了针对Object的单个cron方法进行注册和反注册的方式。此外，对于
+ * 极端的需求场景：没有标注本注解，但是仍然需要进行cron调度的动态注册和反注册需求，{@link IGameLoopScheduler}也提供了相应的机制
+ * </ul>
+ */
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface CronScheduled {
+public @interface GameLoopScheduled {
 
     /**
      * 以下注释翻译自：{@link CronExpression#parse(String)}<p>
      * spring cron表达式字符串，spring cron表达式是一个使用空格分隔且包含6个时间和日期字段的字符串表达式（类似于unix-based cron，但是有所区别，详情可以查看：
      * <a href=https://stackoverflow.com/questions/30887822/spring-cron-vs-normal-cron>stackoverflow: Spring cron vs normal cron?</a>），
      * 其形式为：
-     * <p>
      * <pre>
      * ┌───────────── 秒 (0-59)
      * │ ┌───────────── 分 (0 - 59)
@@ -26,7 +66,6 @@ public @interface CronScheduled {
      * │ │ │ │ │ │
      * * * * * * *
      * </pre>
-     * <p>
      * cron表达式遵循以下规则：
      * <ul>
      * <li>字段可以是一个星号（*），代表从头到尾，对于“日”、“星期”字段来说，问号可能会取代星号

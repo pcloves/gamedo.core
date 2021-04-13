@@ -5,15 +5,15 @@ import lombok.experimental.Delegate;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.concurrent.NamedThreadFactory;
 import org.gamedo.ecs.Entity;
-import org.gamedo.ecs.components.EntityManager;
+import org.gamedo.ecs.components.GameLoopEntityRegister;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManager;
-import org.gamedo.eventbus.EventBus;
-import org.gamedo.eventbus.interfaces.IEventBus;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
+import org.gamedo.eventbus.GameLoopEventBus;
+import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.Scheduler;
-import org.gamedo.scheduling.interfaces.IScheduler;
+import org.gamedo.scheduling.GameLoopScheduler;
+import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
 
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 public class GameLoop extends Entity implements IGameLoop {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<IGameLoop> gameLoopOptional = Optional.of(this);
-    private final IEntityManager entityMgr;
+    private final IGameLoopEntityRegister entityMgr;
 
     @Delegate(types = ScheduledExecutorService.class)
     private final ScheduledExecutorService scheduledExecutorService;
@@ -56,13 +56,18 @@ public class GameLoop extends Entity implements IGameLoop {
         };
 
         //直接缓存起来，不用每次都查询组件了
-        entityMgr = new EntityManager(this, this, null);
+        entityMgr = new GameLoopEntityRegister(this, this, null);
 
-        addComponent(IEventBus.class, new EventBus(this));
-        addComponent(IEntityManager.class, entityMgr);
-        addComponent(IScheduler.class, new Scheduler(this, this));
+        addComponent(IGameLoopEventBus.class, new GameLoopEventBus(this));
+        addComponent(IGameLoopEntityRegister.class, entityMgr);
+        final GameLoopScheduler gameLoopScheduler = new GameLoopScheduler(this, this);
+        //外部接口
+        addComponent(IGameLoopScheduler.class, gameLoopScheduler);
+        //内部使用
+        addComponent(GameLoopScheduler.class, gameLoopScheduler);
     }
 
+    @SuppressWarnings("unused")
     public GameLoop(final Supplier<String> idSupplier) {
         this(idSupplier.get());
     }

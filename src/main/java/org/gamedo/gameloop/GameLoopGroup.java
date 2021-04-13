@@ -122,6 +122,8 @@ public class GameLoopGroup extends Entity implements IGameLoopGroup {
     @Override
     public List<IGameLoop> run(long initialDelay, long period, TimeUnit periodTimeUnit) {
 
+        log.info("{} run delay:{}, period:{}, timeUnit:{}", getId(), initialDelay, period, periodTimeUnit);
+
         return Arrays.stream(gameLoops)
                 .filter(iGameLoop -> !iGameLoop.run(initialDelay, period, periodTimeUnit))
                 .collect(Collectors.toList());

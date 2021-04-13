@@ -1,0 +1,27 @@
+{
+  "properties": [
+    {
+      "name": "gamedo.core.gameLoop.delay",
+      "type": "java.lang.Long",
+      "description": "GameLoop第一次心跳时的延迟时间.",
+      "defaultValue": 25
+    },
+    {
+      "name": "gamedo.core.gameLoop.period",
+      "type": "java.lang.Long",
+      "description": "GameLoop的心跳间隔.",
+      "defaultValue": 25
+    },
+    {
+      "name": "gamedo.core.gameLoop.timeUnit",
+      "type": "java.util.concurrent.TimeUnit",
+      "description": "GameLoop的心跳单位.",
+      "defaultValue": "java.util.concurrent.TimeUnit.MILLISECONDS"
+    },
+    {
+      "name": "gamedo.core.gameLoop.autoStart",
+      "type": "java.lang.Boolean",
+      "description": "GameLoop自动开启心跳.."
+    }
+  ]
+}

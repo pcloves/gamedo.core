@@ -1,15 +1,17 @@
 package org.gamedo.ecs.interfaces;
 
+import org.gamedo.gameloop.interfaces.IGameLoop;
+
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * {@link IEntity 实体}管理器，负责实体的增加、删除、和查询
+ * {@link IGameLoop}的{@link IEntity 实体}注册组件，负责实体的增加、删除和查询
  */
-public interface IEntityManager extends IComponent {
+public interface IGameLoopEntityRegister extends IComponent {
 
     /**
-     * 注册一个实体到本{@link IEntityManager 管理器}中
+     * 注册一个实体到本{@link IGameLoopEntityRegister 管理器}中
      *
      * @param entity 要注册的实体
      * @return 当且仅当注册成功时返回true，如果已经存在一个相同Id的实体，则注册失败

@@ -6,8 +6,7 @@ import org.gamedo.ecs.Component;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.interfaces.IScheduler;
-import org.gamedo.scheduling.interfaces.ISchedulerFunction;
+import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
@@ -21,14 +20,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-public class Scheduler extends Component implements IScheduler {
+public class GameLoopScheduler extends Component implements IGameLoopScheduler {
 
     /**
-     * 所归属的{@link IGameLoop}
+     * 要cron调度被投递的目标{@link IGameLoop}
      */
     final IGameLoop iGameLoop;
     /**
-     * cron表达式 --> 调度数据
+     * cron表达式 --> 该表达式对应的所有运行时数据
      */
     private final Map<String, SchedulingRunnable> cronToscheduleDataMap = new HashMap<>(32);
     /**
@@ -39,7 +38,7 @@ public class Scheduler extends Component implements IScheduler {
         return () -> {
 
             final String cron = data.getCron();
-            final Scheduler scheduleRegister = data.getScheduleRegister();
+            final GameLoopScheduler scheduleRegister = data.getScheduleRegister();
             final IGameLoop gameLoop = scheduleRegister.iGameLoop;
             final Logger log1 = data.getLog();
             if (gameLoop.isShutdown()) {
@@ -47,26 +46,37 @@ public class Scheduler extends Component implements IScheduler {
                 return;
             }
 
+            //先定义行为：查询到组件后，派发cron调度
+            final GameLoopFunction<Integer> schedule = gameLoop1 -> gameLoop1.getComponent(GameLoopScheduler.class)
+                    .map(scheduler -> scheduler.schedule(cron))
+                    .orElse(0);
             //投递到本线程中
-            final GameLoopFunction<Integer> schedule = ISchedulerFunction.schedule(cron);
             final CompletableFuture<Integer> completableFuture = gameLoop.submit(schedule);
             completableFuture.whenCompleteAsync((c, t) -> {
                 if (t != null) {
                     log1.error("exception caught, cron:" + cron, t);
+                } else {
+                    if (c == 0) {
+                        log1.error("none cron method is triggered, cron:{}", cron);
+                    }
                 }
             }, gameLoop);
         };
     };
 
-    public Scheduler(IEntity owner, IGameLoop iGameLoop) {
+    public GameLoopScheduler(IEntity owner, IGameLoop iGameLoop) {
         super(owner);
         this.iGameLoop = iGameLoop;
     }
 
-    public static boolean safeInvoke(ScheduleInvokeData scheduleInvokeData) {
+    public static boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
         ReflectionUtils.makeAccessible(scheduleInvokeData.getMethod());
         try {
-            scheduleInvokeData.getMethod().invoke(scheduleInvokeData.getObject());
+            final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
+            final Long lastExecutionTime = Optional.ofNullable(triggerContext.lastActualExecutionTime())
+                    .map(date -> date.getTime())
+                    .orElse(Long.valueOf(-1));
+            scheduleInvokeData.getMethod().invoke(scheduleInvokeData.getObject(), lastExecutionTime);
         } catch (IllegalAccessException | InvocationTargetException e) {
             log.error("exception caught. method:" + scheduleInvokeData.getMethod() + ", data:" + scheduleInvokeData.getObject(), e);
             return false;
@@ -80,12 +90,12 @@ public class Scheduler extends Component implements IScheduler {
 
         final Class<?> clazz = object.getClass();
         final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
-                .filter(method -> method.isAnnotationPresent(CronScheduled.class) && !method.isSynthetic())
+                .filter(method -> method.isAnnotationPresent(GameLoopScheduled.class) && !method.isSynthetic())
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
             log.debug("the Object has none annotated method, annotation:{}, clazz:{}",
-                    () -> CronScheduled.class.getSimpleName(),
+                    () -> GameLoopScheduled.class.getSimpleName(),
                     () -> clazz.getName());
             return 0;
         }
@@ -96,11 +106,11 @@ public class Scheduler extends Component implements IScheduler {
     @Override
     public boolean register(Object object, Method method) {
 
-        if (!method.isAnnotationPresent(CronScheduled.class)) {
+        if (!method.isAnnotationPresent(GameLoopScheduled.class)) {
             return false;
         }
 
-        final CronScheduled annotation = method.getAnnotation(CronScheduled.class);
+        final GameLoopScheduled annotation = method.getAnnotation(GameLoopScheduled.class);
         final String cron = annotation.value();
 
         return register(object, method, cron);
@@ -110,8 +120,9 @@ public class Scheduler extends Component implements IScheduler {
     public boolean register(Object object, Method method, String cron) {
 
         final Class<?> clazz = object.getClass();
-        if (method.getParameterCount() != 0) {
-            log.error("schedule method need has zero parameter, clazz:{}, method:{}, cron:{}",
+        if (method.getParameterCount() != 1 ||
+                method.getParameters()[0].getType() != Long.class) {
+            log.error("schedule method should has one parameter of 'java.lang.Long', clazz:{}, method:{}, cron:{}",
                     clazz.getName(),
                     method.getName(),
                     cron);
@@ -151,12 +162,12 @@ public class Scheduler extends Component implements IScheduler {
     public int unregister(Class<?> clazz) {
 
         final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
-                .filter(method -> method.isAnnotationPresent(CronScheduled.class) && !method.isSynthetic())
+                .filter(method -> method.isAnnotationPresent(GameLoopScheduled.class) && !method.isSynthetic())
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
             log.debug("the Object has none annotated method, annotation:{}, clazz:{}",
-                    () -> CronScheduled.class.getSimpleName(),
+                    () -> GameLoopScheduled.class.getSimpleName(),
                     () -> clazz.getName());
             return 0;
         }
@@ -209,15 +220,23 @@ public class Scheduler extends Component implements IScheduler {
         return sum;
     }
 
-    @Override
-    public int schedule(String cron) {
+    private int schedule(String cron) {
+
+        if (IGameLoop.currentGameLoop()
+                .filter(iGameLoop1 -> iGameLoop1 == iGameLoop)
+                .isEmpty()) {
+            log.error("this method can only be called by the IGameLoop it belong to, gameLoop{}", iGameLoop.getId());
+            return 0;
+        }
+
         if (!cronToscheduleDataMap.containsKey(cron)) {
             return 0;
         }
 
-        return cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet()
+        final SchedulingRunnable runnable = cronToscheduleDataMap.get(cron);
+        return runnable.getScheduleInvokeDataSet()
                 .stream()
-                .mapToInt(scheduleInvokeData -> safeInvoke(scheduleInvokeData) ? 1 : 0)
+                .mapToInt(scheduleInvokeData -> safeInvoke(runnable, scheduleInvokeData) ? 1 : 0)
                 .sum();
     }
 

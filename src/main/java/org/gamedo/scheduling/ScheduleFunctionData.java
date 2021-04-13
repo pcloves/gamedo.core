@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 @Value
 class ScheduleFunctionData {
-    Scheduler scheduleRegister;
+    GameLoopScheduler scheduleRegister;
     String cron;
     Logger log;
 }

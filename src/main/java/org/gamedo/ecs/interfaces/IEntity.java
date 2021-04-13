@@ -55,8 +55,9 @@ public interface IEntity extends ITickable {
      *
      * @param clazz     该组件的类型
      * @param component 要添加的组件
-     * @param <T>       组件的类型
+     * @param <T>       组件要暴露给外界的接口类型
+     * @param <R>       组件的真正实现类型
      * @return 如果之前存在相同clazz的组件，则返回旧组件的{@link Optional}，否则返回{@link Optional#empty()}
      */
-    <T> Optional<T> addComponent(Class<T> clazz, T component);
+    <T, R extends T> Optional<T> addComponent(Class<T> clazz, R component);
 }

@@ -1,15 +1,16 @@
 package org.gamedo.ecs;
 
 import lombok.EqualsAndHashCode;
+import lombok.Synchronized;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.eventbus.event.EventPreRegisterEntity;
 import org.gamedo.eventbus.event.EventPreUnregisterEntity;
-import org.gamedo.eventbus.interfaces.IEventBus;
+import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.eventbus.interfaces.Subscribe;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.interfaces.IScheduler;
+import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.scheduling.interfaces.ISchedulerFunction;
 
 import java.util.*;
@@ -20,8 +21,8 @@ import java.util.function.Supplier;
 @Log4j2
 public class Entity implements IEntity {
     private final String id;
-    private final Map<Class<?>, Object> componentMap;
-    private volatile IGameLoop belongedGameLoop;
+    protected final Map<Class<?>, Object> componentMap;
+    private IGameLoop belongedGameLoop;
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public Entity(final String id, Optional<Map<Class<? extends IComponent>, IComponent>> optionalMap) {
@@ -42,31 +43,33 @@ public class Entity implements IEntity {
         return id;
     }
 
+    @Synchronized
     @Override
     public Optional<IGameLoop> getBelongedGameLoop() {
         return Optional.ofNullable(belongedGameLoop);
     }
 
     @Override
+    @Synchronized
     public void setBelongedGameLoop(IGameLoop belongedGameLoop) {
 
         if (this.belongedGameLoop != null) {
-            final Optional<IEventBus> optionalIEventBus = this.belongedGameLoop.getComponent(IEventBus.class);
+            final Optional<IGameLoopEventBus> optionalIEventBus = this.belongedGameLoop.getComponent(IGameLoopEventBus.class);
             if (optionalIEventBus.isPresent()) {
-                final IEventBus iEventBus = optionalIEventBus.get();
-                iEventBus.unregister(this);
-                componentMap.values().forEach(o -> iEventBus.unregister(o));
+                final IGameLoopEventBus iGameLoopEventBus = optionalIEventBus.get();
+                iGameLoopEventBus.unregister(this);
+                componentMap.values().forEach(o -> iGameLoopEventBus.unregister(o));
             }
         }
 
         this.belongedGameLoop = belongedGameLoop;
 
         if (this.belongedGameLoop != null) {
-            final Optional<IEventBus> optionalIEventBus = this.belongedGameLoop.getComponent(IEventBus.class);
+            final Optional<IGameLoopEventBus> optionalIEventBus = this.belongedGameLoop.getComponent(IGameLoopEventBus.class);
             if (optionalIEventBus.isPresent()) {
-                final IEventBus iEventBus = optionalIEventBus.get();
-                iEventBus.register(this);
-                componentMap.values().forEach(o -> iEventBus.register(o));
+                final IGameLoopEventBus iGameLoopEventBus = optionalIEventBus.get();
+                iGameLoopEventBus.register(this);
+                componentMap.values().forEach(o -> iGameLoopEventBus.register(o));
             }
         }
     }
@@ -84,7 +87,7 @@ public class Entity implements IEntity {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Optional<T> addComponent(Class<T> clazz, T component) {
+    public <T, R extends T> Optional<T> addComponent(Class<T> clazz, R component) {
         final Optional<T> put = (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
 
         getBelongedGameLoop().ifPresent(iGameLoop -> {
@@ -109,7 +112,7 @@ public class Entity implements IEntity {
     @Subscribe
     public void eventPreRegisterEntity(final EventPreRegisterEntity event) {
         if (id.equals(event.getEntityId())) {
-            final Optional<IScheduler> optional = belongedGameLoop.getComponent(IScheduler.class);
+            final Optional<IGameLoopScheduler> optional = belongedGameLoop.getComponent(IGameLoopScheduler.class);
             optional.ifPresent(register -> {
                 final Set<Object> components = new HashSet<>(componentMap.values());
                 components.forEach(object -> register.register(object));
@@ -120,7 +123,7 @@ public class Entity implements IEntity {
     @Subscribe
     public void eventUnregisterEntity(final EventPreUnregisterEntity event) {
         if (id.equals(event.getEntityId())) {
-            final Optional<IScheduler> iScheduleRegister = belongedGameLoop.getComponent(IScheduler.class);
+            final Optional<IGameLoopScheduler> iScheduleRegister = belongedGameLoop.getComponent(IGameLoopScheduler.class);
             iScheduleRegister.ifPresent(register -> {
                 final Set<Object> components = new HashSet<>(componentMap.values());
                 components.forEach(object -> register.unregister(object.getClass()));

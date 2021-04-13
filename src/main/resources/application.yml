@@ -1,0 +1,7 @@
+gamedo:
+  core:
+    gameLoop:
+      delay: 25
+      period: 25
+      timeUnit: MILLISECONDS
+      autoStart: true

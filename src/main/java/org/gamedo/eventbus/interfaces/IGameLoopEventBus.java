@@ -2,7 +2,7 @@ package org.gamedo.eventbus.interfaces;
 
 import org.gamedo.ecs.interfaces.IComponent;
 
-public interface IEventBus extends IComponent {
+public interface IGameLoopEventBus extends IComponent {
 
     /**
      * 注册所有的包含{@link Subscribe}注解的方法
@@ -21,7 +21,7 @@ public interface IEventBus extends IComponent {
     int unregister(Object object);
 
     /**
-     * 投递一个事件到{@link IEventBus}上
+     * 投递一个事件到{@link IGameLoopEventBus}上
      *
      * @param iEvent 要投递的事件
      * @return 正常消费该事件的数量（抛出异常的事件处理器不包含在内）

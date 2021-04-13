@@ -38,11 +38,11 @@ class ComponentTest {
     @Test
     public void testGetBelongedGameLoop() {
 
-        Assertions.assertEquals(Optional.empty(), component.getBelongedGameLoop());
+        Assertions.assertEquals(Optional.empty(), component.getOwnerBelongedGameLoop());
 
         final CompletableFuture<Boolean> future = iGameLoop.submit(IEntityManagerFunction.registerEntity(entity));
         future.join();
 
-        Assertions.assertEquals(iGameLoop, component.getBelongedGameLoop().get());
+        Assertions.assertEquals(iGameLoop, component.getOwnerBelongedGameLoop().get());
     }
 }

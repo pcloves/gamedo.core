@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Getter
 @ToString(onlyExplicitlyIncluded = true)
 class SchedulingRunnable implements Runnable {
-    private final Scheduler scheduleRegister;
+    private final GameLoopScheduler scheduleRegister;
     @ToString.Include
     private final CronTrigger trigger;
     private final SimpleTriggerContext triggerContext;
@@ -28,7 +28,7 @@ class SchedulingRunnable implements Runnable {
     private Date scheduledExecutionTime;
     private CompletableFuture<Void> future;
 
-    SchedulingRunnable(Scheduler scheduleRegister, CronTrigger trigger, SimpleTriggerContext triggerContext, Runnable runnable) {
+    SchedulingRunnable(GameLoopScheduler scheduleRegister, CronTrigger trigger, SimpleTriggerContext triggerContext, Runnable runnable) {
         this.scheduleRegister = scheduleRegister;
         this.trigger = trigger;
         this.triggerContext = triggerContext;
@@ -69,11 +69,10 @@ class SchedulingRunnable implements Runnable {
                     () -> trigger.getExpression(),
                     () -> threadName);
         } catch (Throwable e) {
+            log.error("exception caught when run, cron:" + trigger.getExpression() + ", thread:" + threadName, e);
+        } finally {
             Date completionTime = new Date(triggerContext.getClock().millis());
             triggerContext.update(scheduledExecutionTime, actualExecutionTime, completionTime);
-            log.error("exception caught when run, cron:" + trigger.getExpression() + ", thread:" + threadName, e);
-        }
-        finally {
             if (!scheduleRegister.iGameLoop.isShutdown()) {
                 schedule();
             }

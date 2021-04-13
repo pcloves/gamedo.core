@@ -9,7 +9,7 @@ import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
-import org.gamedo.scheduling.CronScheduled;
+import org.gamedo.scheduling.GameLoopScheduled;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,12 +28,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Log4j2
-class ISchedulerTest {
+class IGameLoopSchedulerTest {
 
     private static final String CRON_SECONDLY_EXPRESSION = "*/1 * * * * *";
     private static final String CRON_5_SECONDLY_EXPRESSION = "*/5 * * * * *";
     private static final String CRON_10_SECONDLY_EXPRESSION = "*/10 * * * * *";
-    private static final String SCHEDULE_SECONDLY_METHOD_NAME = "scheduleSecondly";
     private static final String SCHEDULE_10_SECOND_METHOD_NAME = "schedulePer10Second";
     private static final String SCHEDULE_DYNAMIC_METHOD_NAME = "scheduleDynamic";
     private IGameLoopGroup gameLoopGroup;
@@ -184,7 +183,8 @@ class ISchedulerTest {
         Assertions.assertDoesNotThrow(() -> TimeUnit.SECONDS.sleep(sleepSecond));
         log.info("finish sleep");
         final int expected = sleepSecond / 10 + sleepSecond;
-        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1);
+        Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1,
+                () -> "expected:" + expected + ", actual:" + object.value.get());
 
         final Predicate<Method> predicate = method -> SCHEDULE_10_SECOND_METHOD_NAME.equals(method.getName());
         final List<Method> methods = ReflectionUtils.findMethods(object.getClass(), predicate);
@@ -242,11 +242,13 @@ class ISchedulerTest {
     static class ScheduledObject {
         final AtomicInteger value = new AtomicInteger(0);
 
-        @CronScheduled(CRON_SECONDLY_EXPRESSION)
-        private void scheduleSecondly() {
+        @GameLoopScheduled(CRON_SECONDLY_EXPRESSION)
+        private void scheduleSecondly(Long lastTriggerTime) {
             value.incrementAndGet();
 
-            log.info("scheduleSecondly, thread:{}", Thread.currentThread().getName());
+            log.info("scheduleSecondly, lastTriggerTime:{} thread:{}",
+                    lastTriggerTime,
+                    Thread.currentThread().getName());
         }
     }
 
@@ -254,16 +256,20 @@ class ISchedulerTest {
     static class ScheduledSubObject extends ScheduledObject {
         final AtomicInteger valueDynamic = new AtomicInteger(0);
 
-        @CronScheduled(CRON_10_SECONDLY_EXPRESSION)
-        private void schedulePer10Second() {
+        @GameLoopScheduled(CRON_10_SECONDLY_EXPRESSION)
+        private void schedulePer10Second(Long lastTriggerTime) {
             value.incrementAndGet();
 
-            log.info("schedulePer10Second, thread:{}", Thread.currentThread().getName());
+            log.info("schedulePer10Second, lastTriggerTime:{} thread:{}",
+                    lastTriggerTime,
+                    Thread.currentThread().getName());
         }
 
-        void scheduleDynamic() {
+        void scheduleDynamic(Long lastTriggerTime) {
             valueDynamic.incrementAndGet();
-            log.info("scheduleDynamic, thread:{}", Thread.currentThread().getName());
+            log.info("scheduleDynamic, lastTriggerTime:{}, thread:{}",
+                    lastTriggerTime,
+                    Thread.currentThread().getName());
         }
     }
 
@@ -276,11 +282,13 @@ class ISchedulerTest {
             super(owner);
         }
 
-        @CronScheduled(CRON_SECONDLY_EXPRESSION)
-        private void scheduleSecondly() {
+        @GameLoopScheduled(CRON_SECONDLY_EXPRESSION)
+        private void scheduleSecondly(Long lastTriggerTime) {
             value.incrementAndGet();
 
-            log.info("MyScheduleComponent, thread:{}", Thread.currentThread().getName());
+            log.info("MyScheduleComponent, lastTriggerTime:{}, thread:{}",
+                    lastTriggerTime,
+                    Thread.currentThread().getName());
         }
     }
 }

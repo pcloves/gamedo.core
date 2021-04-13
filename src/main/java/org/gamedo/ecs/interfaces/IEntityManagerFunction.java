@@ -11,7 +11,7 @@ public interface IEntityManagerFunction {
      * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表注册是否成功
      */
     static GameLoopFunction<Boolean> registerEntity(final IEntity entity) {
-        return gameLoop -> gameLoop.getComponent(IEntityManager.class)
+        return gameLoop -> gameLoop.getComponent(IGameLoopEntityRegister.class)
                 .map(iEntityMgr -> iEntityMgr.registerEntity(entity))
                 .orElse(false);
     }
@@ -23,17 +23,18 @@ public interface IEntityManagerFunction {
      * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表是否注册了该实体
      */
     static GameLoopFunction<Boolean> hasEntity(final String entityId) {
-        return gameLoop -> gameLoop.getComponent(IEntityManager.class)
+        return gameLoop -> gameLoop.getComponent(IGameLoopEntityRegister.class)
                 .map(iEntityManager -> iEntityManager.hasEntity(entityId))
                 .orElse(false);
     }
 
     /**
-     * 定义一个行为：检测某个{@link IEntityManager}管理的实体的数量
+     * 定义一个行为：检测某个{@link IGameLoopEntityRegister}管理的实体的数量
+     *
      * @return 返回该行为的定义，其中GameLoopFunction中的Integer代表实体的数量
      */
     static GameLoopFunction<Integer> getEntityCount() {
-        return gameLoop -> gameLoop.getComponent(IEntityManager.class)
+        return gameLoop -> gameLoop.getComponent(IGameLoopEntityRegister.class)
                 .map(iEntityManager -> iEntityManager.getEntityCount())
                 .orElse(0);
     }

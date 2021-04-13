@@ -3,9 +3,9 @@ package org.gamedo.gameloop;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManager;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
-import org.gamedo.eventbus.interfaces.IEventBus;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
+import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -119,9 +119,9 @@ class GameLoopTest {
     void testSendEvent1() {
 
         final CompletableFuture<Boolean> futureDone = new CompletableFuture<>();
-        final CompletableFuture<Optional<Boolean>> future = gameLoop.submit(iGameLoop -> iGameLoop.getComponent(IEventBus.class)
+        final CompletableFuture<Optional<Boolean>> future = gameLoop.submit(iGameLoop -> iGameLoop.getComponent(IGameLoopEventBus.class)
                 .map(iEventBus -> {
-                   throw new RuntimeException("TestException");
+                    throw new RuntimeException("TestException");
                 }));
 
         future.whenCompleteAsync((aBoolean, throwable) -> {
@@ -147,7 +147,7 @@ class GameLoopTest {
         Assertions.assertTrue(registerResult);
 
         final CompletableFuture<Boolean> future1 = CompletableFuture.supplyAsync(() -> {
-            return gameLoop.getComponent(IEntityManager.class)
+            return gameLoop.getComponent(IGameLoopEntityRegister.class)
                     .map(iEntityMgr -> iEntityMgr.registerEntity(new Entity(entityId)))
                     .orElse(false);
         });

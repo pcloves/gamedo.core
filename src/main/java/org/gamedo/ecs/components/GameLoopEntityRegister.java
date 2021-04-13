@@ -3,10 +3,10 @@ package org.gamedo.ecs.components;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Component;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManager;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
 import org.gamedo.eventbus.event.EventPreRegisterEntity;
 import org.gamedo.eventbus.event.EventPreUnregisterEntity;
-import org.gamedo.eventbus.interfaces.IEventBus;
+import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.util.Collections;
@@ -15,12 +15,11 @@ import java.util.Map;
 import java.util.Optional;
 
 @Log4j2
-public class EntityManager extends Component implements IEntityManager
-{
+public class GameLoopEntityRegister extends Component implements IGameLoopEntityRegister {
     private final IGameLoop gameLoop;
     private final Map<String, IEntity> entityMap = new HashMap<>(512);
 
-    public EntityManager(IGameLoop gameLoop, IEntity owner, Map<String, IEntity> entityMap) {
+    public GameLoopEntityRegister(IGameLoop gameLoop, IEntity owner, Map<String, IEntity> entityMap) {
         super(owner);
         this.gameLoop = gameLoop;
         this.entityMap.putAll(entityMap != null ? entityMap : Collections.emptyMap());
@@ -36,7 +35,7 @@ public class EntityManager extends Component implements IEntityManager
         entity.setBelongedGameLoop(gameLoop);
 
         //再触发事件
-        final Optional<IEventBus> eventBus = owner.getComponent(IEventBus.class);
+        final Optional<IGameLoopEventBus> eventBus = owner.getComponent(IGameLoopEventBus.class);
         eventBus.ifPresent(iEventBus -> iEventBus.post(new EventPreRegisterEntity(entity.getId())));
 
         //最后加入管理
@@ -52,7 +51,7 @@ public class EntityManager extends Component implements IEntityManager
             return Optional.empty();
         }
 
-        final Optional<IEventBus> eventBus = owner.getComponent(IEventBus.class);
+        final Optional<IGameLoopEventBus> eventBus = owner.getComponent(IGameLoopEventBus.class);
         //先触发事件
         eventBus.ifPresent(iEventBus -> iEventBus.post(new EventPreUnregisterEntity(iEntity.getId())));
 

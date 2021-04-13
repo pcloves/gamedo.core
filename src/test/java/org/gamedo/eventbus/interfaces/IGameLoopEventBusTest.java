@@ -5,7 +5,7 @@ import lombok.Value;
 import org.gamedo.ecs.Component;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.eventbus.EventBus;
+import org.gamedo.eventbus.GameLoopEventBus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -13,12 +13,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-class IEventBusTest {
+class IGameLoopEventBusTest {
 
     private final Entity entity = new Entity(UUID.randomUUID().toString());
-    private final IEventBus iEventBus = new EventBus(entity);
+    private final IGameLoopEventBus iGameLoopEventBus = new GameLoopEventBus(entity);
 
-    IEventBusTest() {
+    IGameLoopEventBusTest() {
         entity.addComponent(MyComponent.class, new MyComponent(entity));
         entity.addComponent(MySubComponent.class, new MySubComponent(entity));
     }
@@ -29,10 +29,10 @@ class IEventBusTest {
         final Optional<MyComponent> componentOptional = entity.getComponent(MyComponent.class);
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
-        final int registerMethodCount = iEventBus.register(myComponent);
+        final int registerMethodCount = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(1, registerMethodCount);
 
-        final int registerMethodCount1 = iEventBus.register(myComponent);
+        final int registerMethodCount1 = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(0, registerMethodCount1);
     }
 
@@ -42,10 +42,10 @@ class IEventBusTest {
         final Optional<MySubComponent> componentOptional = entity.getComponent(MySubComponent.class);
         final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
-        final int registerMethodCount = iEventBus.register(mySubComponent);
+        final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
         Assertions.assertEquals(2, registerMethodCount);
 
-        final int registerMethodCount1 = iEventBus.register(mySubComponent);
+        final int registerMethodCount1 = iGameLoopEventBus.register(mySubComponent);
         Assertions.assertEquals(0, registerMethodCount1);
     }
 
@@ -56,13 +56,13 @@ class IEventBusTest {
         final Optional<MyComponent> componentOptional = entity.getComponent(MyComponent.class);
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
-        final int unregisterCount = iEventBus.unregister(myComponent);
+        final int unregisterCount = iGameLoopEventBus.unregister(myComponent);
         Assertions.assertEquals(0, unregisterCount);
 
-        final int registerCount = iEventBus.register(myComponent);
+        final int registerCount = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(1, registerCount);
 
-        final int unregisterCount1 = iEventBus.unregister(myComponent);
+        final int unregisterCount1 = iGameLoopEventBus.unregister(myComponent);
         Assertions.assertEquals(1, unregisterCount1);
     }
 
@@ -72,11 +72,11 @@ class IEventBusTest {
         final Optional<MySubComponent> componentOptional = entity.getComponent(MySubComponent.class);
         final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
-        final int registerMethodCount = iEventBus.register(mySubComponent);
+        final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
         Assertions.assertEquals(2, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
-        iEventBus.post(new MyEvent(postValue));
+        iGameLoopEventBus.post(new MyEvent(postValue));
 
         Assertions.assertEquals(postValue, mySubComponent.getValue());
     }
@@ -87,11 +87,11 @@ class IEventBusTest {
         final Optional<MyComponent> componentOptional = entity.getComponent(MyComponent.class);
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
-        final int registerMethodCount = iEventBus.register(myComponent);
+        final int registerMethodCount = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(1, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
-        iEventBus.post(new MyEvent(postValue));
+        iGameLoopEventBus.post(new MyEvent(postValue));
 
         Assertions.assertEquals(postValue, myComponent.getValue());
     }

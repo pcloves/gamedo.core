@@ -2,12 +2,12 @@ package org.gamedo.gameloop.interfaces;
 
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IEntityManager;
 import org.gamedo.ecs.interfaces.IEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
 import org.gamedo.eventbus.interfaces.IEvent;
-import org.gamedo.eventbus.interfaces.IEventBus;
 import org.gamedo.eventbus.interfaces.IEventBusFunction;
-import org.gamedo.scheduling.interfaces.IScheduler;
+import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
+import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.scheduling.interfaces.ISchedulerFunction;
 import org.gamedo.timer.ITimer;
 
@@ -23,11 +23,11 @@ import java.util.concurrent.TimeUnit;
  * <p>gamedo.core已经为{@link IGameLoop}装配了若干开箱即用的组件，包括：
  *
  * <ul>
- * <li> {@link IEventBus} 提供事件处理机制
- * <li> {@link IEntityManager} 提供{@link IEntity}的管理机制，可以使用{@link IEntityManagerFunction#registerEntity(IEntity)}
+ * <li> {@link IGameLoopEventBus} 提供事件处理机制
+ * <li> {@link IGameLoopEntityRegister} 提供{@link IEntity}的管理机制，可以使用{@link IEntityManagerFunction#registerEntity(IEntity)}
  * 实现将某个实体注册到该{@link IGameLoop}中
  * <li> {@link ITimer} 提供线程内的延迟和定时回调机制，
- * <li> {@link IScheduler} 提供线程内的cron调度策略，可以使用{@link ISchedulerFunction#registerSchedule(Object)}
+ * <li> {@link IGameLoopScheduler} 提供线程内的cron调度策略，可以使用{@link ISchedulerFunction#registerSchedule(Object)}
  * 实现某个Object在本{@link IGameLoop}上的cron调度
  * </ul>
  */

@@ -2,27 +2,29 @@ package org.gamedo.scheduling.interfaces;
 
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.scheduling.CronScheduled;
+import org.gamedo.scheduling.GameLoopScheduled;
 
 import java.lang.reflect.Method;
 
 /**
- * cron调度器，提供在某个{@link IGameLoop}线程上，执行cron调度的功能
- * @see CronScheduled#value()
+ * {@link IGameLoop}的cron调度器组件，提供该{@link IGameLoop}线程内的cron调度的注册、反注册的管理功能
+ *
+ * @see GameLoopScheduled
  */
-public interface IScheduler extends IComponent {
+public interface IGameLoopScheduler extends IComponent {
 
     /**
-     * 将某拥有标注{@link CronScheduled}的无参方法的类注册到调度注册器中，那么该组件就可以实现线程（也即{@link IGameLoop}）
-     * 内的cron调度
+     * 将Object内所有拥有{@link GameLoopScheduled}注解的方法（称之为cron方法）注册到调度注册器中，之后该Object就可以实现{@link IGameLoop}线程内的
+     * cron调度，对于cron方法的定义要求，参考：{@link GameLoopScheduled}
      *
      * @param object 要注册的类的实体
      * @return 返回成功注册的方法的数量
+     * @see GameLoopScheduled
      */
     int register(Object object);
 
     /**
-     * 将某个标注了{@link CronScheduled}的无参方法注册到调度注册器中
+     * 将某个标注了{@link GameLoopScheduled}的cron方法注册到调度注册器中
      *
      * @param object 要注册的类的实体
      * @param method 要注册的方法
@@ -31,12 +33,12 @@ public interface IScheduler extends IComponent {
     boolean register(Object object, Method method);
 
     /**
-     * 将某个没有标注{@link CronScheduled}的无参方法注册到调度注册器中
+     * 将某个没有标注{@link GameLoopScheduled}的方法注册到调度注册器中
      *
      * @param object 要注册的类的实体
      * @param method 要注册的方法
-     * @param cron   触发调度的cron表达式，配置方式可以参考：{@link CronScheduled#value()}
-     * @return 注册成功返回true，如果method已经实现了注解或者已经注册过，返回false
+     * @param cron   触发调度的cron表达式，配置方式可以参考：{@link GameLoopScheduled#value()}
+     * @return 注册成功返回true，如果method已经被标注注解或者已经注册过，返回false
      */
     boolean register(Object object, Method method, String cron);
 
@@ -63,12 +65,4 @@ public interface IScheduler extends IComponent {
      * @return 反注册成功的方法的总数量
      */
     int unregisterAll();
-
-    /**
-     * 派发一次cron调度
-     *
-     * @param cron 要执行调度的cron语句
-     * @return 被成功调度的方法的数量
-     */
-    int schedule(String cron);
 }

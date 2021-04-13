@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Component;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.eventbus.interfaces.IEvent;
-import org.gamedo.eventbus.interfaces.IEventBus;
+import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.eventbus.interfaces.Subscribe;
 import org.springframework.util.ReflectionUtils;
 
@@ -15,10 +15,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-public class EventBus extends Component implements IEventBus {
+public class GameLoopEventBus extends Component implements IGameLoopEventBus {
     private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
 
-    public EventBus(IEntity owner) {
+    public GameLoopEventBus(IEntity owner) {
         super(owner);
     }
 

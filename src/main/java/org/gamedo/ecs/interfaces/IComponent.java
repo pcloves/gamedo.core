@@ -10,9 +10,10 @@ public interface IComponent extends ITickable, IInterfaceQueryable {
 
     /**
      * 返回锁归属的{@link IGameLoop}
+     *
      * @return 所归属的{@link IGameLoop}
      */
-    default Optional<IGameLoop> getBelongedGameLoop() {
+    default Optional<IGameLoop> getOwnerBelongedGameLoop() {
         return getOwner().getBelongedGameLoop();
     }
 }

@@ -4,9 +4,9 @@ import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.util.Optional;
 
-public interface IComponent extends ITickable, IInterfaceQueryable {
+public interface IComponent<T extends IEntity> extends ITickable, IInterfaceQueryable {
 
-    IEntity getOwner();
+    T getOwner();
 
     /**
      * 返回锁归属的{@link IGameLoop}

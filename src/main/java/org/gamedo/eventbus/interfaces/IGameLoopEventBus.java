@@ -1,8 +1,9 @@
 package org.gamedo.eventbus.interfaces;
 
 import org.gamedo.ecs.interfaces.IComponent;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 
-public interface IGameLoopEventBus extends IComponent {
+public interface IGameLoopEventBus extends IComponent<IGameLoop> {
 
     /**
      * 注册所有的包含{@link Subscribe}注解的方法

@@ -2,11 +2,12 @@ package org.gamedo.gameloop.interfaces;
 
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
-import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
+import org.gamedo.ecs.interfaces.IGameLoopEntityManagerFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityManager;
 import org.gamedo.eventbus.interfaces.IEvent;
 import org.gamedo.eventbus.interfaces.IGameLoopEventBusFunction;
 import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
+import org.gamedo.scheduling.GameLoopScheduled;
 import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.scheduling.interfaces.IGameLoopSchedulerFunction;
 import org.gamedo.timer.ITimer;
@@ -23,12 +24,12 @@ import java.util.concurrent.TimeUnit;
  * <p>gamedo.core已经为{@link IGameLoop}装配了若干开箱即用的组件，包括：
  *
  * <ul>
- * <li> {@link IGameLoopEventBus} 提供事件处理机制
- * <li> {@link IGameLoopEntityRegister} 提供{@link IEntity}的管理机制，可以使用{@link IGameLoopEntityRegisterFunction#registerEntity(IEntity)}
+ * <li> {@link IGameLoopEventBus} 提供事件订阅、发布、处理机制
+ * <li> {@link IGameLoopEntityManager} 提供{@link IEntity}的管理机制，对于外部线程，可以使用{@link IGameLoopEntityManagerFunction#registerEntity(IEntity)}
  * 实现将某个实体注册到该{@link IGameLoop}中
- * <li> {@link ITimer} 提供线程内的延迟和定时回调机制，
- * <li> {@link IGameLoopScheduler} 提供线程内的cron调度策略，可以使用{@link IGameLoopSchedulerFunction#registerSchedule(Object)}
- * 实现某个Object在本{@link IGameLoop}上的cron调度
+ * <li> {@link ITimer} 提供线程内毫秒级的延迟和定时回调机制
+ * <li> {@link IGameLoopScheduler} 提供线程内的cron调度机制，对于外部线程，可以使用{@link IGameLoopSchedulerFunction#registerSchedule(Object)}
+ * 实现某个Object在本{@link IGameLoop}上的spring cron定时调度，详情参考{@link GameLoopScheduled}
  * </ul>
  */
 public interface IGameLoop extends ScheduledExecutorService, IEntity {
@@ -36,7 +37,7 @@ public interface IGameLoop extends ScheduledExecutorService, IEntity {
     ThreadLocal<Optional<IGameLoop>> GAME_LOOP_THREAD_LOCAL = ThreadLocal.withInitial(Optional::empty);
 
     /**
-     * 返回当前的{@link IGameLoop}，当且仅当该方法在某个{@link IGameLoop}线程内调用时，返回所属的{@link IGameLoop}，否则返回
+     * 返回当前的{@link IGameLoop}，当且仅当调用方法在某个{@link IGameLoop}线程的调用栈内时，返回所属的{@link IGameLoop}，否则返回
      * {@link Optional#empty()}
      * @return 当前锁归属的IGameLoop
      */

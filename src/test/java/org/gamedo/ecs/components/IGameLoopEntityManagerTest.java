@@ -2,7 +2,9 @@ package org.gamedo.ecs.components;
 
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
+import org.gamedo.ecs.interfaces.IGameLoopEntityManager;
+import org.gamedo.gameloop.GameLoop;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -12,13 +14,13 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class EntityManagerTest {
-    private final IEntity entity = new Entity(UUID.randomUUID().toString());
-    private IGameLoopEntityRegister entityMgr;
+class IGameLoopEntityManagerTest {
+    private final IGameLoop gameLoop = new GameLoop(UUID.randomUUID().toString());
+    private IGameLoopEntityManager entityMgr;
 
     @BeforeEach
     void setUp() {
-        entityMgr = new GameLoopEntityRegister(null, entity, null);
+        entityMgr = new GameLoopEntityManager(gameLoop);
     }
 
     @Test

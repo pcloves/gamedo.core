@@ -1,14 +1,18 @@
 package org.gamedo.gameloop;
 
 import lombok.extern.log4j.Log4j2;
+import org.gamedo.configuration.EnableGamedoApplication;
 import org.gamedo.ecs.Entity;
-import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
+import org.gamedo.ecs.interfaces.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -16,13 +20,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Log4j2
+@ExtendWith(SpringExtension.class)
+@EnableGamedoApplication
 class GameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
+    private final ConfigurableApplicationContext context;
+
+    GameLoopGroupTest(ConfigurableApplicationContext context) {
+        this.context = context;
+    }
 
     @BeforeEach
     void setUp() {
-        gameLoopGroup = new GameLoopGroup("GameLoopGroup");
+        gameLoopGroup = context.getBean(IGameLoopGroup.class);
     }
 
     @AfterEach
@@ -71,16 +82,16 @@ class GameLoopGroupTest {
     void testSelectFunction() {
         final IGameLoop iGameLoop1 = gameLoopGroup.selectNext();
         final String id = UUID.randomUUID().toString();
-        final CompletableFuture<Boolean> future = iGameLoop1.submit(IGameLoopEntityRegisterFunction.registerEntity(new Entity(id)));
+        final CompletableFuture<Boolean> future = iGameLoop1.submit(IGameLoopEntityManagerFunction.registerEntity(new Entity(id)));
         future.join();
 
         //选择实体数量最多的一个（实际业务中，是选取实体数量最少的一个，这里是为了方便测试）
-        final List<IGameLoop> gameLoopList1 = gameLoopGroup.select(IGameLoopEntityRegisterFunction.getEntityCount(), Comparator.reverseOrder(), 1);
+        final List<IGameLoop> gameLoopList1 = gameLoopGroup.select(IGameLoopEntityManagerFunction.getEntityCount(), Comparator.reverseOrder(), 1);
         Assertions.assertEquals(1, gameLoopList1.size());
         Assertions.assertSame(iGameLoop1, gameLoopList1.get(0));
 
         //选择实体所在的那个IGameLoop
-        final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IGameLoopEntityRegisterFunction.hasEntity(id), Comparator.reverseOrder(), 1);
+        final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IGameLoopEntityManagerFunction.hasEntity(id), Comparator.reverseOrder(), 1);
         Assertions.assertEquals(1, gameLoopList2.size());
         Assertions.assertSame(iGameLoop1, gameLoopList2.get(0));
     }
@@ -103,16 +114,9 @@ class GameLoopGroupTest {
             final IGameLoop iGameLoop = gameLoopGroup.selectNext();
             final String id = UUID.randomUUID().toString();
             futureMap.put(id, new CompletableFuture<>());
-            final Entity entity = new Entity(id) {
-                @Override
-                public void tick(long elapse) {
-                    super.tick(elapse);
+            final Entity entity = new MyEntity(id, futureMap);
 
-                    futureMap.get(getId()).complete(true);
-                }
-            };
-
-            final CompletableFuture<Boolean> submit = iGameLoop.submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
+            final CompletableFuture<Boolean> submit = iGameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(entity));
             submitFutureList.add(submit);
         }
 
@@ -146,5 +150,19 @@ class GameLoopGroupTest {
     }
 
 
+    private static class MyEntity extends Entity {
+        private final Map<String, CompletableFuture<Boolean>> futureMap;
 
+        private MyEntity(String id, Map<String, CompletableFuture<Boolean>> futureMap) {
+            super(id);
+            this.futureMap = futureMap;
+        }
+
+        @Override
+        public void tick(long elapse) {
+            super.tick(elapse);
+
+            futureMap.get(getId()).complete(true);
+        }
+    }
 }

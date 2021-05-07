@@ -2,8 +2,7 @@ package org.gamedo.scheduling;
 
 import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.Logger;
-import org.gamedo.ecs.Component;
-import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.scheduling.interfaces.IGameLoopScheduler;
@@ -20,12 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-public class GameLoopScheduler extends Component implements IGameLoopScheduler {
-
-    /**
-     * 要cron调度被投递的目标{@link IGameLoop}
-     */
-    final IGameLoop iGameLoop;
+public class GameLoopScheduler extends GameLoopComponent implements IGameLoopScheduler {
     /**
      * cron表达式 --> 该表达式对应的所有运行时数据
      */
@@ -39,7 +33,7 @@ public class GameLoopScheduler extends Component implements IGameLoopScheduler {
 
             final String cron = data.getCron();
             final GameLoopScheduler scheduleRegister = data.getScheduleRegister();
-            final IGameLoop gameLoop = scheduleRegister.iGameLoop;
+            final IGameLoop gameLoop = scheduleRegister.owner;
             final Logger log1 = data.getLog();
             if (gameLoop.isShutdown()) {
                 log1.debug("the IGameLoop {} has shutdown", () -> gameLoop.getId());
@@ -64,9 +58,8 @@ public class GameLoopScheduler extends Component implements IGameLoopScheduler {
         };
     };
 
-    public GameLoopScheduler(IEntity owner, IGameLoop iGameLoop) {
+    public GameLoopScheduler(IGameLoop owner) {
         super(owner);
-        this.iGameLoop = iGameLoop;
     }
 
     public static boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
@@ -223,9 +216,9 @@ public class GameLoopScheduler extends Component implements IGameLoopScheduler {
     private int schedule(String cron) {
 
         if (IGameLoop.currentGameLoop()
-                .filter(iGameLoop1 -> iGameLoop1 == iGameLoop)
+                .filter(iGameLoop1 -> iGameLoop1 == owner)
                 .isEmpty()) {
-            log.error("this method can only be called by the IGameLoop it belong to, gameLoop{}", iGameLoop.getId());
+            log.error("this method can only be called by the IGameLoop it belong to, gameLoop{}", owner);
             return 0;
         }
 

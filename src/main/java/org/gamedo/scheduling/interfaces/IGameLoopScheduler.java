@@ -11,7 +11,7 @@ import java.lang.reflect.Method;
  *
  * @see GameLoopScheduled
  */
-public interface IGameLoopScheduler extends IComponent {
+public interface IGameLoopScheduler extends IComponent<IGameLoop> {
 
     /**
      * 将Object内所有拥有{@link GameLoopScheduled}注解的方法（称之为cron方法）注册到调度注册器中，之后该Object就可以实现{@link IGameLoop}线程内的

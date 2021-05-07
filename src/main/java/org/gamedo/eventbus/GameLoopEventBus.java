@@ -1,11 +1,11 @@
 package org.gamedo.eventbus;
 
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.ecs.Component;
-import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.eventbus.interfaces.IEvent;
 import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.eventbus.interfaces.Subscribe;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -15,10 +15,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-public class GameLoopEventBus extends Component implements IGameLoopEventBus {
+public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
     private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
 
-    public GameLoopEventBus(IEntity owner) {
+    public GameLoopEventBus(IGameLoop owner) {
         super(owner);
     }
 

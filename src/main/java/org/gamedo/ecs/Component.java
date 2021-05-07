@@ -7,27 +7,17 @@ import org.gamedo.ecs.interfaces.IEntity;
 import java.util.Optional;
 
 @Log4j2
-public class Component implements IComponent {
+public abstract class Component<T extends IEntity> implements IComponent<T> {
 
-    protected final IEntity owner;
+    protected final T owner;
 
-    public Component(IEntity owner) {
+    protected Component(T owner) {
         this.owner = owner;
-    }
-
-    @Override
-    public IEntity getOwner() {
-        return owner;
-    }
-
-    @Override
-    public void tick(long elapse) {
-
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Optional<T> getInterface(Class<T> clazz) {
-        return Optional.ofNullable(clazz.isInstance(this) ? (T) this : null);
+    public <R> Optional<R> getInterface(Class<R> clazz) {
+        return Optional.ofNullable(clazz.isInstance(this) ? (R) this : null);
     }
 }

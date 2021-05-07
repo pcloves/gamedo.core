@@ -24,16 +24,16 @@ public class Entity implements IEntity {
     protected final Map<Class<?>, Object> componentMap;
     private IGameLoop belongedGameLoop;
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public Entity(final String id, Optional<Map<Class<? extends IComponent>, IComponent>> optionalMap) {
+    public Entity(final String id, Map<Class<? extends IComponent<?>>, IComponent<?>> componentMap) {
         this.id = id;
-        componentMap = new HashMap<>(optionalMap.orElse(Collections.emptyMap()));
+        this.componentMap = new HashMap<>(componentMap == null ? Collections.emptyMap() : componentMap);
     }
 
     public Entity(String id) {
-        this(id, Optional.empty());
+        this(id, null);
     }
 
+    @SuppressWarnings("unused")
     public Entity(Supplier<String> idSupplier) {
         this(idSupplier.get());
     }
@@ -88,20 +88,24 @@ public class Entity implements IEntity {
     @SuppressWarnings("unchecked")
     @Override
     public <T, R extends T> Optional<T> addComponent(Class<T> clazz, R component) {
-        final Optional<T> put = (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
+        final Optional<T> old = (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
 
+        //如果当前本实体已经处于IGameLoop的管理之下，那么就顺道把组件上标有@GameLoopScheduled注解的方法给注册了。
         getBelongedGameLoop().ifPresent(iGameLoop -> {
             final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.registerSchedule(component));
             future.whenCompleteAsync((i, t) -> {
                 if (t != null) {
-                    log.error("exception caught on register schedule after adding component, clazz:" + clazz.getName(), t);
+                    log.error("exception caught on register schedule after adding component, clazz:" +
+                            clazz.getName() + ", gameLoop:" + iGameLoop.getId(), t);
                 } else {
-                    log.debug("register schedule finish");
+                    log.debug("register component schedule finish, component:{}, count:{}",
+                            () -> clazz.getName(),
+                            () -> i);
                 }
-            });
+            }, iGameLoop);
         });
 
-        return put;
+        return old;
     }
 
     @Override
@@ -109,6 +113,7 @@ public class Entity implements IEntity {
 
     }
 
+    @SuppressWarnings("unused")
     @Subscribe
     public void eventPreRegisterEntity(final EventPreRegisterEntity event) {
         if (id.equals(event.getEntityId())) {
@@ -120,6 +125,7 @@ public class Entity implements IEntity {
         }
     }
 
+    @SuppressWarnings("unused")
     @Subscribe
     public void eventUnregisterEntity(final EventPreUnregisterEntity event) {
         if (id.equals(event.getEntityId())) {

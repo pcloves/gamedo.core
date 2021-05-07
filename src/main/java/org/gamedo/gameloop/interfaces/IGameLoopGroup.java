@@ -1,13 +1,13 @@
 package org.gamedo.gameloop.interfaces;
 
-import org.gamedo.ecs.interfaces.IEntity;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public interface IGameLoopGroup extends ExecutorService, IEntity {
+public interface IGameLoopGroup extends ExecutorService {
+
+    String getId();
     /**
      * 启动该线程组
      *

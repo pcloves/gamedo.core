@@ -52,7 +52,7 @@ class SchedulingRunnable implements Runnable {
 
         scheduledExecutionTime = trigger.nextExecutionTime(triggerContext);
         final long delay = scheduledExecutionTime.getTime() - triggerContext.getClock().millis();
-        final Executor executor = CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS, scheduleRegister.iGameLoop);
+        final Executor executor = CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS, scheduleRegister.getOwner());
 
         future = CompletableFuture.runAsync(this, executor);
 
@@ -73,7 +73,7 @@ class SchedulingRunnable implements Runnable {
         } finally {
             Date completionTime = new Date(triggerContext.getClock().millis());
             triggerContext.update(scheduledExecutionTime, actualExecutionTime, completionTime);
-            if (!scheduleRegister.iGameLoop.isShutdown()) {
+            if (!scheduleRegister.getOwner().isShutdown()) {
                 schedule();
             }
         }

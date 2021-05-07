@@ -2,7 +2,6 @@ package org.gamedo.gameloop;
 
 import lombok.Value;
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.ecs.Entity;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
@@ -14,18 +13,18 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Log4j2
-public class GameLoopGroup extends Entity implements IGameLoopGroup {
+public class GameLoopGroup implements IGameLoopGroup {
+    private final String id;
     private final AtomicInteger idx = new AtomicInteger(0);
     private final IGameLoop[] gameLoops;
 
     public GameLoopGroup(String id, IGameLoop... gameLoops) {
-        super(id);
+        this.id = id;
         this.gameLoops = gameLoops.clone();
     }
 
     public GameLoopGroup(String id, int gameLoopCount) {
-        super(id);
-
+        this.id = id;
         gameLoops = IntStream.rangeClosed(1, gameLoopCount)
                 .mapToObj(value -> new GameLoop(id + '-' + value))
                 .toArray(GameLoop[]::new);
@@ -120,9 +119,14 @@ public class GameLoopGroup extends Entity implements IGameLoopGroup {
     }
 
     @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
     public List<IGameLoop> run(long initialDelay, long period, TimeUnit periodTimeUnit) {
 
-        log.info("{} run delay:{}, period:{}, timeUnit:{}", getId(), initialDelay, period, periodTimeUnit);
+        log.info("{} run delay:{}, period:{}, timeUnit:{}", id, initialDelay, period, periodTimeUnit);
 
         return Arrays.stream(gameLoops)
                 .filter(iGameLoop -> !iGameLoop.run(initialDelay, period, periodTimeUnit))

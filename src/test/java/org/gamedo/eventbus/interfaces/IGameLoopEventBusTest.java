@@ -2,10 +2,11 @@ package org.gamedo.eventbus.interfaces;
 
 import lombok.Getter;
 import lombok.Value;
-import org.gamedo.ecs.Component;
-import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.eventbus.GameLoopEventBus;
+import org.gamedo.gameloop.GameLoop;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 class IGameLoopEventBusTest {
 
-    private final Entity entity = new Entity(UUID.randomUUID().toString());
+    private final IGameLoop entity = new GameLoop(UUID.randomUUID().toString());
     private final IGameLoopEventBus iGameLoopEventBus = new GameLoopEventBus(entity);
 
     IGameLoopEventBusTest() {
@@ -101,7 +102,7 @@ class IGameLoopEventBusTest {
         int value;
     }
 
-    private static class MyComponent extends Component {
+    private static class MyComponent extends EntityComponent {
         @Getter
         protected int value;
 

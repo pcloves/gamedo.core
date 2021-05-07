@@ -1,9 +1,9 @@
 package org.gamedo.ecs.components;
 
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.ecs.Component;
+import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IGameLoopEntityRegister;
+import org.gamedo.ecs.interfaces.IGameLoopEntityManager;
 import org.gamedo.eventbus.event.EventPreRegisterEntity;
 import org.gamedo.eventbus.event.EventPreUnregisterEntity;
 import org.gamedo.eventbus.interfaces.IGameLoopEventBus;
@@ -15,14 +15,11 @@ import java.util.Map;
 import java.util.Optional;
 
 @Log4j2
-public class GameLoopEntityRegister extends Component implements IGameLoopEntityRegister {
-    private final IGameLoop gameLoop;
+public class GameLoopEntityManager extends GameLoopComponent implements IGameLoopEntityManager {
     private final Map<String, IEntity> entityMap = new HashMap<>(512);
 
-    public GameLoopEntityRegister(IGameLoop gameLoop, IEntity owner, Map<String, IEntity> entityMap) {
+    public GameLoopEntityManager(IGameLoop owner) {
         super(owner);
-        this.gameLoop = gameLoop;
-        this.entityMap.putAll(entityMap != null ? entityMap : Collections.emptyMap());
     }
 
     @Override
@@ -32,7 +29,7 @@ public class GameLoopEntityRegister extends Component implements IGameLoopEntity
         }
 
         //先设置所归属的IGameLoop，使其可以执行一些操作，例如注册事件
-        entity.setBelongedGameLoop(gameLoop);
+        entity.setBelongedGameLoop(owner);
 
         //再触发事件
         final Optional<IGameLoopEventBus> eventBus = owner.getComponent(IGameLoopEventBus.class);

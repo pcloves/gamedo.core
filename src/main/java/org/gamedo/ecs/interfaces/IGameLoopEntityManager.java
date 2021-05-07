@@ -6,12 +6,12 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * {@link IGameLoop}的{@link IEntity 实体}注册组件，负责实体的增加、删除和查询
+ * {@link IGameLoop}的{@link IEntity 实体}管理组件，负责实体的增加、删除和查询
  */
-public interface IGameLoopEntityRegister extends IComponent {
+public interface IGameLoopEntityManager extends IComponent<IGameLoop> {
 
     /**
-     * 注册一个实体到本{@link IGameLoopEntityRegister 管理器}中
+     * 注册一个实体到本{@link IGameLoopEntityManager 管理器}中
      *
      * @param entity 要注册的实体
      * @return 当且仅当注册成功时返回true，如果已经存在一个相同Id的实体，则注册失败

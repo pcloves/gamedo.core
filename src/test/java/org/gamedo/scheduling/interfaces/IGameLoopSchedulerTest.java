@@ -1,11 +1,11 @@
 package org.gamedo.scheduling.interfaces;
 
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.ecs.Component;
+import org.gamedo.configuration.EnableGamedoApplication;
 import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IGameLoopEntityRegisterFunction;
-import org.gamedo.gameloop.GameLoopGroup;
+import org.gamedo.ecs.interfaces.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
@@ -14,7 +14,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.commons.util.ReflectionUtils;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -28,6 +31,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Log4j2
+@ExtendWith(SpringExtension.class)
+@EnableGamedoApplication
 class IGameLoopSchedulerTest {
 
     private static final String CRON_SECONDLY_EXPRESSION = "*/1 * * * * *";
@@ -36,10 +41,15 @@ class IGameLoopSchedulerTest {
     private static final String SCHEDULE_10_SECOND_METHOD_NAME = "schedulePer10Second";
     private static final String SCHEDULE_DYNAMIC_METHOD_NAME = "scheduleDynamic";
     private IGameLoopGroup gameLoopGroup;
+    private final ConfigurableApplicationContext context;
+
+    IGameLoopSchedulerTest(ConfigurableApplicationContext context) {
+        this.context = context;
+    }
 
     @BeforeEach
     void setUp() {
-        gameLoopGroup = new GameLoopGroup("GameLoopGroup");
+        gameLoopGroup = context.getBean(IGameLoopGroup.class);
     }
 
     @AfterEach
@@ -57,7 +67,7 @@ class IGameLoopSchedulerTest {
         entity.addComponent(ScheduledComponent.class, component);
 
         log.info("registerEntity begin");
-        final CompletableFuture<Boolean> future = gameLoopGroup.selectNext().submit(IGameLoopEntityRegisterFunction.registerEntity(entity));
+        final CompletableFuture<Boolean> future = gameLoopGroup.selectNext().submit(IGameLoopEntityManagerFunction.registerEntity(entity));
 
         final Boolean result = Assertions.assertDoesNotThrow(() -> future.get());
         Assertions.assertTrue(result);
@@ -274,7 +284,7 @@ class IGameLoopSchedulerTest {
     }
 
     @SuppressWarnings("unused")
-    static class ScheduledComponent extends Component {
+    static class ScheduledComponent extends EntityComponent {
 
         private final AtomicInteger value = new AtomicInteger(0);
 

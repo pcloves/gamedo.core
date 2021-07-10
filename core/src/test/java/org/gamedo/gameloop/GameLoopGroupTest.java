@@ -75,7 +75,7 @@ class GameLoopGroupTest {
     @Test
     void testBenchmark() {
 
-        final int entityCountBase = 100000;
+        final int entityCountBase = 10000;
         final int gameLoopCount = gameLoopGroup.selectAll().length;
         final int mod = entityCountBase % gameLoopCount;
         final int entityCount = Math.max(gameLoopCount, entityCountBase - mod);

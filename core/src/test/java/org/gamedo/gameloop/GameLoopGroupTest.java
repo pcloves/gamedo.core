@@ -123,7 +123,6 @@ class GameLoopGroupTest {
         Assertions.assertDoesNotThrow(() -> gameLoopGroup.awaitTermination(10, TimeUnit.SECONDS));
     }
 
-
     private static class MyEntity extends Entity {
         private final Map<String, CompletableFuture<Boolean>> futureMap;
 
@@ -132,7 +131,7 @@ class GameLoopGroupTest {
             this.futureMap = futureMap;
         }
 
-        @Tick
+        @Tick(tick = 10)
         public void myTick(Long currentMilliSecond, Long lastMilliSecond) {
             futureMap.get(getId()).complete(true);
         }

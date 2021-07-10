@@ -1,14 +1,13 @@
 package org.gamedo.gameloop.components.eventbus;
 
 import lombok.extern.log4j.Log4j2;
+import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.annotation.Subscribe;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
@@ -28,7 +27,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             ReflectionUtils.makeAccessible(method);
             method.invoke(eventData.getObject(), event);
             return true;
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (Throwable e) {
             final Class<? extends IEvent> eventClazz = event.getClass();
             log.error("exception caught, method:" + method.getName() + ", event:" + eventClazz.getName(), e);
         }

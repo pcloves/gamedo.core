@@ -15,6 +15,11 @@ public abstract class Component<T extends IEntity> implements IComponent<T> {
         this.owner = owner;
     }
 
+    @Override
+    public T getOwner() {
+        return owner;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <R> Optional<R> getInterface(Class<R> clazz) {

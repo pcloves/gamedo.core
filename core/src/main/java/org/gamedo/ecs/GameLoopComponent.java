@@ -8,8 +8,4 @@ public class GameLoopComponent extends Component<IGameLoop> {
         super(owner);
     }
 
-    @Override
-    public IGameLoop getOwner() {
-        return owner;
-    }
 }

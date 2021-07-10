@@ -8,9 +8,4 @@ public class EntityComponent extends Component<IEntity> {
         super(owner);
     }
 
-    @Override
-    public IEntity getOwner() {
-        return owner;
-    }
-
 }

@@ -1,5 +1,6 @@
 package org.gamedo.annotation;
 
+import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.lang.annotation.ElementType;
@@ -15,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  * <li>在方法上增加本注解
  * 示例如下：
  * <pre>
- *     class MySchedule
+ *     class MyTickObject
  *     {
  *         &#064;Tick(delay = 100, tick = 50, timeUnit = TimeUnit.MILLISECONDS)
  *         private void tick(Long currentMilliSecond, Long lastMilliSecond)
@@ -28,6 +29,13 @@ import java.util.concurrent.TimeUnit;
  * </pre>
  * <li>将该类的实例注册到{@link IGameLoop}上，如下所示：
  * </ul>
+ * <pre>
+ * final IGameLoop iGameLoop = ...
+ * final MyTickObject myTickObj = new MyTickObject()
+ * final CompletableFuture&lt;Integer&gt; future = iGameLoop.submit(IGameLoopTickManagerFunction.register(myTickObj))
+ * </pre>
+ * <b>需要注意：</b>当MyTickObject被当做组件附加到某{@link IEntity} A上后，就不需要执行上述注册代码了，系统会在A注册到{@link IGameLoop}
+ * 上时，自动注册A本身以及所有组件的心跳函数，并且当从{@link IGameLoop}反注册后又会自动反注册这些心跳函数
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

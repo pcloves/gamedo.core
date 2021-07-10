@@ -1,10 +1,7 @@
 package org.gamedo.annotation;
 
-import org.gamedo.ecs.Entity;
-import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.lang.annotation.*;
@@ -34,17 +31,9 @@ import java.lang.annotation.*;
  * final MySchedule mySchedule = new MySchedule()
  * final CompletableFuture&lt;Integer&gt; future = iGameLoop.submit(ISchedulerFunction.registerSchedule(mySchedule))
  * </pre>
- * 之后，MySchedule.cron()函数每隔10秒就被iGameLoop线程调用一次。此外，针对如下场景，gamedo.core也提供了便利的机制：
- * <ul>
- * <li>对于一个{@link IEntity}实体，当将其注册到某个{@link IGameLoop}中时，对于该实体内的所有组件，将会自动注册包含本注解的方法；
- * 同理，当该实体从{@link IGameLoop}反注册时，也会自动反注册所有组件中包含本注释的方法，该机制由{@link GameLoopEntityManager}和{@link Entity}
- * 共同实现
- * <li>对于已经被注册到{@link IGameLoop}上的{@link IEntity}实体，当之后为其添加组件时，也会自动对该组件内的cron方法进行注册
- * <li>{@link IGameLoopScheduler}作为{@link IGameLoop}的cron调度组件，负责本{@link IGameLoop}下的所有cron方法的注册、反注册等管理
- * 工作，除了提供上述将某个Object进行注册的方式外（会注册所有的cron方法），还提供了针对Object的任意cron方法进行注册和反注册的方式。此外，对于
- * 极端的需求场景：没有标注本注解但是仍然需要进行cron调度的动态注册和反注册需求，{@link IGameLoopScheduler}也提供了相应的机制，详情参考{@link IGameLoopScheduler}
- * 的接口定义
- * </ul>
+ * 之后，MySchedule.cron()函数每隔10秒就被iGameLoop线程调用一次。<p>
+ * <b>需要注意：</b>当MySchedule被当做组件附加到某{@link IEntity} A上后，就不需要手动执行上述注册代码了，系统会在A注册到{@link IGameLoop}
+ * 上时，自动注册A本身以及所有组件的cron方法，并且当从{@link IGameLoop}反注册后又会自动反注册这些cron方法
  */
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

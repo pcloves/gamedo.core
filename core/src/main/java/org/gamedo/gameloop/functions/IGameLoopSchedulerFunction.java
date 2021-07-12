@@ -1,5 +1,6 @@
-package org.gamedo.gameloop.components.scheduling.interfaces;
+package org.gamedo.gameloop.functions;
 
+import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.annotation.Scheduled;

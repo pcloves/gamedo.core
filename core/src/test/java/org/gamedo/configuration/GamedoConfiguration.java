@@ -1,7 +1,7 @@
 package org.gamedo.configuration;
 
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.application.GameLoopComponentRegister;
+import org.gamedo.gameloop.GameLoopComponentRegister;
 import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
@@ -38,7 +38,7 @@ public class GamedoConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public GameLoopGroup gameLoopGroup() {
         final String gameLoopGroupId = "GameLoopGroup" + index.getAndIncrement();
         final IGameLoop[] iGameLoops = applicationContext.getBean(IGameLoop[].class,

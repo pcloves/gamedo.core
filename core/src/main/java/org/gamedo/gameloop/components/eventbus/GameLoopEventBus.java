@@ -51,21 +51,25 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
     private boolean register(Object object, Method method) {
         if (!method.isAnnotationPresent(Subscribe.class)) {
-            log.error("the method {} is not annotated by '{}'",
+            log.error("the method {} of class {} is not annotated by '{}'",
                     method.getName(),
+                    object.getClass().getName(),
                     Subscribe.class.getSimpleName());
             return false;
         }
 
         if (method.getParameterCount() != 1) {
-            log.error("the method {} is required one parameter.", method.getName());
+            log.error("the method {} of class {} is required one parameter.",
+                    method.getName(),
+                    object.getClass().getName());
             return false;
         }
 
         final Class<?> eventClazz = method.getParameterTypes()[0];
         if (!IEvent.class.isAssignableFrom(eventClazz)) {
-            log.error("the parameter type of method {} is not assignable from {}",
+            log.error("the parameter type of method {} of class {}is not assignable from {}",
                     method.getName(),
+                    object.getClass().getName(),
                     IEvent.class.getName());
             return false;
         }

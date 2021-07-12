@@ -1,9 +1,13 @@
-package org.gamedo.gameloop.components.entitymanager.interfaces;
+package org.gamedo.gameloop.functions;
 
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
+import java.util.Optional;
+
+@SuppressWarnings("unused")
 public interface IGameLoopEntityManagerFunction {
     /**
      * 定义一个行为：将某个{@link IEntity}注册到一个{@link IGameLoop}上
@@ -15,6 +19,17 @@ public interface IGameLoopEntityManagerFunction {
         return gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)
                 .map(iEntityMgr -> iEntityMgr.registerEntity(entity))
                 .orElse(false);
+    }
+
+    /**
+     * 定义一个行为：将某实体从{@link IGameLoop}上反注册
+     *
+     * @param entityId 要注册的实体的Id
+     * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表注册是否成功
+     */
+    static GameLoopFunction<Optional<IEntity>> unregisterEntity(final String entityId) {
+        return gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)
+                .flatMap(iEntityMgr -> iEntityMgr.unregisterEntity(entityId));
     }
 
     /**

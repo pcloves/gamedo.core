@@ -4,6 +4,7 @@ import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,7 +42,7 @@ public interface IGameLoopEntityManager extends IComponent<IGameLoop> {
     int getEntityCount();
 
     /**
-     * 返回一个无法被修改的{@link java.util.Collections#unmodifiableMap(Map) Map}副本
+     * 返回一个无法被修改的{@link Collections#unmodifiableMap(Map) Map}副本
      * @return key : value: 实体的Id : 实体本身
      */
     Map<String, IEntity> getEntityMap();

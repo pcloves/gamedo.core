@@ -1,16 +1,12 @@
-package org.gamedo.gameloop;
+package org.gamedo.gameloop.interfaces;
 
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Tick;
 import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
-import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManagerFunction;
-import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.gameloop.interfaces.IGameLoopGroup;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
+import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
+import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -18,15 +14,16 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Log4j2
 @SpringBootTest(classes = GamedoConfiguration.class)
-class GameLoopGroupTest {
+class IGameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
     private final ConfigurableApplicationContext context;
 
-    GameLoopGroupTest(ConfigurableApplicationContext context) {
+    IGameLoopGroupTest(ConfigurableApplicationContext context) {
         this.context = context;
     }
 
@@ -43,6 +40,7 @@ class GameLoopGroupTest {
     }
 
     @Test
+    @Order(1)
     void testSelectNext() {
         IGameLoop iGameLoop1 = gameLoopGroup.selectNext();
         Assertions.assertEquals(gameLoopGroup.getId() + "-1", iGameLoop1.getId());
@@ -55,7 +53,7 @@ class GameLoopGroupTest {
     }
 
     @Test
-    void testSelectFunction() {
+    void testSelectChooser() {
         final IGameLoop iGameLoop1 = gameLoopGroup.selectNext();
         final String id = UUID.randomUUID().toString();
         final CompletableFuture<Boolean> future = iGameLoop1.submit(IGameLoopEntityManagerFunction.registerEntity(new Entity(id)));
@@ -70,6 +68,31 @@ class GameLoopGroupTest {
         final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IGameLoopEntityManagerFunction.hasEntity(id), Comparator.reverseOrder(), 1);
         Assertions.assertEquals(1, gameLoopList2.size());
         Assertions.assertSame(iGameLoop1, gameLoopList2.get(0));
+    }
+
+    @Test
+    void testSelectFilter() {
+
+        final HashSet<String> entityIdSet = new HashSet<>(Arrays.asList("a", "b", "c"));
+        final List<Boolean> collect = entityIdSet.stream()
+                .parallel()
+                .map(s -> gameLoopGroup.selectNext().submit(IGameLoopEntityManagerFunction.registerEntity(new Entity(s))).join())
+                .distinct()
+                .collect(Collectors.toList());
+
+        Assertions.assertEquals(1, collect.size());
+        Assertions.assertEquals(true, collect.get(0));
+
+        final List<IGameLoop> gameLoopList = gameLoopGroup.select(gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)
+                .map(iGameLoopEntityManager -> iGameLoopEntityManager.getEntityMap().keySet()
+                        .stream()
+                        .anyMatch(s -> entityIdSet.contains(s)))
+                .orElse(false)
+        );
+
+        final Object[] expected = Arrays.stream(gameLoopGroup.selectAll()).limit(3).toArray();
+        final Object[] actual = gameLoopList.toArray();
+        Assertions.assertArrayEquals(expected, actual);
     }
 
     @Test

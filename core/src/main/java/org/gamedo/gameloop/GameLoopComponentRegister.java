@@ -1,4 +1,4 @@
-package org.gamedo.application;
+package org.gamedo.gameloop;
 
 import lombok.Value;
 

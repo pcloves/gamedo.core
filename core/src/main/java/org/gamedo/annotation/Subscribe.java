@@ -3,7 +3,7 @@ package org.gamedo.annotation;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBusFunction;
+import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.lang.annotation.ElementType;

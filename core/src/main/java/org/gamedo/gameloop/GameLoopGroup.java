@@ -1,10 +1,10 @@
 package org.gamedo.gameloop;
 
-import lombok.Value;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
+import org.gamedo.utils.Pair;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -137,18 +137,13 @@ public class GameLoopGroup implements IGameLoopGroup {
     public <C extends Comparable<? super C>> List<IGameLoop> select(GameLoopFunction<C> chooser,
                                                                     Comparator<C> comparator,
                                                                     int limit) {
-        @Value
-        class Pair<K, V>
-        {
-            K k;
-            V v;
-        }
-
         return Arrays.stream(gameLoops)
                 .parallel()
                 .map(iGameLoop -> {
                     try {
-                        return new Pair<C, IGameLoop>(iGameLoop.submit(chooser).join(), iGameLoop);
+
+                        //这里用join可能有风险，万一逻辑代码有问题的话，会阻塞当前线程！不过没想到更好的办法
+                        return Pair.of(iGameLoop.submit(chooser).join(), iGameLoop);
                     } catch (Throwable t) {
                         log.error("exception caught.", t);
                     }
@@ -158,6 +153,22 @@ public class GameLoopGroup implements IGameLoopGroup {
                 .sorted(Comparator.comparing(Pair::getK, comparator))
                 .limit(limit)
                 .map(Pair::getV)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<IGameLoop> select(GameLoopFunction<Boolean> filter) {
+
+        return Arrays.stream(gameLoops)
+                .filter(iGameLoop -> {
+                    try {
+                        //这里用join可能有风险，万一逻辑代码有问题的话，会阻塞当前线程！不过没想到更好的办法
+                        return iGameLoop.submit(filter).join();
+                    } catch (Throwable t) {
+                        log.error("exception caught.", t);
+                    }
+                    return false;
+                })
                 .collect(Collectors.toList());
     }
 }

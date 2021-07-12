@@ -1,36 +1,22 @@
 package org.gamedo.ecs.interfaces;
 
-import org.gamedo.gameloop.interfaces.IGameLoop;
-
 import java.util.Map;
 import java.util.Optional;
 
+@SuppressWarnings("unused")
 public interface IEntity {
     /**
      * 本实体的唯一Id
+     *
      * @return 唯一Id
      */
     String getId();
 
     /**
-     * 是否已经注册到某个{@link IGameLoop}线程上
-     * @return true表示已经注册
-     */
-    boolean hasRegistered();
-
-    /**
-     * CAS方式更新注册状态，防止被注册到多个{@link IGameLoop}上
-     * 话说增加这么一个接口实在是不雅观，还需要考虑考虑
-     * @param expectedValue 期待值
-     * @param newValue 更新值
-     * @return true表示cas更新成功，false表示CAS失败
-     */
-    boolean casUpdateRegistered(boolean expectedValue, boolean newValue);
-    /**
      * 是否拥有某种类型的组件
      *
      * @param clazz 要检测的组件
-     * @param <T> 组件的类型
+     * @param <T>   组件的类型
      * @return true表示拥有该组件
      * @see IEntity#addComponent(Class, Object)
      */
@@ -47,6 +33,7 @@ public interface IEntity {
 
     /**
      * 返回一个无法被修改的{@link java.util.Collections#unmodifiableMap(Map) Map}副本
+     *
      * @return 组件的类型 : value: 组件本身
      */
     Map<Class<?>, Object> getComponentMap();
@@ -65,5 +52,4 @@ public interface IEntity {
      * @return 如果之前存在相同clazz的组件，则返回旧组件的{@link Optional}，否则返回{@link Optional#empty()}
      */
     <T, R extends T> Optional<T> addComponent(Class<T> clazz, R component);
-
 }

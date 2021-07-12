@@ -1,14 +1,14 @@
-package org.gamedo.gameloop;
+package org.gamedo.gameloop.interfaces;
 
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Tick;
 import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.gameloop.GameLoops;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
-import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,14 +25,14 @@ import java.util.concurrent.TimeUnit;
 
 @Log4j2
 @SpringBootTest(classes = GamedoConfiguration.class)
-class GameLoopTest {
+class IGameLoopTest {
     private static final int DEFAULT_WAIT_TIMEOUT = 5;
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MINUTES;
     private static final String GAME_LOOP_ID = UUID.randomUUID().toString();
     private IGameLoop gameLoop;
     private final ConfigurableApplicationContext context;
 
-    GameLoopTest(ConfigurableApplicationContext context) {
+    IGameLoopTest(ConfigurableApplicationContext context) {
         this.context = context;
     }
 
@@ -48,34 +48,34 @@ class GameLoopTest {
     }
 
     @Test
-    void testInGameLoop()
+    void testInThread()
     {
-        final CompletableFuture<Boolean> future1 = gameLoop.submit(iGameLoop -> iGameLoop.inGameLoop());
+        final CompletableFuture<Boolean> future1 = gameLoop.submit(iGameLoop -> iGameLoop.inThread());
         final Boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result1);
 
-        final CompletableFuture<Boolean> future2 = CompletableFuture.supplyAsync(() -> gameLoop.inGameLoop());
+        final CompletableFuture<Boolean> future2 = CompletableFuture.supplyAsync(() -> gameLoop.inThread());
         final Boolean result2 = Assertions.assertDoesNotThrow(() -> future2.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertFalse(result2);
 
-        final CompletableFuture<Boolean> future3 = CompletableFuture.supplyAsync(() -> gameLoop.inGameLoop(), gameLoop);
+        final CompletableFuture<Boolean> future3 = CompletableFuture.supplyAsync(() -> gameLoop.inThread(), gameLoop);
         final Boolean result3 = Assertions.assertDoesNotThrow(() -> future3.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result3);
 
-        final CompletableFuture<Boolean> future4 = gameLoop.submit(iGameLoop -> IGameLoop.currentGameLoop()
-                .map(iGameLoop1 -> iGameLoop1.inGameLoop())
+        final CompletableFuture<Boolean> future4 = gameLoop.submit(iGameLoop -> GameLoops.current()
+                .map(iGameLoop1 -> iGameLoop1.inThread())
                 .orElse(false));
         final Boolean result4 = Assertions.assertDoesNotThrow(() -> future4.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result4);
 
-        final CompletableFuture<Boolean> future5 = CompletableFuture.supplyAsync(() -> IGameLoop.currentGameLoop()
-                .map(iGameLoop -> iGameLoop.inGameLoop())
+        final CompletableFuture<Boolean> future5 = CompletableFuture.supplyAsync(() -> GameLoops.current()
+                .map(iGameLoop -> iGameLoop.inThread())
                 .orElse(false));
         final Boolean result5 = Assertions.assertDoesNotThrow(() -> future5.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertFalse(result5);
 
-        final CompletableFuture<Boolean> future6 = CompletableFuture.supplyAsync(() -> IGameLoop.currentGameLoop()
-                .map(iGameLoop -> iGameLoop.inGameLoop())
+        final CompletableFuture<Boolean> future6 = CompletableFuture.supplyAsync(() -> GameLoops.current()
+                .map(iGameLoop -> iGameLoop.inThread())
                 .orElse(false), gameLoop);
         final Boolean result6 = Assertions.assertDoesNotThrow(() -> future6.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result6);
@@ -93,7 +93,7 @@ class GameLoopTest {
     }
 
     @Test
-    void testSendEvent1() {
+    void testExceptionInCurrentThread() {
 
         final CompletableFuture<Boolean> futureDone = new CompletableFuture<>();
         final CompletableFuture<Optional<Boolean>> future = gameLoop.submit(iGameLoop -> iGameLoop.getComponent(IGameLoopEventBus.class)
@@ -104,7 +104,7 @@ class GameLoopTest {
         future.whenCompleteAsync((aBoolean, throwable) -> {
             try {
                 Assertions.assertTrue(throwable instanceof RuntimeException);
-                Assertions.assertTrue(gameLoop.inGameLoop());
+                Assertions.assertTrue(gameLoop.inThread());
             } catch (Throwable e) {
                 futureDone.completeExceptionally(e);
             }
@@ -162,9 +162,9 @@ class GameLoopTest {
                     future7.complete(inGameLoopList);
                 }
                 else {
-                    Optional<IGameLoop> iGameLoop = IGameLoop.currentGameLoop();
+                    Optional<IGameLoop> iGameLoop = GameLoops.current();
                     inGameLoopList.add(iGameLoop
-                            .map(gameLoop -> gameLoop.inGameLoop())
+                            .map(gameLoop -> gameLoop.inThread())
                             .orElse(false));
                 }
             } catch (Exception e) {

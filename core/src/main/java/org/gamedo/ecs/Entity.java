@@ -4,19 +4,17 @@ import lombok.EqualsAndHashCode;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.interfaces.IEntity;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 @EqualsAndHashCode(of = "id")
 @Log4j2
 public class Entity implements IEntity {
-    private final String id;
+    protected final String id;
     protected final Map<Class<?>, Object> componentMap;
-    /**
-     * 防止同一个Entity被注册到多个GameLoop上
-     */
-    private final AtomicBoolean hasRegistered = new AtomicBoolean(false);
 
     public Entity(final String id, Map<Class<?>, Object> componentMap) {
         this.id = id;
@@ -38,16 +36,6 @@ public class Entity implements IEntity {
     }
 
     @Override
-    public boolean hasRegistered() {
-        return hasRegistered.get();
-    }
-
-    @Override
-    public boolean casUpdateRegistered(boolean expectedValue, boolean newValue) {
-        return hasRegistered.compareAndSet(expectedValue, newValue);
-    }
-
-    @Override
     public <T> boolean hasComponent(Class<T> clazz) {
         return componentMap.containsKey(clazz);
     }
@@ -66,7 +54,6 @@ public class Entity implements IEntity {
     @SuppressWarnings("unchecked")
     @Override
     public <T, R extends T> Optional<T> addComponent(Class<T> clazz, R component) {
-
         return (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
     }
 

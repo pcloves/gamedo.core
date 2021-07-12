@@ -6,6 +6,4 @@ import java.util.function.Function;
 public interface GameLoopFunction<R> extends Function<IGameLoop, R> {
     @Override
     R apply(IGameLoop gameLoop);
-
-    GameLoopFunction<Boolean> TRUE = gameLoop -> true;
 }

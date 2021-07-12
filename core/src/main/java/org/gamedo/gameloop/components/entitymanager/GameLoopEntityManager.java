@@ -9,9 +9,9 @@ import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPre;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPre;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBusFunction;
-import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopSchedulerFunction;
-import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManagerFunction;
+import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
+import org.gamedo.gameloop.functions.IGameLoopSchedulerFunction;
+import org.gamedo.gameloop.functions.IGameLoopTickManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.util.Collections;
@@ -32,12 +32,6 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
         final String entityId = entity.getId();
         if (entityMap.containsKey(entityId)) {
-            return false;
-        }
-
-        final boolean result = entity.casUpdateRegistered(false, true);
-        if (!result) {
-            log.error("the entity:{} has been registered on another IGameLoop", entityId);
             return false;
         }
 
@@ -119,10 +113,6 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
         //6 最后一次事件通知
         eventBus.ifPresent(iGameLoopEventBus -> iGameLoopEventBus.post(new EventUnregisterEntityPost(entityId)));
-
-        if (!entity.casUpdateRegistered(true, false)) {
-            log.error("the entity:{} hasn't been registered on this IGameLoop:{}", entityId, owner);
-        }
 
         return Optional.of(entity);
     }

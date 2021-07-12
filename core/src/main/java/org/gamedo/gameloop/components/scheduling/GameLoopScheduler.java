@@ -4,6 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.Logger;
 import org.gamedo.annotation.Scheduled;
 import org.gamedo.ecs.GameLoopComponent;
+import org.gamedo.gameloop.GameLoops;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -226,7 +227,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
 
     private int schedule(String cron) {
 
-        if (IGameLoop.currentGameLoop()
+        if (GameLoops.current()
                 .filter(iGameLoop1 -> iGameLoop1 == owner)
                 .isEmpty()) {
             log.error("this method can only be called by the IGameLoop it belong to, gameLoop{}", owner);

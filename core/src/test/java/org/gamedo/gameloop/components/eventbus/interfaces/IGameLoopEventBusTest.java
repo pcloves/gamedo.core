@@ -5,30 +5,29 @@ import lombok.Value;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.GameLoop;
+import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 class IGameLoopEventBusTest {
 
-    private final IGameLoop entity = new GameLoop(UUID.randomUUID().toString());
-    private final IGameLoopEventBus iGameLoopEventBus = new GameLoopEventBus(entity);
+    private final IGameLoop gameLoop = new GameLoop("IGameLoopEventBusTest");
+    private final IGameLoopEventBus iGameLoopEventBus = new GameLoopEventBus(gameLoop);
 
     IGameLoopEventBusTest() {
-        entity.addComponent(MyComponent.class, new MyComponent(entity));
-        entity.addComponent(MySubComponent.class, new MySubComponent(entity));
+        gameLoop.addComponent(MyComponent.class, new MyComponent(gameLoop));
+        gameLoop.addComponent(MySubComponent.class, new MySubComponent(gameLoop));
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testRegister() {
-        final Optional<MyComponent> componentOptional = entity.getComponent(MyComponent.class);
+        final Optional<MyComponent> componentOptional = gameLoop.getComponent(MyComponent.class);
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(myComponent);
@@ -41,7 +40,7 @@ class IGameLoopEventBusTest {
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testRegisterInSubClass() {
-        final Optional<MySubComponent> componentOptional = entity.getComponent(MySubComponent.class);
+        final Optional<MySubComponent> componentOptional = gameLoop.getComponent(MySubComponent.class);
         final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
@@ -55,7 +54,7 @@ class IGameLoopEventBusTest {
     @Test
     void testUnregister() {
 
-        final Optional<MyComponent> componentOptional = entity.getComponent(MyComponent.class);
+        final Optional<MyComponent> componentOptional = gameLoop.getComponent(MyComponent.class);
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int unregisterCount = iGameLoopEventBus.unregister(myComponent);
@@ -71,7 +70,7 @@ class IGameLoopEventBusTest {
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testPostInSubClass() {
-        final Optional<MySubComponent> componentOptional = entity.getComponent(MySubComponent.class);
+        final Optional<MySubComponent> componentOptional = gameLoop.getComponent(MySubComponent.class);
         final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
@@ -86,7 +85,7 @@ class IGameLoopEventBusTest {
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testPost() {
-        final Optional<MyComponent> componentOptional = entity.getComponent(MyComponent.class);
+        final Optional<MyComponent> componentOptional = gameLoop.getComponent(MyComponent.class);
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(myComponent);

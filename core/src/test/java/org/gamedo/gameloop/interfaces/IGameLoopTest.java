@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.interfaces;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.gamedo.annotation.Tick;
 import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
@@ -19,16 +19,15 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-@Log4j2
+@Slf4j
 @SpringBootTest(classes = GamedoConfiguration.class)
 class IGameLoopTest {
     private static final int DEFAULT_WAIT_TIMEOUT = 5;
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MINUTES;
-    private static final String GAME_LOOP_ID = UUID.randomUUID().toString();
+    private static final String GAME_LOOP_ID = "IGameLoopTest";
     private IGameLoop gameLoop;
     private final ConfigurableApplicationContext context;
 

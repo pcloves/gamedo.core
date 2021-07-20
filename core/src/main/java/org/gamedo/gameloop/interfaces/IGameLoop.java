@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.interfaces;
 
-import org.gamedo.annotation.Scheduled;
+import org.gamedo.annotation.Cron;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.interfaces.IEntity;
@@ -45,7 +45,7 @@ import java.util.function.BiConsumer;
  * <li> {@link IGameLoopTickManager} 提供线程内的逻辑心跳的动态管理机制
  * </ul>
  * <p>当某个{@link IEntity}实例被安全发布到{@link IGameLoop}上时，本实例及其所有组件就具备了事件订阅、cron调度、逻辑心跳的能力，详情可以参
- * 考{@link org.gamedo.annotation}包内关于{@link Subscribe}、{@link Scheduled}以及{@link Tick}的注释。这些组件的使用方式可以参考
+ * 考{@link org.gamedo.annotation}包内关于{@link Subscribe}、{@link Cron}以及{@link Tick}的注释。这些组件的使用方式可以参考
  * {@link org.gamedo.gameloop.functions}包内提供的IGameLoop*Function函数或者单元测试，在实际开发过程中，可以通过类似的扩展机制对
  * {@link IGameLoop}的组件进行扩展，一般的实现流程为：
  * <ul>

@@ -1,30 +1,21 @@
-package org.gamedo.ecs;
+package org.gamedo.ecs.interfaces;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.gamedo.configuration.GamedoConfiguration;
-import org.gamedo.ecs.interfaces.IComponent;
-import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.EntityComponent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.UUID;
 
-@Log4j2
+@Slf4j
 @SpringBootTest(classes = GamedoConfiguration.class)
-class ComponentTest {
+class IComponentTest {
 
-    private final ConfigurableApplicationContext context;
-    private final IGameLoop iGameLoop;
     private final IEntity entity = new Entity(UUID.randomUUID().toString());
     private final IComponent<IEntity> component = new EntityComponent(entity);
-
-    ComponentTest(ConfigurableApplicationContext context) {
-        this.context = context;
-        iGameLoop = context.getBean(IGameLoop.class, UUID.randomUUID().toString());
-    }
 
     @Test
     public void testQueryInterface() {

@@ -18,6 +18,6 @@
     </parent>
 
     <artifactId>gamedo.core</artifactId>
-    <version>0.7.1-SNAPSHOT</version>
+    <version>0.7.2-SNAPSHOT</version>
 
 </project>

@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.interfaces;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.gamedo.annotation.Tick;
 import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@Log4j2
+@Slf4j
 @SpringBootTest(classes = GamedoConfiguration.class)
 class IGameLoopGroupTest {
 

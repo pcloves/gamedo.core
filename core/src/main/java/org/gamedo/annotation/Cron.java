@@ -1,44 +1,58 @@
 package org.gamedo.annotation;
 
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
+import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.lang.annotation.*;
 
 /**
- * 该注解被标注在一个方法上，代表所归属的类具备在{@link IGameLoop}线程内进行spring cron调度的能力，一般性的使用方法：
+ * 该注解被标注在一个方法上，代表所归属的类具备了在{@link IGameLoop}线程内根据不同的cron表达式调用自身逻辑的能力，含有该注解的方法称为：cron
+ * 函数。cron函数的要求：
  * <ul>
- * <li>定义需要进行cron调度的类，并定义只有一个Long类型参数的方法（我们称之为cron方法），每个类内cron方法的数量不受限制（如果两个
- * cron方法配置了相同的cron表达式，gamedo.core也是允许的，仅打印一个warn日志进行提醒，或许后续的gamedo.core版本会开放出开关配置）
- * <li>在方法上增加本注解，并配置合法有效的spring cron表达式（如果cron表达式比较复杂，务必先通过第三方的验证器进行验证，防止无谓的时间浪费）
- * 示例如下：
+ * <li> 返回值为void，包含2个{@link Long}类型的参数，第1个参数代表当前系统时间，第2个参数代表上次cron调用时间（首次调用时为-1）
+ * <li> 某一个类的cron函数除了包含自己的cron函数，也包含父类及祖先类内的cron函数
+ * <li> 对于函数重载：假如某函数被子类重载，那么本类或子类只要任意函数上增加了本注解，那么都会成为cron函数
+ * </ul>
+ * 使用方式如下：
+ * <ul>
+ * <li> 定义cron函数
  * <pre>
  *     class MySchedule
  *     {
  *         &#064;Scheduled("*&#47;10 * * * * *")
- *         private void cron(Long lastTriggerTime)
+ *         private void cron(Long currentTime, Long lastTriggerTime)
  *         {
+ *             //currentTime 当前时间
  *             //lastTriggerTime 代表上一次的运行时间，如果是第一次调用，那么该值为：-1
  *             //执行自己的逻辑
  *         }
  *     }
  * </pre>
- * <li>将该类的实例注册到{@link IGameLoop}上，如下所示：
+ * <li> 将该类的实例注册到{@link IGameLoop}上，如下所示：
  * </ul>
  * <pre>
  * final IGameLoop iGameLoop = ...
  * final MySchedule mySchedule = new MySchedule()
- * final CompletableFuture&lt;Integer&gt; future = iGameLoop.submit(ISchedulerFunction.registerSchedule(mySchedule))
+ * final CompletableFuture&lt;Integer&gt; future = iGameLoop.submit(ISchedulerFunction.register(mySchedule))
  * </pre>
- * 之后，MySchedule.cron()函数每隔10秒就被iGameLoop线程调用一次。<p>
- * <b>需要注意：</b>当MySchedule被当做组件附加到某{@link IEntity} A上后，就不需要手动执行上述注册代码了，系统会在A注册到{@link IGameLoop}
- * 上时，自动注册A本身以及所有组件的cron方法，并且当从{@link IGameLoop}反注册后又会自动反注册这些cron方法
+ * 当future执行成功后，该cron函数都会在IGameLoop线程内按照配置的cron表达式被调用<p>
+ * 有两种情况不需要执行上述的手动注册，系统会自动为其注册：
+ * <ul>
+ * <li> 某{@link IEntity}被安全发布到{@link IGameLoop}（例如通过:{@link IGameLoopEntityManagerFunction#registerEntity(IEntity)}）
+ * 上，那么{@link IEntity}实现类及其父类下所有的{@link Cron}函数会自动注册
+ * <li> 当{@link Object}被当做组件通过{@link IEntity#addComponent(Class, Object)}添加到{@link IEntity}上后，当{@link IEntity}
+ * 被安全发布到{@link IGameLoop}上时，该{@link Object}实现类及其父类下所有的{@link Cron}函数都会自动注册
+ * </ul>
+ * 当某{@link IEntity}从{@link IGameLoop}反注册后，这两种情况下所有的{@link Cron}函数会被自动反注册<p>
+ * 除此之外，还可以动态注册反注册cron函数，详情可以参考{@link IGameLoopScheduler}
  */
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface Scheduled {
+public @interface Cron {
 
     /**
      * 以下注释翻译自：{@link CronExpression#parse(String)}<p>
@@ -58,14 +72,14 @@ public @interface Scheduled {
      * </pre>
      * cron表达式遵循以下规则：
      * <ul>
-     * <li>字段可以是一个星号（*），代表从头到尾，对于“日”、“星期”字段来说，问号可能会取代星号
+     * <li>字段可以是一个星号（*），代表从头到尾，对于“日”、“星期”字段来说，也可以使用问号（?）取代星号（*）（为了兼容原生cron表达式）
      * <li>范围区间使用短横线（-）连接两个数字，且前后均为闭区间，例如对于秒区间来说：0-30代表0到30秒这个区间
-     * <li>范围区间或（或者*）后面跟着一个“/n”（其中n为数字），则指定了该区间内的间隔为n，也即每隔n单位触发
+     * <li>范围区间（或者使用*）后面跟着一个“/n”（其中n为数字），指定了该区间内的执行间隔为n，也即每隔n单位触发
      * <li>对于“月”和“星期”字段来说，可以使用其英文名称的前3个字母的缩写（大小写不敏感）
-     * <li>对于“日”和“星期”字段来说，可以包含一个“L”(代表：Last)字符，代表着“最后”，并且L对于这两个字段，又有不同的含义：
+     * <li>对于“日”和“星期”字段来说，可以包含一个“L”(代表：Last)字符，代表着“最后”，对于这两个字段，L又有不同的含义：
      * <ul>
-     *     <li>在“日”字段中，L代表月份的最后一天，如果L后面跟的是一个负数（例如：L-n），则代表从n开始到月末，如果后面跟着W（例如：LW，其中W代表
-     *     Weekday），则代表月份的最后一个工作日
+     *     <li>在“日”字段中，L代表月份的最后一天，如果L后面跟的是一个负数（例如：L-n），则代表某月最后一天再往前推n天，如果L后面跟着W（例如：
+     *     LW，其中W代表Weekday），则代表月份的最后一个工作日
      *     <li>在“星期”字段中，L代表星期的最后一天，如果L前面有一个数字或者3字母缩写的星期名（例如：nL或者DDDL），则代表某月的最后一个星期n
      * </ul>
      * <li>对于“日”字段来说，可以写成：“nW”，代表：最接近给定日期的工作日，例如：15W，意思是：“最接近该月15日的工作日”。那么，如果15号是

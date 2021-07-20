@@ -1,26 +1,22 @@
 package org.gamedo.gameloop.components.scheduling;
 
-import lombok.extern.log4j.Log4j2;
-import org.apache.logging.log4j.Logger;
-import org.gamedo.annotation.Scheduled;
+import lombok.extern.slf4j.Slf4j;
+import org.gamedo.annotation.Cron;
 import org.gamedo.ecs.GameLoopComponent;
-import org.gamedo.gameloop.GameLoops;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.Markers;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Log4j2
+@Slf4j
 public class GameLoopScheduler extends GameLoopComponent implements IGameLoopScheduler {
     /**
      * cron表达式 --> 该表达式对应的所有运行时数据
@@ -29,34 +25,21 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     /**
      * 收到{@link TaskScheduler}
      */
-    private final Function<ScheduleFunctionData, Runnable> runnableFunction = data -> {
-        //注意：该Runnable可能在在本线程中，也可能不在本线程中，取决于怎么实现！！！
+    private final Function<String, Runnable> runnableFunction = cron -> {
+        //注意：该Runnable最终就在owner线程中执行！！
         return () -> {
-
-            final String cron = data.getCron();
-            final GameLoopScheduler scheduleRegister = data.getScheduleRegister();
-            final IGameLoop gameLoop = scheduleRegister.owner;
-            final Logger log1 = data.getLog();
-            if (gameLoop.isShutdown()) {
-                log1.debug("the IGameLoop {} has shutdown", () -> gameLoop.getId());
+            if (owner.isShutdown()) {
+                log.warn(Markers.GameLoopScheduler, "the IGameLoop {} has shutdown, stop next schedule", owner.getId());
                 return;
             }
 
-            //先定义行为：查询到组件后，派发cron调度
-            final GameLoopFunction<Integer> schedule = gameLoop1 -> gameLoop1.getComponent(GameLoopScheduler.class)
-                    .map(scheduler -> scheduler.schedule(cron))
-                    .orElse(0);
-            //投递到本线程中
-            final CompletableFuture<Integer> completableFuture = gameLoop.submit(schedule);
-            completableFuture.whenCompleteAsync((c, t) -> {
-                if (t != null) {
-                    log1.error("exception caught, cron:" + cron, t);
-                } else {
-                    if (c == 0) {
-                        log1.error("none cron method is triggered, cron:{}", cron);
-                    }
-                }
-            }, gameLoop);
+            final int successCount = schedule(cron);
+            if (log.isDebugEnabled()) {
+                log.debug(Markers.GameLoopScheduler, "schedule finish, cron:{}, totalCount:{}, successCount:{}",
+                        cron,
+                        cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size(),
+                        successCount);
+            }
         };
     };
 
@@ -65,15 +48,20 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     }
 
     public static boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
-        ReflectionUtils.makeAccessible(scheduleInvokeData.getMethod());
+        final Method method = scheduleInvokeData.getMethod();
+        final Object object = scheduleInvokeData.getObject();
         try {
+            ReflectionUtils.makeAccessible(method);
+            final Long currentTimeMillis = System.currentTimeMillis();
             final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
             final Long lastExecutionTime = Optional.ofNullable(triggerContext.lastActualExecutionTime())
                     .map(date -> date.getTime())
                     .orElse(Long.valueOf(-1));
-            scheduleInvokeData.getMethod().invoke(scheduleInvokeData.getObject(), lastExecutionTime);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            log.error("exception caught. method:" + scheduleInvokeData.getMethod() + ", data:" + scheduleInvokeData.getObject(), e);
+            method.invoke(object, currentTimeMillis, lastExecutionTime);
+        } catch (Throwable t) {
+            final Class<?> clazz = object.getClass();
+            log.error(Markers.GameLoopScheduler, "exception caught. class:" + clazz.getSimpleName() +
+                    "method:" + method, t);
             return false;
         }
 
@@ -85,29 +73,37 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
 
         final Class<?> clazz = object.getClass();
         final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
-                .filter(method -> method.isAnnotationPresent(Scheduled.class) && !method.isSynthetic())
+                .filter(method -> method.isAnnotationPresent(Cron.class) && !method.isSynthetic())
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            if (log.isDebugEnabled()) {
-                log.warn("the Object has none annotated method, annotation:{}, clazz:{}",
-                        () -> Scheduled.class.getName(),
-                        () -> clazz.getName());
-            }
+            log.warn(Markers.GameLoopScheduler, "the Object has none annotated method, annotation:{}, clazz:{}",
+                    Cron.class.getSimpleName(),
+                    clazz.getName());
             return 0;
         }
 
-        return annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
+        final int count = annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
+
+        if (log.isDebugEnabled()) {
+            log.debug(Markers.GameLoopScheduler, "register schedule finish, clazz:{}, totalCount:{}, successCount:{}",
+                    clazz.getSimpleName(),
+                    annotatedMethodSet.size(),
+                    count
+            );
+        }
+
+        return count;
     }
 
     @Override
     public boolean register(Object object, Method method) {
 
-        if (!method.isAnnotationPresent(Scheduled.class)) {
+        if (!method.isAnnotationPresent(Cron.class)) {
             return false;
         }
 
-        final Scheduled annotation = method.getAnnotation(Scheduled.class);
+        final Cron annotation = method.getAnnotation(Cron.class);
         final String cron = annotation.value();
 
         return register(object, method, cron);
@@ -117,48 +113,73 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     public boolean register(Object object, Method method, String cron) {
 
         final Class<?> clazz = object.getClass();
+        final String clazzName = clazz.getName();
+        final String methodName = method.getName();
         if (owner.isShutdown()) {
-            log.warn("the GameLoop has been shut down, register failed, clazz:{}, method:{}, cron:{}",
-                    clazz.getName(),
-                    method.getName(),
+            log.warn(Markers.GameLoopScheduler, "the GameLoop has been shut down, register failed, clazz:{}, " +
+                            "method:{}, cron:{}",
+                    clazzName,
+                    methodName,
                     cron);
             return false;
         }
 
-        if (method.getParameterCount() != 1 ||
-                method.getParameters()[0].getType() != Long.class) {
-            log.error("schedule method should has one parameter of 'java.lang.Long', clazz:{}, method:{}, cron:{}",
-                    clazz.getName(),
-                    method.getName(),
+        if (method.getParameterCount() != 2 ||
+                method.getParameters()[0].getType() != Long.class ||
+                method.getParameters()[1].getType() != Long.class) {
+            log.error(Markers.GameLoopScheduler, "schedule method should has two parameter of " +
+                            "(java.lang.Long, java.lang.Long)', clazz:{}, method:{}, cron:{}",
+                    clazzName,
+                    methodName,
                     cron);
             return false;
         }
 
         if (Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz)).noneMatch(method1 -> method1.equals(method))) {
-            log.error("the method:{} is not belong to clazz:{}, cron:{}",
-                    method.getName(),
-                    clazz.getName(),
+            log.error(Markers.GameLoopScheduler, "the method:{} is not belong to clazz:{}, cron:{}",
+                    methodName,
+                    clazzName,
                     cron);
             return false;
         }
 
-        final SchedulingRunnable schedulingRunnable = cronToscheduleDataMap.computeIfAbsent(cron, cron1 -> {
-            final CronTrigger trigger = new CronTrigger(cron1);
-            final SimpleTriggerContext context = new SimpleTriggerContext();
-            final ScheduleFunctionData functionData = new ScheduleFunctionData(this, cron1, log);
-            final Runnable runnable = runnableFunction.apply(functionData);
+        SchedulingRunnable runnable = cronToscheduleDataMap.get(cron);
+        boolean isNewRunnable = false;
+        if (runnable == null) {
+            try {
+                runnable = new SchedulingRunnable(this, cron, runnableFunction.apply(cron));
+                isNewRunnable = true;
+            } catch (IllegalArgumentException e) {
+                log.error(Markers.GameLoopScheduler, "invalid cron expression:" + cron +
+                        ", clazz:" + clazzName +
+                        ", method:" + methodName, e);
+                return false;
+            }
+        }
 
-            return new SchedulingRunnable(this, trigger, context, runnable).schedule();
-        });
-
-        final Set<ScheduleInvokeData> scheduleInvokeDataSet = schedulingRunnable.getScheduleInvokeDataSet();
+        final Set<ScheduleInvokeData> scheduleInvokeDataSet = runnable.getScheduleInvokeDataSet();
         final ScheduleInvokeData scheduleInvokeData = new ScheduleInvokeData(object, method);
+
         if (scheduleInvokeDataSet.contains(scheduleInvokeData)) {
-            log.warn("duplicate methods registered, clazz:{}, method:{}", clazz.getName(), method);
+            log.warn(Markers.GameLoopScheduler, "duplicate methods registered, clazz:{}, method:{}",
+                    clazzName,
+                    method);
             return false;
         }
 
         scheduleInvokeDataSet.add(scheduleInvokeData);
+        if (isNewRunnable) {
+            if (runnable.schedule()) {
+                cronToscheduleDataMap.put(cron, runnable);
+
+                if (log.isDebugEnabled()) {
+                    log.debug(Markers.GameLoopScheduler, "register success, clazz:{}, method:{}, cron:{}",
+                            clazz.getSimpleName(),
+                            methodName,
+                            cron);
+                }
+            }
+        }
 
         return true;
     }
@@ -167,13 +188,15 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     public int unregister(Class<?> clazz) {
 
         final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
-                .filter(method -> method.isAnnotationPresent(Scheduled.class) && !method.isSynthetic())
+                .filter(method -> method.isAnnotationPresent(Cron.class) && !method.isSynthetic())
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.debug("the Object has none annotated method, annotation:{}, clazz:{}",
-                    () -> Scheduled.class.getSimpleName(),
-                    () -> clazz.getName());
+            if (log.isDebugEnabled()) {
+                log.debug(Markers.GameLoopScheduler, "the Object has none annotated method, annotation:{}, clazz:{}",
+                        Cron.class.getSimpleName(),
+                        clazz.getName());
+            }
             return 0;
         }
 
@@ -191,10 +214,15 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
 
         cronToscheduleDataMap.values().removeIf(runnable -> {
             final boolean empty = runnable.getScheduleInvokeDataSet().isEmpty();
+            final CronTrigger trigger = runnable.getTrigger();
             if (empty) {
-                log.debug("stop schedule {}", () -> runnable.getTrigger().getExpression());
                 //可能有调度正在等待中，直接取消掉吧
-                runnable.getFuture().cancel(false);
+                final boolean cancel = runnable.getFuture().cancel(false);
+                if (log.isDebugEnabled()) {
+                    log.debug(Markers.GameLoopScheduler, "stop schedule {}, cancel:{}",
+                            trigger.getExpression(),
+                            cancel);
+                }
             }
 
             return empty;
@@ -217,22 +245,16 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 .sum();
 
         if (!cronToscheduleDataMap.isEmpty()) {
-            log.error("There are remaining {} in the map:{}",
+            log.error(Markers.GameLoopScheduler, "There are remaining {} in the map:{}",
                     SchedulingRunnable.class.getSimpleName(),
                     cronToscheduleDataMap.values());
+            cronToscheduleDataMap.clear();
         }
 
         return sum;
     }
 
     private int schedule(String cron) {
-
-        if (GameLoops.current()
-                .filter(iGameLoop1 -> iGameLoop1 == owner)
-                .isEmpty()) {
-            log.error("this method can only be called by the IGameLoop it belong to, gameLoop{}", owner);
-            return 0;
-        }
 
         if (!cronToscheduleDataMap.containsKey(cron)) {
             return 0;

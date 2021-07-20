@@ -3,7 +3,7 @@ package org.gamedo.gameloop.functions;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.annotation.Scheduled;
+import org.gamedo.annotation.Cron;
 
 import java.lang.reflect.Method;
 
@@ -11,7 +11,7 @@ public interface IGameLoopSchedulerFunction {
 
     /**
      * 定义一个行为：向{@link IGameLoop}的{@link IGameLoopScheduler}组件注册cron调度，object
-     * 的所有包含{@link Scheduled}注解的无参函数都会被注册
+     * 的所有包含{@link Cron}注解的无参函数都会被注册
      *
      * @param object 要注册调度的实例
      * @return 返回该行为的定义，其中GameLoopFunction中的Integer代表被成功注册的方法的数量

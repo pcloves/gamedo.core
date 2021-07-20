@@ -1,12 +1,12 @@
 package org.gamedo.ecs;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 
 import java.util.Optional;
 
-@Log4j2
+@Slf4j
 public abstract class Component<T extends IEntity> implements IComponent<T> {
 
     protected final T owner;

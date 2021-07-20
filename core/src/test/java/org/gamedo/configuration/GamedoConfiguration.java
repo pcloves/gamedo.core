@@ -1,18 +1,18 @@
 package org.gamedo.configuration;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
+import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopComponentRegister;
+import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.gameloop.GameLoop;
-import org.gamedo.gameloop.GameLoopGroup;
+import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
+import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.GameLoopTickManager;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
-import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Log4j2
+@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+@Slf4j
 @Configuration(proxyBeanMethods = false)
 public class GamedoConfiguration {
 
@@ -99,7 +100,7 @@ public class GamedoConfiguration {
 
             for (Class clazz : clazzList) {
                 gameLoop.addComponent(clazz, object);
-                log.info("addComponent {}", () -> clazz.getName());
+                log.info("addComponent {}", clazz.getSimpleName());
             }
         }
 
@@ -122,7 +123,7 @@ public class GamedoConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public GameLoopComponentRegister<GameLoopScheduler> gameLoopSchedulerRegister(IGameLoop gameLoop) {
 
-        final List<Class<? super GameLoopScheduler>> list = List.of(IGameLoopScheduler.class, GameLoopScheduler.class);
+        final List<Class<? super GameLoopScheduler>> list = List.of(IGameLoopScheduler.class);
         return new GameLoopComponentRegister<>(list, new GameLoopScheduler(gameLoop));
     }
 

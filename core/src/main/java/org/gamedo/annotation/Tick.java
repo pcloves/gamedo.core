@@ -1,6 +1,8 @@
 package org.gamedo.annotation;
 
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
+import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.lang.annotation.ElementType;
@@ -10,15 +12,19 @@ import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 该注解被标注在一个方法上，代表所归属的类具备在{@link IGameLoop}线程内进行心跳的能力，一般性的使用方法：
+ * 该注解被标注在一个方法上，代表所归属的类具备在{@link IGameLoop}线程内心跳的能力，含有该注解的方法称为：心跳函数。心跳函数的要求：
  * <ul>
- * <li>创建需要进行心跳的类，并定义包含两个Long类型参数的方法（我们称之为心跳方法），每个类内心跳方法的数量不受限制
- * <li>在方法上增加本注解
- * 示例如下：
+ * <li> 返回值为void，包含2个{@link Long}类型的参数，第1个参数代表当前系统时间，第2个参数代表上次心跳时间（首次心跳时为-1）
+ * <li> 某一个类的心跳函数除了包含自己的心跳函数，也包含父类及祖先类内的心跳函数
+ * <li> 对于函数重载：假如某函数被子类重载，那么本类或子类只要任意函数上增加了本注解，那么都会成为心跳函数
+ * </ul>
+ * 使用方式如下：
+ * <ul>
+ * <li> 定义cron函数
  * <pre>
  *     class MyTickObject
  *     {
- *         &#064;Tick(delay = 100, tick = 50, timeUnit = TimeUnit.MILLISECONDS)
+ *         &#064;Tick(delay = 0, tick = 50, timeUnit = TimeUnit.MILLISECONDS)
  *         private void tick(Long currentMilliSecond, Long lastMilliSecond)
  *         {
  *             //currentMilliSecond 代表当前系统时间
@@ -27,15 +33,23 @@ import java.util.concurrent.TimeUnit;
  *         }
  *     }
  * </pre>
- * <li>将该类的实例注册到{@link IGameLoop}上，如下所示：
+ * <li>将该类的实例注册到某{@link IGameLoop}线程上，如下所示：
  * </ul>
  * <pre>
  * final IGameLoop iGameLoop = ...
  * final MyTickObject myTickObj = new MyTickObject()
  * final CompletableFuture&lt;Integer&gt; future = iGameLoop.submit(IGameLoopTickManagerFunction.register(myTickObj))
  * </pre>
- * <b>需要注意：</b>当MyTickObject被当做组件附加到某{@link IEntity} A上后，就不需要执行上述注册代码了，系统会在A注册到{@link IGameLoop}
- * 上时，自动注册A本身以及所有组件的心跳函数，并且当从{@link IGameLoop}反注册后又会自动反注册这些心跳函数
+ * 当future执行成功后，每隔50毫秒，该tick心跳函数都会被IGameLoop线程调用<p>
+ * 有两种情况不需要执行上述的手动注册，系统会自动为其注册：
+ * <ul>
+ * <li> 某{@link IEntity}被安全发布到{@link IGameLoop}（例如通过:{@link IGameLoopEntityManagerFunction#registerEntity(IEntity)}）
+ * 上，那么{@link IEntity}实现类及其父类下所有的{@link Tick}心跳函数会自动注册
+ * <li> 当{@link Object}被当做组件通过{@link IEntity#addComponent(Class, Object)}添加到{@link IEntity}上，当{@link IEntity}
+ * 被安全发布到{@link IGameLoop}上时，该{@link Object}实现类及其父类下所有的{@link Tick}心跳函数都会自动注册
+ * </ul>
+ * 当某{@link IEntity}从{@link IGameLoop}反注册后，这两种情况下所有的{@link Tick}心跳函数又会自动被反注册<p>
+ * 除此之外，还可以动态注册反注册心跳函数，详情可以参考{@link IGameLoopTickManager}
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

@@ -39,7 +39,7 @@ public interface IGameLoopTickManager extends IComponent<IGameLoop> {
      * @param tick     心跳间隔
      * @param timeUnit 心跳时间单位
      * @param scheduleWithFixedDelay 是否以scheduleWithFixedDelay方式心跳
-     * @return 注册成功返回true，如果该方法已经被{@link Tick}注解标准或者已经注册过，返回false
+     * @return 注册成功返回true，如果该方法已经被注册过或者所属线程已经shutdown，返回false
      */
     boolean register(Object object, Method method, long delay, long tick, TimeUnit timeUnit, boolean scheduleWithFixedDelay);
 

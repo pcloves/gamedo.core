@@ -1,6 +1,7 @@
 package org.gamedo.gameloop.components.scheduling.interfaces;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
+import org.gamedo.annotation.Cron;
 import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.EntityComponent;
@@ -9,8 +10,6 @@ import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.functions.IGameLoopSchedulerFunction;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.gameloop.interfaces.IGameLoopGroup;
-import org.gamedo.annotation.Scheduled;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +29,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Log4j2
+@Slf4j
 @SpringBootTest(classes = GamedoConfiguration.class)
 class IGameLoopSchedulerTest {
 
@@ -39,7 +38,7 @@ class IGameLoopSchedulerTest {
     private static final String CRON_10_SECONDLY_EXPRESSION = "*/10 * * * * *";
     private static final String SCHEDULE_10_SECOND_METHOD_NAME = "schedulePer10Second";
     private static final String SCHEDULE_DYNAMIC_METHOD_NAME = "scheduleDynamic";
-    private IGameLoopGroup gameLoopGroup;
+    private IGameLoop gameLoop;
     private final ConfigurableApplicationContext context;
 
     IGameLoopSchedulerTest(ConfigurableApplicationContext context) {
@@ -48,13 +47,13 @@ class IGameLoopSchedulerTest {
 
     @BeforeEach
     void setUp() {
-        gameLoopGroup = context.getBean(IGameLoopGroup.class);
+        gameLoop = context.getBean(IGameLoop.class, "IGameLoopSchedulerTest");
     }
 
     @AfterEach
     void tearDown() throws InterruptedException {
-        gameLoopGroup.shutdown();
-        final boolean b = gameLoopGroup.awaitTermination(10, TimeUnit.SECONDS);
+        gameLoop.shutdown();
+        final boolean b = gameLoop.awaitTermination(10, TimeUnit.SECONDS);
         Assertions.assertTrue(b);
     }
 
@@ -66,7 +65,7 @@ class IGameLoopSchedulerTest {
         entity.addComponent(ScheduledComponent.class, component);
 
         log.info("registerEntity begin");
-        final CompletableFuture<Boolean> future = gameLoopGroup.selectNext().submit(IGameLoopEntityManagerFunction.registerEntity(entity));
+        final CompletableFuture<Boolean> future = gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(entity));
 
         final Boolean result = Assertions.assertDoesNotThrow(() -> future.get());
         Assertions.assertTrue(result);
@@ -83,16 +82,13 @@ class IGameLoopSchedulerTest {
     @Test
     void testRegister() {
 
-        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
-        final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
-
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.register(object));
+        final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
 
-        final CompletableFuture<Integer> future1 = iGameLoop.submit(IGameLoopSchedulerFunction.register(object));
+        final CompletableFuture<Integer> future1 = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
         final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(0, result1);
@@ -109,11 +105,8 @@ class IGameLoopSchedulerTest {
     @Test
     void testRegister1() {
 
-        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
-        final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
-
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.register(object));
+        final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
@@ -131,7 +124,7 @@ class IGameLoopSchedulerTest {
 
         final Method method = methods.get(0);
         final GameLoopFunction<Boolean> function = IGameLoopSchedulerFunction.register(object, method, CRON_5_SECONDLY_EXPRESSION);
-        final CompletableFuture<Boolean> future1 = iGameLoop.submit(function);
+        final CompletableFuture<Boolean> future1 = gameLoop.submit(function);
         final boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("registerSchedule method {} using {} dynamiclly finish.", method, CRON_5_SECONDLY_EXPRESSION);
         Assertions.assertTrue(result1);
@@ -144,11 +137,8 @@ class IGameLoopSchedulerTest {
     @Test
     void testUnregister() {
 
-        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
-        final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
-
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.register(object));
+        final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
@@ -161,7 +151,7 @@ class IGameLoopSchedulerTest {
         Assertions.assertTrue(Math.abs(expected - object.value.get()) <= 1,
                 () -> "expected:" + expected + ", actual:" + object.value.get());
 
-        final CompletableFuture<Integer> future1 = iGameLoop.submit(IGameLoopSchedulerFunction.unregister(object.getClass()));
+        final CompletableFuture<Integer> future1 = gameLoop.submit(IGameLoopSchedulerFunction.unregister(object.getClass()));
         final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("unregisterSchedule finish.");
         Assertions.assertEquals(2, result1);
@@ -178,11 +168,8 @@ class IGameLoopSchedulerTest {
     @Test
     void testUnregister1() {
 
-        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
-        final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
-
         final ScheduledSubObject object = new ScheduledSubObject();
-        final CompletableFuture<Integer> future = iGameLoop.submit(IGameLoopSchedulerFunction.register(object));
+        final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
         final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
@@ -200,7 +187,7 @@ class IGameLoopSchedulerTest {
         Assertions.assertEquals(1, methods.size());
 
         final GameLoopFunction<Boolean> function = IGameLoopSchedulerFunction.unregister(object.getClass(), methods.get(0));
-        final CompletableFuture<Boolean> future1 = iGameLoop.submit(function);
+        final CompletableFuture<Boolean> future1 = gameLoop.submit(function);
         final Boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get());
         log.info("unregisterSchedule {} finish.", SCHEDULE_10_SECOND_METHOD_NAME);
         Assertions.assertTrue(result1);
@@ -214,15 +201,12 @@ class IGameLoopSchedulerTest {
     @Test
     void testUnregister2() {
 
-        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
-        final IGameLoop iGameLoop = iGameLoops[ThreadLocalRandom.current().nextInt(iGameLoops.length)];
-
         final List<ScheduledSubObject> scheduledSubObjectList = IntStream.rangeClosed(1, 100)
                 .mapToObj(i -> new ScheduledSubObject())
                 .collect(Collectors.toList());
 
         final List<CompletableFuture<Integer>> completableFutureList = scheduledSubObjectList.stream()
-                .map(scheduledSubObject -> iGameLoop.submit(IGameLoopSchedulerFunction.register(scheduledSubObject)))
+                .map(scheduledSubObject -> gameLoop.submit(IGameLoopSchedulerFunction.register(scheduledSubObject)))
                 .collect(Collectors.toList());
 
         final List<Integer> failedList = completableFutureList.stream()
@@ -231,6 +215,7 @@ class IGameLoopSchedulerTest {
                 .collect(Collectors.toList());
 
         Assertions.assertTrue(failedList.isEmpty());
+
 
         final int sleepSecond = ThreadLocalRandom.current().nextInt(10, 31);
         log.info("begin sleep {} seconds", sleepSecond);
@@ -251,8 +236,8 @@ class IGameLoopSchedulerTest {
     static class ScheduledObject {
         final AtomicInteger value = new AtomicInteger(0);
 
-        @Scheduled(CRON_SECONDLY_EXPRESSION)
-        private void scheduleSecondly(Long lastTriggerTime) {
+        @Cron(CRON_SECONDLY_EXPRESSION)
+        private void scheduleSecondly(Long currentTime, Long lastTriggerTime) {
             value.incrementAndGet();
 
             log.info("scheduleSecondly, lastTriggerTime:{} thread:{}",
@@ -265,8 +250,8 @@ class IGameLoopSchedulerTest {
     static class ScheduledSubObject extends ScheduledObject {
         final AtomicInteger valueDynamic = new AtomicInteger(0);
 
-        @Scheduled(CRON_10_SECONDLY_EXPRESSION)
-        private void schedulePer10Second(Long lastTriggerTime) {
+        @Cron(CRON_10_SECONDLY_EXPRESSION)
+        private void schedulePer10Second(Long currentTime, Long lastTriggerTime) {
             value.incrementAndGet();
 
             log.info("schedulePer10Second, lastTriggerTime:{} thread:{}",
@@ -274,7 +259,7 @@ class IGameLoopSchedulerTest {
                     Thread.currentThread().getName());
         }
 
-        void scheduleDynamic(Long lastTriggerTime) {
+        void scheduleDynamic(Long currentTime, Long lastTriggerTime) {
             valueDynamic.incrementAndGet();
             log.info("scheduleDynamic, lastTriggerTime:{}, thread:{}",
                     lastTriggerTime,
@@ -291,8 +276,8 @@ class IGameLoopSchedulerTest {
             super(owner);
         }
 
-        @Scheduled(CRON_SECONDLY_EXPRESSION)
-        private void scheduleSecondly(Long lastTriggerTime) {
+        @Cron(CRON_SECONDLY_EXPRESSION)
+        private void scheduleSecondly(Long currentTime, Long lastTriggerTime) {
             value.incrementAndGet();
 
             log.info("MyScheduleComponent, lastTriggerTime:{}, thread:{}",

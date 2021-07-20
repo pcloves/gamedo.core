@@ -1,10 +1,11 @@
 package org.gamedo.gameloop.components.tickManager;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.Markers;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -16,7 +17,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@Log4j2
+@Slf4j
 public class GameLoopTickManager extends GameLoopComponent implements IGameLoopTickManager {
 
     private final Map<TickData, ScheduledFuture<?>> tickDataFutureMap = new HashMap<>(32);
@@ -34,20 +35,29 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.warn("the Object has none annotated method, annotation:{}, clazz:{}",
-                    () -> Tick.class.getName(),
-                    () -> clazz.getName());
+            log.warn(Markers.GameLoopTickManager, "the Object has none annotated method, annotation:{}, clazz:{}",
+                    Tick.class.getSimpleName(),
+                    clazz.getName());
             return 0;
         }
 
-        return annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
+        final int count = annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
+        if (log.isDebugEnabled()) {
+            log.debug(Markers.GameLoopTickManager, "register tick finish, clazz:{}, totalCount:{}, successCount:{}",
+                    clazz.getSimpleName(),
+                    annotatedMethodSet.size(),
+                    count
+            );
+        }
+
+        return count;
     }
 
     @Override
     public boolean register(Object object, Method method) {
 
         if (!method.isAnnotationPresent(Tick.class)) {
-            log.error("the method:{} of clazz:{} is not annotated by:{}",
+            log.error(Markers.GameLoopTickManager, "the method:{} of clazz:{} is not annotated by:{}",
                     method.getName(),
                     object.getClass().getName(),
                     Tick.class.getName());
@@ -73,8 +83,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
         final Class<?> clazz = object.getClass();
         if (owner.isShutdown()) {
-            log.warn("the GameLoop has been shut down, register failed, clazz:{}, method:{}, delay:{}," +
-                            " tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+            log.warn(Markers.GameLoopTickManager, "the GameLoop has been shut down, register failed, " +
+                            "clazz:{}, method:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
                     clazz.getName(),
                     method.getName(),
                     delay,
@@ -85,8 +95,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         }
 
         if (delay < 0) {
-            log.error("invalid param:delay, register failed, clazz:{}, method:{}, delay:{}," +
-                            " tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+            log.error(Markers.GameLoopTickManager, "invalid param:delay, register failed, clazz:{}, " +
+                            "method:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
                     clazz.getName(),
                     method.getName(),
                     delay,
@@ -97,8 +107,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         }
 
         if (tick < 0) {
-            log.error("invalid param:tick, register failed, clazz:{}, method:{}, delay:{}," +
-                            " tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+            log.error(Markers.GameLoopTickManager, "invalid param:tick, register failed, clazz:{}, " +
+                            "method:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
                     clazz.getName(),
                     method.getName(),
                     delay,
@@ -111,8 +121,9 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         if (method.getParameterCount() != 2 ||
                 method.getParameters()[0].getType() != Long.class ||
                 method.getParameters()[1].getType() != Long.class) {
-            log.error("tick method should has two parameter of 'java.lang.Long, java.lang.Long', clazz:{}, " +
-                            "method:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+            log.error(Markers.GameLoopTickManager, "tick method should has two parameter of " +
+                            "(java.lang.Long, java.lang.Long)', clazz:{}, method:{}, delay:{}, tick:{}, " +
+                            "timeUnit:{}, scheduleWithFixedDelay:{}",
                     clazz.getName(),
                     method.getName(),
                     delay,
@@ -123,7 +134,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         }
 
         if (Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz)).noneMatch(method1 -> method1.equals(method))) {
-            log.error("the method {} is not belong to clazz:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+            log.error(Markers.GameLoopTickManager, "the method {} is not belong to clazz:{}, delay:{}, " +
+                            "tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
                     method.getName(),
                     clazz.getName(),
                     delay,
@@ -135,7 +147,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
         final TickData tickData = new TickData(object, method);
         if (tickDataFutureMap.containsKey(tickData)) {
-            log.error("the method:{} has registered, clazz:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+            log.error(Markers.GameLoopTickManager, "the method:{} has registered, clazz:{}, delay:{}, " +
+                            "tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
                     method.getName(),
                     clazz.getName(),
                     delay,
@@ -155,9 +168,12 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                     tickData.getMethod().invoke(tickData.getObject(), currentTimeMillis, lastTickMilliSecond);
                 }
                 catch (Throwable throwable) {
-                    log.error("exception caught, clazz:" + clazz.getName() + ", method:" + method.getName() +
-                                    ", delay:" + delay + ", tick:" + tick + ", timeUnit:" + timeUnit +
-                                    ", scheduleWithFixedDelay:" + scheduleWithFixedDelay, throwable);
+                    log.error(Markers.GameLoopTickManager, "exception caught, clazz:" + clazz.getName() +
+                            ", method:" + method.getName() +
+                            ", delay:" + delay +
+                            ", tick:" + tick +
+                            ", timeUnit:" + timeUnit +
+                            ", scheduleWithFixedDelay:" + scheduleWithFixedDelay, throwable);
                 } finally {
                     tickData.setLastTickMilliSecond(currentTimeMillis);
                 }
@@ -174,8 +190,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         tickDataFutureMap.put(tickData, scheduledFuture);
 
         if (log.isDebugEnabled()) {
-            log.debug("register tick success, clazz:{}, method:{}, delay:{}, tick:{}, timeUnit:{}, " +
-                            "scheduleWithFixdDelay:{}",
+            log.debug(Markers.GameLoopTickManager, "register tick success, clazz:{}, method:{}, delay:{}, " +
+                            "tick:{}, timeUnit:{}, scheduleWithFixdDelay:{}",
                     clazz.getName(),
                     method.getName(),
                     delay,
@@ -194,9 +210,10 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.warn("the Object has none annotated method, annotation:{}, clazz:{}",
-                    () -> Tick.class.getName(),
-                    () -> object.getClass().getName());
+            log.warn(Markers.GameLoopTickManager, "the Object has none annotated method, annotation:{}, " +
+                            "clazz:{}",
+                    Tick.class.getName(),
+                    object.getClass().getName());
             return 0;
         }
 
@@ -217,7 +234,6 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         if (log.isDebugEnabled()) {
             log.debug("unregister tick, clazz:{}, method:{}", object.getClass().getName(), method.getName());
         }
-
         return true;
     }
 

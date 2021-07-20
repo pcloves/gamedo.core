@@ -1,11 +1,12 @@
 package org.gamedo.gameloop.components.eventbus;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.Markers;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -13,7 +14,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Log4j2
+@Slf4j
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
     private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
 
@@ -24,12 +25,14 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     private static boolean safeInvoke(EventData eventData, IEvent event) {
         final Method method = eventData.getMethod();
         try {
+
             ReflectionUtils.makeAccessible(method);
             method.invoke(eventData.getObject(), event);
             return true;
         } catch (Throwable e) {
             final Class<? extends IEvent> eventClazz = event.getClass();
-            log.error("exception caught, method:" + method.getName() + ", event:" + eventClazz.getName(), e);
+            log.error(Markers.GameLoopEventBus, "exception caught, method:" + method.getName() +
+                    ", event:" + eventClazz.getName(), e);
         }
 
         return false;
@@ -38,20 +41,37 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     @Override
     public int register(Object object) {
 
-        final Class<?> objectClazz = object.getClass();
-        final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(objectClazz))
+        final Class<?> clazz = object.getClass();
+        final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
                 .filter(method -> method.isAnnotationPresent(Subscribe.class) && !method.isSynthetic())
                 .collect(Collectors.toSet());
 
-        return (int) annotatedMethodSet.stream()
+        if (annotatedMethodSet.isEmpty()) {
+            log.warn(Markers.GameLoopEventBus, "the Object has none annotated method, annotation:{}, clazz:{}",
+                    Subscribe.class.getSimpleName(),
+                    clazz.getName());
+            return 0;
+        }
+
+        final int count = (int) annotatedMethodSet.stream()
                 .filter(method -> method.isAnnotationPresent(Subscribe.class) && !method.isSynthetic())
                 .filter(method -> register(object, method))
                 .count();
+
+        if (log.isDebugEnabled()) {
+            log.debug(Markers.GameLoopEventBus, "register eventBus finish, clazz:{}, totalCount:{}, successCount:{}",
+                    clazz.getSimpleName(),
+                    annotatedMethodSet.size(),
+                    count
+            );
+        }
+
+        return count;
     }
 
     private boolean register(Object object, Method method) {
         if (!method.isAnnotationPresent(Subscribe.class)) {
-            log.error("the method {} of class {} is not annotated by '{}'",
+            log.error(Markers.GameLoopEventBus, "the method {} of class {} is not annotated by '{}'",
                     method.getName(),
                     object.getClass().getName(),
                     Subscribe.class.getSimpleName());
@@ -59,7 +79,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         }
 
         if (method.getParameterCount() != 1) {
-            log.error("the method {} of class {} is required one parameter.",
+            log.error(Markers.GameLoopEventBus, "the method {} of class {} is required one parameter.",
                     method.getName(),
                     object.getClass().getName());
             return false;
@@ -67,7 +87,8 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
         final Class<?> eventClazz = method.getParameterTypes()[0];
         if (!IEvent.class.isAssignableFrom(eventClazz)) {
-            log.error("the parameter type of method {} of class {}is not assignable from {}",
+            log.error(Markers.GameLoopEventBus, "the parameter type of method {} of class {} is not " +
+                            "assignable from {}",
                     method.getName(),
                     object.getClass().getName(),
                     IEvent.class.getName());
@@ -84,6 +105,11 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
         final EventData eventData = new EventData(object, method);
         if (eventDataList.contains(eventData)) {
+            log.warn(Markers.GameLoopEventBus, "the event has registered, event clazz:{}, object clazz:{}, " +
+                            "method:{}",
+                    eventClazz.getSimpleName(),
+                    object.getClass().getSimpleName(),
+                    method.getName());
             return false;
         }
 
@@ -97,10 +123,17 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             final List<Method> list = eventDataList1.stream()
                     .map(eventData1 -> eventData1.getMethod())
                     .collect(Collectors.toList());
-            log.warn("multiply methods register on the same event:{}, object:{}, method list:{}",
-                    eventClazz,
-                    object.getClass(),
-                    list);
+            log.warn(Markers.GameLoopEventBus, "multiply methods register on the same event:{}, object:{}, " +
+                            "method list:{}", eventClazz, object.getClass(), list);
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug(Markers.GameLoopEventBus, "register, event clazz:{}, object clazz:{}, method:{}, result:{}",
+                    eventClazz.getSimpleName(),
+                    object.getClass().getSimpleName(),
+                    method.getName(),
+                    add
+            );
         }
 
         return add;
@@ -123,19 +156,18 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     private boolean unregister(Object object, Method method) {
 
         if (!method.isAnnotationPresent(Subscribe.class)) {
-            log.error("the method {} is not annotated by '{}'",
-                    method.getName(),
-                    Subscribe.class.getSimpleName());
+            log.error(Markers.GameLoopEventBus, "the method {} is not annotated by '{}'",
+                    method.getName(), Subscribe.class.getSimpleName());
             return false;
         }
 
         if (method.getParameterCount() != 1) {
-            log.error("the method {} is required one parameter.", method.getName());
+            log.error(Markers.GameLoopEventBus, "the method {} is required one parameter.", method.getName());
         }
 
         final Class<?> eventClazz = method.getParameterTypes()[0];
         if (!IEvent.class.isAssignableFrom(eventClazz)) {
-            log.error("the parameter type of method {} is not assignable from {}",
+            log.error(Markers.GameLoopEventBus, "the parameter type of method {} is not assignable from {}",
                     method.getName(),
                     IEvent.class.getName());
             return false;
@@ -151,7 +183,18 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         final List<EventData> eventDataList = classToEventDataMap.computeIfAbsent(eventClazz, function);
 
         final EventData eventData = new EventData(object, method);
-        return eventDataList.remove(eventData);
+        final boolean remove = eventDataList.remove(eventData);
+
+        if (log.isDebugEnabled()) {
+            log.debug(Markers.GameLoopEventBus, "unregister, event clazz:{}, object clazz:{}, method:{}, result:{}",
+                    eventClazz.getSimpleName(),
+                    object.getClass().getSimpleName(),
+                    method.getName(),
+                    remove
+            );
+        }
+
+        return remove;
     }
 
     @Override
@@ -164,8 +207,16 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         }
 
         final List<EventData> eventDataList = optionalList.get();
-        return (int) eventDataList.stream()
+        final int count = (int) eventDataList.stream()
                 .filter(eventData -> safeInvoke(eventData, iEvent))
                 .count();
+
+        if (log.isDebugEnabled()) {
+            log.debug(Markers.GameLoopEventBus, "event post, event:{}, invoke count:{}",
+                    iEvent.getClass().getSimpleName(),
+                    count);
+        }
+
+        return count;
     }
 }

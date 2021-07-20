@@ -19,8 +19,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Slf4j
 @SpringBootTest(classes = GamedoConfiguration.class)
@@ -132,6 +135,32 @@ class IGameLoopTest {
             Assertions.assertNotNull(t);
             Assertions.assertTrue(t.getCause() instanceof RuntimeException);
         });
+    }
+
+    @Test
+    void testRegisterConcurrently() {
+        final int entityCount = 1000;
+        final Set<Entity> entitySet = IntStream.rangeClosed(1, entityCount)
+                .boxed()
+                .map(i -> new Entity("testRegisterConcurrently" + i))
+                .collect(Collectors.toSet());
+
+        for (Entity entity : entitySet) {
+            final int availableProcessors = Runtime.getRuntime().availableProcessors();
+            final List<Boolean> resultList = IntStream.rangeClosed(1, availableProcessors)
+                    .boxed()
+                    .parallel()
+                    .map(i -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(entity)).join())
+                    .collect(Collectors.toList());
+
+            final long successCount = resultList.stream().filter(Boolean::booleanValue).count();
+            final long failedCount = resultList.stream().filter(b -> !b).count();
+            Assertions.assertEquals(1, successCount);
+            Assertions.assertEquals(availableProcessors - 1, failedCount);
+        }
+
+        final Integer entityCountActual = gameLoop.submit(IGameLoopEntityManagerFunction.getEntityCount()).join();
+        Assertions.assertEquals(entityCount, entityCountActual);
     }
 
     @Test

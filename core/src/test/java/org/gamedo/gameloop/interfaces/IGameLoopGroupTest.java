@@ -1,8 +1,8 @@
 package org.gamedo.gameloop.interfaces;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.config.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Tick;
-import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
-@SpringBootTest(classes = GamedoConfiguration.class)
+@SpringBootTest(classes = GameLoopGroupConfiguration.class)
 class IGameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
@@ -40,10 +40,10 @@ class IGameLoopGroupTest {
     }
 
     @Test
-    @Order(1)
     void testSelectNext() {
         IGameLoop iGameLoop1 = gameLoopGroup.selectNext();
-        Assertions.assertEquals(gameLoopGroup.getId() + "-1", iGameLoop1.getId());
+        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
+        Assertions.assertEquals(iGameLoops[0].getId(), iGameLoop1.getId());
 
         for (int i = 0; i < 1000000; i++) {
             final IGameLoop iGameLoop2 = gameLoopGroup.selectNext();

@@ -1,6 +1,5 @@
 package org.gamedo.gameloop.components.entitymanager.interfaces;
 
-import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.GameLoop;
@@ -8,7 +7,7 @@ import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.Mockito;
 
 import java.util.Map;
 import java.util.Optional;
@@ -16,13 +15,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(classes = GamedoConfiguration.class)
 class IGameLoopEntityManagerTest {
-    private final IGameLoop gameLoop;
+    private final IGameLoop gameLoop = Mockito.spy(new GameLoop("IGameLoopEntityManagerTest"));
     private IGameLoopEntityManager entityMgr;
 
     IGameLoopEntityManagerTest() {
-        gameLoop = new GameLoop("IGameLoopEntityManagerTest");
+        Mockito.when(gameLoop.inThread()).thenReturn(true);
     }
 
     @BeforeEach

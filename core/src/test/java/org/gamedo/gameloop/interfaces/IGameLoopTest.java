@@ -1,10 +1,11 @@
 package org.gamedo.gameloop.interfaces;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.config.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Tick;
-import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.GameLoops;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
@@ -26,11 +27,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
-@SpringBootTest(classes = GamedoConfiguration.class)
+@SpringBootTest(classes = GameLoopGroupConfiguration.class)
 class IGameLoopTest {
     private static final int DEFAULT_WAIT_TIMEOUT = 5;
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MINUTES;
-    private static final String GAME_LOOP_ID = "IGameLoopTest";
     private IGameLoop gameLoop;
     private final ConfigurableApplicationContext context;
 
@@ -40,7 +40,7 @@ class IGameLoopTest {
 
     @BeforeEach
     void setUp() {
-        gameLoop = context.getBean(IGameLoop.class, GAME_LOOP_ID);
+        gameLoop = context.getBean(IGameLoop.class);
     }
 
     @AfterEach
@@ -133,7 +133,7 @@ class IGameLoopTest {
 
         future1.whenComplete((r, t) -> {
             Assertions.assertNotNull(t);
-            Assertions.assertTrue(t.getCause() instanceof RuntimeException);
+            Assertions.assertTrue(t.getCause() instanceof GameLoopException);
         });
     }
 
@@ -160,7 +160,8 @@ class IGameLoopTest {
         }
 
         final Integer entityCountActual = gameLoop.submit(IGameLoopEntityManagerFunction.getEntityCount()).join();
-        Assertions.assertEquals(entityCount, entityCountActual);
+        final Boolean selfRegister = gameLoop.submit(IGameLoopEntityManagerFunction.hasEntity(gameLoop.getId())).join();
+        Assertions.assertEquals(entityCount + (selfRegister ? 1 : 0), entityCountActual);
     }
 
     @Test

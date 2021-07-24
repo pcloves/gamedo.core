@@ -1,8 +1,8 @@
 package org.gamedo.gameloop.components.scheduling.interfaces;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.config.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Cron;
-import org.gamedo.configuration.GamedoConfiguration;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
-@SpringBootTest(classes = GamedoConfiguration.class)
+@SpringBootTest(classes = GameLoopGroupConfiguration.class)
 class IGameLoopSchedulerTest {
 
     private static final String CRON_SECONDLY_EXPRESSION = "*/1 * * * * *";
@@ -47,7 +47,7 @@ class IGameLoopSchedulerTest {
 
     @BeforeEach
     void setUp() {
-        gameLoop = context.getBean(IGameLoop.class, "IGameLoopSchedulerTest");
+        gameLoop = context.getBean(IGameLoop.class);
     }
 
     @AfterEach

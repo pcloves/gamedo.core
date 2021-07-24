@@ -10,16 +10,19 @@ import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 class IGameLoopEventBusTest {
 
-    private final IGameLoop gameLoop = new GameLoop("IGameLoopEventBusTest");
+    private final IGameLoop gameLoop = Mockito.spy(new GameLoop("IGameLoopEventBusTest"));
     private final IGameLoopEventBus iGameLoopEventBus = new GameLoopEventBus(gameLoop);
 
     IGameLoopEventBusTest() {
+        Mockito.when(gameLoop.inThread()).thenReturn(true);
+
         gameLoop.addComponent(MyComponent.class, new MyComponent(gameLoop));
         gameLoop.addComponent(MySubComponent.class, new MySubComponent(gameLoop));
     }
@@ -111,6 +114,7 @@ class IGameLoopEventBusTest {
 
         }
 
+        @SuppressWarnings("unused")
         @Subscribe
         private void myEvent(final MyEvent myEvent) {
             value = myEvent.value;
@@ -122,6 +126,7 @@ class IGameLoopEventBusTest {
             super(owner);
         }
 
+        @SuppressWarnings("unused")
         @Subscribe
         private void myEvent(final MyEvent myEvent) {
             //do nothing

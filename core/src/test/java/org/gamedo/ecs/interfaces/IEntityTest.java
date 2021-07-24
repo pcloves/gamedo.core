@@ -65,12 +65,11 @@ class IEntityTest {
     void addComponent() {
 
         final Object object1 = new Object();
-        final Optional<Object> component1 = entity.addComponent(Object.class, object1);
-        assertTrue(component1.isEmpty());
+        final boolean result1 = entity.addComponent(Object.class, object1);
+        assertTrue(result1);
 
-        final Optional<Object> component2 = entity.addComponent(Object.class, new Object());
-        assertTrue(component2.isPresent());
+        final boolean result2 = entity.addComponent(Object.class, new Object());
+        assertFalse(result2);
 
-        assertEquals(object1, component2.get());
     }
 }

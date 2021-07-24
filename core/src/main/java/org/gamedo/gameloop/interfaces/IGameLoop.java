@@ -4,7 +4,6 @@ import org.gamedo.annotation.Cron;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.gameloop.GameLoopComponentRegister;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
@@ -53,14 +52,6 @@ import java.util.function.BiConsumer;
  * 件名为MyDemo，则命名为：IGameLoopMyDemo
  * <li> 在{@link org.gamedo.gameloop.functions}内创建IGameLoopMyDemoFunction类，并提供可复用的{@link GameLoopFunction}逻辑，当
  * 然，该步骤是可选的
- * <li> 注册一个{@link GameLoopComponentRegister}类型的bean到spring-context中，例如：
- * <pre>
- *     &#64;Bean
- *     &#64;@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
- *     public GameLoopComponentRegister&#60;GameLoopTickManager&#62; gameLoopMyDemoRegister(IGameLoop gameLoop) {
- *         return new GameLoopComponentRegister&#60;&#62;(List.of(IGameLoopMyDemo.class), new GameLoopMyDemo(gameLoop));
- *     }
- * </pre>
  * </ul>
  * 如果没有使用starter项目，那么上述4个内置的{@link IGameLoop}组件，以及自定义扩展的组件，需要通过接口函数
  * {@link IEntity#addComponent(Class, Object)}手动添加

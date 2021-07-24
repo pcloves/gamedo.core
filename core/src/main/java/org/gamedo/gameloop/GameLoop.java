@@ -4,9 +4,12 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.gamedo.concurrent.NamedThreadFactory;
 import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.GameLoopComponent;
+import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,6 +30,38 @@ public class GameLoop extends Entity implements IGameLoop {
         delegate = new SingleThreadScheduledThreadPoolExecutor(id);
     }
 
+    public GameLoop(final GameLoopConfig gameLoopConfig) {
+        this(gameLoopConfig.getId());
+
+        final Map<Class<? super GameLoopComponent>, GameLoopComponent> map = gameLoopConfig.componentMap(this);
+
+        map.forEach((k, v) -> componentMap.put(k, v));
+    }
+
+    @Override
+    public <T> boolean hasComponent(Class<T> interfaceClazz) {
+        checkInThread();
+        return super.hasComponent(interfaceClazz);
+    }
+
+    @Override
+    public <T> Optional<T> getComponent(Class<T> interfaceClazz) {
+        checkInThread();
+        return super.getComponent(interfaceClazz);
+    }
+
+    @Override
+    public Map<Class<?>, Object> getComponentMap() {
+        checkInThread();
+        return super.getComponentMap();
+    }
+
+    @Override
+    public <T, R extends T> boolean addComponent(Class<T> interfaceClazz, R component) {
+        checkInThread();
+        return super.addComponent(interfaceClazz, component);
+    }
+
     @Override
     public boolean inThread() {
         return currentThread == Thread.currentThread();
@@ -43,6 +78,13 @@ public class GameLoop extends Entity implements IGameLoop {
             }
         } else {
             return CompletableFuture.supplyAsync(() -> function.apply(this), this);
+        }
+    }
+
+    private void checkInThread() {
+        if (!inThread()) {
+            throw new GameLoopException("call from anthor thread, gameLoop id:" + id +
+                    ", called thread:" + Thread.currentThread().getName());
         }
     }
 

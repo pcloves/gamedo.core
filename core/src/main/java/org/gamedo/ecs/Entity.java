@@ -3,6 +3,7 @@ package org.gamedo.ecs;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.exception.GamedoException;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,14 +37,14 @@ public class Entity implements IEntity {
     }
 
     @Override
-    public <T> boolean hasComponent(Class<T> clazz) {
-        return componentMap.containsKey(clazz);
+    public <T> boolean hasComponent(Class<T> interfaceClazz) {
+        return componentMap.containsKey(interfaceClazz);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Optional<T> getComponent(Class<T> clazz) {
-        return Optional.ofNullable((T) componentMap.get(clazz));
+    public <T> Optional<T> getComponent(Class<T> interfaceClazz) {
+        return Optional.ofNullable((T) componentMap.get(interfaceClazz));
     }
 
     @Override
@@ -51,10 +52,19 @@ public class Entity implements IEntity {
         return Collections.unmodifiableMap(componentMap);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T, R extends T> Optional<T> addComponent(Class<T> clazz, R component) {
-        return (Optional<T>) Optional.ofNullable(componentMap.put(clazz, component));
+    public <T, R extends T> boolean addComponent(Class<T> interfaceClazz, R component) {
+
+        if (!interfaceClazz.isInstance(component)) {
+            throw new GamedoException("illegal interface clazz:" + interfaceClazz.getName() + ", instance clazz:" +
+                    component.getClass().getName());
+        }
+
+        if (componentMap.containsKey(interfaceClazz)) {
+            return false;
+        }
+
+        return componentMap.put(interfaceClazz, component) == null;
     }
 
     @Override

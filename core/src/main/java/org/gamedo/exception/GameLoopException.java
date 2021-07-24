@@ -1,6 +1,6 @@
 package org.gamedo.exception;
 
-public class GameLoopException extends RuntimeException {
+public class GameLoopException extends GamedoException {
     private static final long serialVersionUID = -6981947980551776677L;
 
     public GameLoopException() {

@@ -8,7 +8,6 @@ import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPre;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPre;
-import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
 import org.gamedo.gameloop.functions.IGameLoopSchedulerFunction;
 import org.gamedo.gameloop.functions.IGameLoopTickManagerFunction;
@@ -40,6 +39,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         if (log.isDebugEnabled()) {
             log.debug(Markers.GameLoopEntityManager, "register begin, entityId:{}", entityId);
         }
+
         //1 先将IEntity注册到IGameLoopEventBus，使之可以响应事件
         owner.submit(IGameLoopEventBusFunction.register(entity));
         //1.1 再注册所有的组件
@@ -65,14 +65,13 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
                 .forEach(component -> owner.submit(IGameLoopTickManagerFunction.register(component)));
 
         //4 然后触发事件
-        final Optional<IGameLoopEventBus> eventBus = owner.getComponent(IGameLoopEventBus.class);
-        eventBus.ifPresent(iEventBus -> iEventBus.post(new EventRegisterEntityPre(entityId)));
+        owner.submit(IGameLoopEventBusFunction.post(new EventRegisterEntityPre(entityId)));
 
         //5 再然后加入管理
         entityMap.put(entityId, entity);
 
         //6 至此已经完全加入管理，再通知一次
-        eventBus.ifPresent(iGameLoopEventBus -> iGameLoopEventBus.post(new EventRegisterEntityPost(entityId)));
+        owner.submit(IGameLoopEventBusFunction.post(new EventRegisterEntityPost(entityId)));
 
         if (log.isDebugEnabled()) {
             log.debug(Markers.GameLoopEntityManager, "register finish, entityId:{}", entityId);
@@ -88,9 +87,8 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
             return Optional.empty();
         }
 
-        final Optional<IGameLoopEventBus> eventBus = owner.getComponent(IGameLoopEventBus.class);
         //1. 先触发事件
-        eventBus.ifPresent(iEventBus -> iEventBus.post(new EventUnregisterEntityPre(entityId)));
+        owner.submit(IGameLoopEventBusFunction.post(new EventUnregisterEntityPre(entityId)));
 
         //2 先移除组件的组成
         entity.getComponentMap().values()
@@ -120,7 +118,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         entityMap.remove(entityId);
 
         //6 最后一次事件通知
-        eventBus.ifPresent(iGameLoopEventBus -> iGameLoopEventBus.post(new EventUnregisterEntityPost(entityId)));
+        owner.submit(IGameLoopEventBusFunction.post(new EventUnregisterEntityPost(entityId)));
 
         return Optional.of(entity);
     }

@@ -1,6 +1,7 @@
 package org.gamedo.gameloop.components.eventbus;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
@@ -15,6 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
+@GamedoComponent
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
     private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
 

@@ -1,7 +1,7 @@
 package org.gamedo.gameloop.interfaces;
 
 import lombok.extern.slf4j.Slf4j;
-import org.gamedo.config.GameLoopGroupConfiguration;
+import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
@@ -175,29 +175,31 @@ class IGameLoopTest {
     private static class MyEntity extends Entity {
         private final List<Boolean> inGameLoopList;
         private final int listSize;
-        private final CompletableFuture<List<Boolean>> future7;
+        private final CompletableFuture<List<Boolean>> future;
 
-        private MyEntity(List<Boolean> inGameLoopList, int listSize, CompletableFuture<List<Boolean>> future7) {
+        private MyEntity(List<Boolean> inGameLoopList, int listSize, CompletableFuture<List<Boolean>> future) {
             super("testEntity");
             this.inGameLoopList = inGameLoopList;
             this.listSize = listSize;
-            this.future7 = future7;
+            this.future = future;
         }
 
         @Tick
         public void myTick(Long currentMilliSecond, Long lastTickMilliSecond) {
             try {
-                if (inGameLoopList.size() >= listSize) {
-                    future7.complete(inGameLoopList);
-                }
-                else {
-                    Optional<IGameLoop> iGameLoop = GameLoops.current();
-                    inGameLoopList.add(iGameLoop
-                            .map(gameLoop -> gameLoop.inThread())
-                            .orElse(false));
+                if (!future.isDone()) {
+                    if (inGameLoopList.size() >= listSize) {
+                        future.complete(inGameLoopList);
+                    }
+                    else {
+                        Optional<IGameLoop> iGameLoop = GameLoops.current();
+                        inGameLoopList.add(iGameLoop
+                                .map(gameLoop -> gameLoop.inThread())
+                                .orElse(false));
+                    }
                 }
             } catch (Exception e) {
-                future7.completeExceptionally(e);
+                future.completeExceptionally(e);
             }
         }
     }

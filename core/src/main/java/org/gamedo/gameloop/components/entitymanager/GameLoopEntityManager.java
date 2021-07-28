@@ -1,6 +1,7 @@
 package org.gamedo.gameloop.components.entitymanager;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
+@GamedoComponent
 public class GameLoopEntityManager extends GameLoopComponent implements IGameLoopEntityManager {
     private final Map<String, IEntity> entityMap = new HashMap<>(512);
 

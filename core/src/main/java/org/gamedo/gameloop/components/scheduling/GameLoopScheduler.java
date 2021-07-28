@@ -2,6 +2,7 @@ package org.gamedo.gameloop.components.scheduling;
 
 import lombok.extern.slf4j.Slf4j;
 import org.gamedo.annotation.Cron;
+import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -17,6 +18,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
+@GamedoComponent
 public class GameLoopScheduler extends GameLoopComponent implements IGameLoopScheduler {
     /**
      * cron表达式 --> 该表达式对应的所有运行时数据

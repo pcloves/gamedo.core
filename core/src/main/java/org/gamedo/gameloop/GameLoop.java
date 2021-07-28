@@ -4,10 +4,10 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.gamedo.concurrent.NamedThreadFactory;
 import org.gamedo.ecs.Entity;
-import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.springframework.context.ApplicationContext;
 
 import java.util.Map;
 import java.util.Optional;
@@ -30,12 +30,16 @@ public class GameLoop extends Entity implements IGameLoop {
         delegate = new SingleThreadScheduledThreadPoolExecutor(id);
     }
 
-    public GameLoop(final GameLoopConfig gameLoopConfig) {
-        this(gameLoopConfig.getId());
+    public GameLoop(String id, final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext) {
+        this(id);
 
-        final Map<Class<? super GameLoopComponent>, GameLoopComponent> map = gameLoopConfig.componentMap(this);
+        gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
+    }
 
-        map.forEach((k, v) -> componentMap.put(k, v));
+    public GameLoop(String id, final GameLoopConfig gameLoopConfig) {
+        this(id);
+
+        gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
     }
 
     @Override

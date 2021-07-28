@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @EqualsAndHashCode(of = "id")
 @Slf4j
@@ -70,8 +71,11 @@ public class Entity implements IEntity {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Entity{");
-        sb.append("id='").append(id).append('\'');
-        sb.append(", componentMap=").append(componentMap.keySet());
+        sb.append("hashCode=").append(hashCode());
+        sb.append(", id=").append(id);
+        sb.append(", componentMap=").append(componentMap.keySet().stream()
+                .map(Class::getSimpleName)
+                .collect(Collectors.toList()));
         sb.append('}');
         return sb.toString();
     }

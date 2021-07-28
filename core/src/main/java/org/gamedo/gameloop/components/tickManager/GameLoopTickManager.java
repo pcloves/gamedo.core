@@ -1,6 +1,7 @@
 package org.gamedo.gameloop.components.tickManager;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
@@ -18,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
+@GamedoComponent
 public class GameLoopTickManager extends GameLoopComponent implements IGameLoopTickManager {
 
     private final Map<TickData, ScheduledFuture<?>> tickDataFutureMap = new HashMap<>(32);
@@ -232,7 +234,10 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         scheduledFuture.cancel(false);
 
         if (log.isDebugEnabled()) {
-            log.debug("unregister tick, clazz:{}, method:{}", object.getClass().getName(), method.getName());
+            log.debug(Markers.GameLoopTickManager,
+                    "unregister tick, clazz:{}, method:{}",
+                    object.getClass().getName(),
+                    method.getName());
         }
         return true;
     }

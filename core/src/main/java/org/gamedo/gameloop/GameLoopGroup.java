@@ -1,9 +1,11 @@
 package org.gamedo.gameloop;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
+import org.gamedo.logging.Markers;
 import org.gamedo.utils.Pair;
 
 import java.util.*;
@@ -16,33 +18,46 @@ import java.util.stream.IntStream;
 public class GameLoopGroup implements IGameLoopGroup {
     private final String id;
     private final AtomicInteger idx = new AtomicInteger(0);
-    private final IGameLoop[] gameLoops;
+    private final List<IGameLoop> gameLoopList = new CopyOnWriteArrayList<>();
 
     public GameLoopGroup(String id, IGameLoop... gameLoops) {
+
+        if (gameLoops.length == 0) {
+            log.error(Markers.GameLoop, "none gameLoop setted for:{}", id);
+            throw new GameLoopException("");
+        }
+
+        final List<List<IGameLoop>> duplicateList = Arrays.stream(gameLoops)
+                .collect(Collectors.groupingBy(IGameLoop::getId))
+                .values()
+                .stream()
+                .filter(list -> list.size() > 1)
+                .collect(Collectors.toList());
+
+        if (!duplicateList.isEmpty()) {
+            log.error(Markers.GameLoop, "duplicate gameLoop:{}", duplicateList);
+            throw new GameLoopException("duplicate gameLoop:" + duplicateList);
+        }
+
         this.id = id;
-        this.gameLoops = gameLoops.clone();
+        gameLoopList.addAll(Arrays.stream(gameLoops).collect(Collectors.toList()));
     }
 
     public GameLoopGroup(String id, int gameLoopCount) {
-        this.id = id;
-        gameLoops = IntStream.rangeClosed(1, gameLoopCount)
+        this(id, IntStream.rangeClosed(1, gameLoopCount)
                 .mapToObj(value -> new GameLoop(id + '-' + value))
-                .toArray(GameLoop[]::new);
-    }
-
-    public GameLoopGroup(String id) {
-        this(id, Runtime.getRuntime().availableProcessors());
+                .toArray(GameLoop[]::new));
     }
 
     @Override
     public void shutdown() {
-        Arrays.stream(gameLoops).forEach(gameLoop -> gameLoop.shutdown());
+        gameLoopList.forEach(gameLoop -> gameLoop.shutdown());
     }
 
     @Override
     public List<Runnable> shutdownNow() {
 
-        return Arrays.stream(gameLoops)
+        return gameLoopList.stream()
                 .map(gameLoop -> gameLoop.shutdownNow())
                 .flatMap(runnables -> runnables.stream())
                 .collect(Collectors.toList());
@@ -50,18 +65,18 @@ public class GameLoopGroup implements IGameLoopGroup {
 
     @Override
     public boolean isShutdown() {
-        return Arrays.stream(gameLoops).allMatch(IGameLoop::isShutdown);
+        return gameLoopList.stream().allMatch(IGameLoop::isShutdown);
     }
 
     @Override
     public boolean isTerminated() {
-        return Arrays.stream(gameLoops).allMatch(IGameLoop::isTerminated);
+        return gameLoopList.stream().allMatch(IGameLoop::isTerminated);
     }
 
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
 
-        final boolean allTerminated = Arrays.stream(gameLoops)
+        final boolean allTerminated = gameLoopList.stream()
                 .parallel()
                 .allMatch(iGameLoop -> {
                     try {
@@ -124,51 +139,94 @@ public class GameLoopGroup implements IGameLoopGroup {
     }
 
     @Override
+    public int size() {
+        return gameLoopList.size();
+    }
+
+    @Override
+    public boolean register(IGameLoop gameLoop) {
+        if (gameLoopList.contains(gameLoop)) {
+            return false;
+        }
+
+        final int size = gameLoopList.size();
+        //计算位置：当前位置的前一个位置，也就是说轮询一圈后才能被select到
+        final int indexAdd = Math.abs((idx.get() + size) % (size + 1));
+        gameLoopList.add(indexAdd, gameLoop);
+        return true;
+    }
+
+    @Override
+    public Optional<IGameLoop> select(String id) {
+        return gameLoopList.stream()
+                .filter(gameLoop -> gameLoop.getId().equals(id))
+                .findFirst();
+    }
+
+    @Override
     public IGameLoop[] selectAll() {
-        return gameLoops.clone();
+        return gameLoopList.toArray(IGameLoop[]::new);
     }
 
     @Override
     public IGameLoop selectNext() {
-        return gameLoops[Math.abs(idx.getAndIncrement() % gameLoops.length)];
+        return gameLoopList.get(Math.abs(idx.getAndIncrement() % gameLoopList.size()));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <C extends Comparable<? super C>> CompletableFuture<List<IGameLoop>> select(GameLoopFunction<C> chooser,
+                                                                                       Comparator<C> comparator,
+                                                                                       int limit) {
+
+        List<IGameLoop> gameLoopNewList = new ArrayList<>(gameLoopList);
+        final CompletableFuture<C>[] futureList = gameLoopNewList.stream()
+                .map(gameLoop -> gameLoop.submit(chooser))
+                .toArray(CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(futureList)
+                .thenApply(v -> IntStream.range(0, gameLoopNewList.size())
+                        .mapToObj(i -> Pair.of(futureList[i].join(), gameLoopNewList.get(i)))
+                        .sorted(Comparator.comparing(Pair::getK, comparator))
+                        .limit(limit)
+                        .map(Pair::getV)
+                        .collect(Collectors.toList())
+                );
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public CompletableFuture<List<IGameLoop>> select(GameLoopFunction<Boolean> filter) {
+
+        List<IGameLoop> gameLoopNewList = new ArrayList<>(gameLoopList);
+        final CompletableFuture<Boolean>[] futureList = gameLoopNewList.stream()
+                .map(gameLoop -> gameLoop.submit(filter))
+                .toArray(CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(futureList)
+                .thenApply(v -> IntStream.range(0, gameLoopNewList.size())
+                                .filter(i -> futureList[i].join())
+                                .mapToObj(i -> gameLoopNewList.get(i))
+                                .collect(Collectors.toList()));
     }
 
     @Override
-    public <C extends Comparable<? super C>> List<IGameLoop> select(GameLoopFunction<C> chooser,
-                                                                    Comparator<C> comparator,
-                                                                    int limit) {
-        return Arrays.stream(gameLoops)
-                .parallel()
-                .map(iGameLoop -> {
-                    try {
-
-                        //这里用join可能有风险，万一逻辑代码有问题的话，会阻塞当前线程！不过没想到更好的办法
-                        return Pair.of(iGameLoop.submit(chooser).join(), iGameLoop);
-                    } catch (Throwable t) {
-                        log.error("exception caught.", t);
-                    }
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .sorted(Comparator.comparing(Pair::getK, comparator))
-                .limit(limit)
-                .map(Pair::getV)
-                .collect(Collectors.toList());
+    public <R> CompletableFuture<R> submit(GameLoopFunction<R> function) {
+        return selectNext().submit(function);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public List<IGameLoop> select(GameLoopFunction<Boolean> filter) {
+    public <R> CompletableFuture<List<R>> submitAll(GameLoopFunction<R> function) {
 
-        return Arrays.stream(gameLoops)
-                .filter(iGameLoop -> {
-                    try {
-                        //这里用join可能有风险，万一逻辑代码有问题的话，会阻塞当前线程！不过没想到更好的办法
-                        return iGameLoop.submit(filter).join();
-                    } catch (Throwable t) {
-                        log.error("exception caught.", t);
-                    }
-                    return false;
-                })
-                .collect(Collectors.toList());
+        final List<IGameLoop> gameLoopNewList = new ArrayList<>(gameLoopList);
+        final CompletableFuture<R>[] futureList = gameLoopNewList.stream()
+                .map(gameLoop -> gameLoop.submit(function))
+                .toArray(CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(futureList)
+                .thenApply(v -> Arrays.stream(futureList)
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList()));
     }
 }

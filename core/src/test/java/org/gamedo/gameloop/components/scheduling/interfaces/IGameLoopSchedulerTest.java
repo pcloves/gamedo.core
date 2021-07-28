@@ -1,7 +1,7 @@
 package org.gamedo.gameloop.components.scheduling.interfaces;
 
 import lombok.extern.slf4j.Slf4j;
-import org.gamedo.config.GameLoopGroupConfiguration;
+import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Cron;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.EntityComponent;

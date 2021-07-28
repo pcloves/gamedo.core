@@ -42,8 +42,9 @@ public class GameLoopGroupAutoConfiguration {
 
     @Bean(name = "defaultGameLoopConfig")
     @ConditionalOnMissingBean(value = GameLoopConfig.class, name = "defaultGameLoopConfig")
+    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
     GameLoopConfig gameLoopConfig() {
-        return GameLoopConfig.builder().id("default-" + gameLoopCounter.getAndIncrement())
+        return GameLoopConfig.builder()
                 .componentRegister(GameLoopComponentRegister.<GameLoopEntityManager>builder()
                         .interfaceClazz(IGameLoopEntityManager.class)
                         .componentClazz(GameLoopEntityManager.class)
@@ -67,27 +68,25 @@ public class GameLoopGroupAutoConfiguration {
     @ConditionalOnMissingBean(value = IGameLoop.class, name = "defaultGameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     IGameLoop gameLoop(GameLoopConfig config) {
-        final GameLoop gameLoop = new GameLoop(config);
+        final GameLoop gameLoop = new GameLoop("default-" + gameLoopCounter.getAndIncrement(), config, context);
         //注册自己，自我管理
         gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop));
         //抛事件
         gameLoop.submit(IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop)));
+
         return gameLoop;
     }
 
-    @Bean(name = "workers")
-    @ConditionalOnMissingBean(value = IGameLoopGroup.class, name = "workers")
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    @Bean(name = "defaultGameLoopGroup")
+    @ConditionalOnMissingBean(value = IGameLoopGroup.class, name = "defaultGameLoopGroup")
+    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
     IGameLoopGroup gameLoopGroup(@Qualifier("defaultGameLoopConfig") GameLoopConfig config) {
 
         final int processors = Runtime.getRuntime().availableProcessors();
         final IGameLoop[] iGameLoops = IntStream.rangeClosed(1, processors)
-                .mapToObj(i -> context.getBean(IGameLoop.class, GameLoopConfig.builder()
-                        .id("worker-" + gameLoopCounter.getAndIncrement())
-                        .componentRegisters(config.getComponentRegisters())
-                        .build()))
+                .mapToObj(i -> context.getBean(IGameLoop.class, config))
                 .toArray(IGameLoop[]::new);
 
-        return new GameLoopGroup("workers", iGameLoops);
+        return new GameLoopGroup("defaults", iGameLoops);
     }
 }

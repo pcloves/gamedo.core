@@ -11,7 +11,8 @@ import java.util.concurrent.ExecutorService;
 
 /**
  * 每一个{@link IGameLoopGroup}实例代表一个线程组，内部包含若干{@link IGameLoop}实例，{@link IGameLoopGroup}虽然继承了
- * {@link ExecutorService}接口，但是自身只是一个{@link IGameLoop}容器，所有的功能则是由被轮询的{@link IGameLoop}提供
+ * {@link ExecutorService}接口，但是自身只是一个{@link IGameLoop}容器，所有的功能则是由被轮询（round robin）的{@link IGameLoop}提供，
+ * 详情可以参考{@link IGameLoop}
  */
 public interface IGameLoopGroup extends ExecutorService {
 

@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -47,6 +48,26 @@ class IGameLoopTest {
     void tearDown() throws InterruptedException {
         gameLoop.shutdown();
         Assertions.assertDoesNotThrow(() -> gameLoop.awaitTermination(1, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    void testProtoTypeGameLoopComponent() {
+        final IGameLoop gameLoop1 = context.getBean(IGameLoop.class);
+        final IGameLoop gameLoop2 = context.getBean(IGameLoop.class);
+
+        final AtomicInteger integer = new AtomicInteger(1);
+        final CompletableFuture<Integer> future1 = gameLoop1.submit(iGameLoop -> iGameLoop.getComponent(IGameLoopEntityManager.class)
+                .map(iGameLoopEntityManager -> iGameLoopEntityManager.hashCode())
+                .orElse(integer.getAndIncrement()));
+
+        final CompletableFuture<Integer> future2 = gameLoop2.submit(iGameLoop -> iGameLoop.getComponent(IGameLoopEntityManager.class)
+                .map(iGameLoopEntityManager -> iGameLoopEntityManager.hashCode())
+                .orElse(integer.getAndIncrement()));
+
+        final Integer hashCode1 = Assertions.assertDoesNotThrow(() -> future1.get());
+        final Integer hashCode2 = Assertions.assertDoesNotThrow(() -> future2.get());
+
+        Assertions.assertNotEquals(hashCode1, hashCode2);
     }
 
     @Test

@@ -7,6 +7,7 @@ import org.gamedo.ecs.Entity;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Map;
@@ -22,22 +23,22 @@ public class GameLoop extends Entity implements IGameLoop {
     @Delegate(types = ScheduledExecutorService.class)
     protected final ScheduledExecutorService delegate;
     protected volatile Thread currentThread;
+    private volatile IGameLoopGroup owner;
 
     public GameLoop(final String id) {
-
         super(id);
 
         delegate = new SingleThreadScheduledThreadPoolExecutor(id);
     }
 
-    public GameLoop(String id, final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext) {
-        this(id);
+    public GameLoop(final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext) {
+        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement());
 
         gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
     }
 
-    public GameLoop(String id, final GameLoopConfig gameLoopConfig) {
-        this(id);
+    public GameLoop(final GameLoopConfig gameLoopConfig) {
+        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement());
 
         gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
     }
@@ -72,6 +73,11 @@ public class GameLoop extends Entity implements IGameLoop {
     }
 
     @Override
+    public Optional<IGameLoopGroup> owner() {
+        return Optional.ofNullable(owner);
+    }
+
+    @Override
     public <R> CompletableFuture<R> submit(GameLoopFunction<R> function) {
 
         if (inThread()) {
@@ -90,6 +96,10 @@ public class GameLoop extends Entity implements IGameLoop {
             throw new GameLoopException("call from anthor thread, gameLoop id:" + id +
                     ", called thread:" + Thread.currentThread().getName());
         }
+    }
+
+    public void setOwner(IGameLoopGroup gameLoopGroup) {
+        owner = gameLoopGroup;
     }
 
     private class SingleThreadScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {

@@ -17,7 +17,6 @@ import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,25 +25,29 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(GamedoApplicationProperties.class)
+@EnableConfigurationProperties(GameLoopProperties.class)
 public class GameLoopGroupAutoConfiguration {
 
-    private static final AtomicInteger gameLoopCounter = new AtomicInteger(1);
     private final ApplicationContext context;
+    private final GameLoopProperties properties;
 
-    public GameLoopGroupAutoConfiguration(ApplicationContext context) {
+    public GameLoopGroupAutoConfiguration(ApplicationContext context, GameLoopProperties properties) {
         this.context = context;
+        this.properties = properties;
     }
 
-    @Bean(name = "defaultGameLoopConfig")
-    @ConditionalOnMissingBean(value = GameLoopConfig.class, name = "defaultGameLoopConfig")
+    @Bean(name = "gameLoopConfig")
+    @ConditionalOnMissingBean(value = GameLoopConfig.class, name = "gameLoopConfig")
     @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
     GameLoopConfig gameLoopConfig() {
         return GameLoopConfig.builder()
+                .gameLoopIdPrefix(properties.getGameLoopConfigDefault().getGameLoopIdPrefix())
+                .gameLoopGroupId(properties.getGameLoopConfigDefault().getGameLoopGroupId())
+                .gameLoopCount(properties.getGameLoopConfigDefault().getGameLoopCount())
                 .componentRegister(GameLoopComponentRegister.<GameLoopEntityManager>builder()
                         .interfaceClazz(IGameLoopEntityManager.class)
                         .componentClazz(GameLoopEntityManager.class)
@@ -64,29 +67,30 @@ public class GameLoopGroupAutoConfiguration {
                 .build();
     }
 
-    @Bean(name = "defaultGameLoop")
-    @ConditionalOnMissingBean(value = IGameLoop.class, name = "defaultGameLoop")
+    @Bean(name = "gameLoop")
+    @ConditionalOnMissingBean(value = IGameLoop.class, name = "gameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     IGameLoop gameLoop(GameLoopConfig config) {
-        final GameLoop gameLoop = new GameLoop("default-" + gameLoopCounter.getAndIncrement(), config, context);
-        //注册自己，自我管理
-        gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop));
-        //抛事件
-        gameLoop.submit(IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop)));
-
-        return gameLoop;
+        return new GameLoop(config, context);
     }
 
-    @Bean(name = "defaultGameLoopGroup")
-    @ConditionalOnMissingBean(value = IGameLoopGroup.class, name = "defaultGameLoopGroup")
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    IGameLoopGroup gameLoopGroup(@Qualifier("defaultGameLoopConfig") GameLoopConfig config) {
+    @Bean(name = "gameLoopGroup")
+    @ConditionalOnMissingBean(value = IGameLoopGroup.class, name = "gameLoopGroup")
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    IGameLoopGroup gameLoopGroup(GameLoopConfig config) {
 
-        final int processors = Runtime.getRuntime().availableProcessors();
-        final IGameLoop[] iGameLoops = IntStream.rangeClosed(1, processors)
+        final IGameLoop[] iGameLoops = IntStream.rangeClosed(1, config.getGameLoopCount())
                 .mapToObj(i -> context.getBean(IGameLoop.class, config))
+                .peek(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop)))
                 .toArray(IGameLoop[]::new);
 
-        return new GameLoopGroup("defaults", iGameLoops);
+        final IGameLoopGroup gameLoopGroup = new GameLoopGroup(config.getGameLoopGroupId(), iGameLoops);
+
+        Arrays.stream(gameLoopGroup.selectAll())
+                .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))
+                .map(gameLoop -> IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop.getId())))
+                .forEach(post -> gameLoopGroup.submitAll(post));
+
+        return gameLoopGroup;
     }
 }

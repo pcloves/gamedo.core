@@ -144,7 +144,8 @@ public class GameLoopGroup implements IGameLoopGroup {
     }
 
     @Override
-    public boolean register(IGameLoop gameLoop) {
+    public synchronized boolean register(IGameLoop gameLoop) {
+
         if (gameLoopList.contains(gameLoop)) {
             return false;
         }

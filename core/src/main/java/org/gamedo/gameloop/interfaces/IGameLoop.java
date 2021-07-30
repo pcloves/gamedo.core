@@ -19,6 +19,8 @@ import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
 import org.springframework.context.ApplicationContext;
 
+import java.util.ConcurrentModificationException;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -28,9 +30,10 @@ import java.util.function.BiConsumer;
 /**
  * <p>gamedo.core的线程模型借鉴了netty的线程模型：每一个{@link IGameLoop}实例代表一个线程，对应于Netty的EventLoop，而
  * {@link IGameLoopGroup}则对应于Netty的EventLoopGroup，正如Netty的EventLoopGroup一样，{@link IGameLoopGroup}虽然继承了
- * {@link ExecutorService}接口，但是自身只是一个{@link IGameLoop}容器，所有的功能则是由被轮询的{@link IGameLoop}提供，在实际的应用中，
- * 每个{@link IEntity}实例应该被唯一的安全发布到某个{@link IGameLoop}（安全发布是《JCP》一书中关于线程安全话题的重要概念，详情可以查阅本书）
- * ，这和Netty中任意Channel的整个生命周期都隶属于某一个线程（EventLoop）的理念也是一致的（这也是Netty 4相对于Netty 3的最大改进之处）。
+ * {@link ExecutorService}接口，但是自身只是一个{@link IGameLoop}容器，所有的功能则是通过轮询（round robin）的{@link IGameLoop}提供，
+ * 在实际的应用中，每个{@link IEntity}实例应该被唯一的安全发布（safe publication）到某个{@link IGameLoop}（安全发布是《JCP》一书中关于
+ * 线程安全话题的重要概念，详情可以查阅本书），这和Netty中任意Channel的整个生命周期都隶属于某一个线程（EventLoop）的理念也是一致的（这也是相对
+ * 于Netty 3，Netty 4为什么能获得巨大性能提升的重要原因之一）。
  * <p>{@link IGameLoop}作为{@link IEntity}和{@link ScheduledExecutorService}的扩展，同时具备了两者的能力：异步（延迟、周期）执行任务
  * 和组件管理，除此之外，{@link IGameLoop}还提供了一个线程安全的，可以与之通信的能力：{@link IGameLoop#submit(GameLoopFunction)}，和
  * {@link ScheduledExecutorService}不同的是：当提交线程不在本线程中时，任务被异步执行；当提交线程就在本线程内时，任务会同步立即执行，此时调
@@ -64,25 +67,41 @@ import java.util.function.BiConsumer;
  * <ul>
  * <li> 定义待扩展组件自己的接口，同时要求extends {@link IComponent}，并建议命名以“IGameLoop”作为前缀，这么做主要是为了和{@link IEntity}
  * 的组件做区分，例如某组件名为MyDemo，则命名为：IGameLoopMyDemo，可以参考{@link org.gamedo.gameloop.components}包内任意组件的接口定义
- * <li> （可选）在组件类上增加注解：{@link GamedoComponent}，该操作的目的在于通过spring容器生成组件，当后续对该组件进行指标采集时，可以使用
- * AOP技术进行非侵入式的指标采集
+ * <li> （可选）在组件类上增加注解：{@link GamedoComponent}，该操作的目的在于允许通过spring容器生成组件，当后续对该组件进行指标采集时，可以
+ * 使用AOP技术进行非侵入式的指标采集
  * <li> （可选）创建自己的{@link GameLoopFunction} helper类：IGameLoopMyDemoFunction类，提供可复用的{@link GameLoopFunction}
  * 逻辑，例如：{@link IGameLoopEventBusFunction}
- * <li> 通过{@link GameLoop#GameLoop(String, GameLoopConfig)}实例化{@link IGameLoop}
- * <li> 或者通过{@link GameLoop#GameLoop(String, GameLoopConfig, ApplicationContext)}实例化{@link IGameLoop}，该构造函数和上一
+ * <li> 通过{@link GameLoop#GameLoop(GameLoopConfig)}实例化{@link IGameLoop}
+ * <li> 或者通过{@link GameLoop#GameLoop(GameLoopConfig, ApplicationContext)}实例化{@link IGameLoop}，该构造函数和上一
  * 步的区别在于{@link GameLoopConfig}内的所有{@link GameLoopComponent}组件从spring容器获取，可以参考autoconfigure工程的
  * GameLoopGroupAutoConfiguration类自动装配实践
  * </ul>
  * Tips:
  * <ul>
  * <li> 当{@link IGameLoop}被实例化之后，也可以通过{@link IGameLoopEntityManagerFunction#registerEntity(IEntity)}函数注册自己，
- * 使{@link IGameLoop}及其组件也具备事件订阅、cron延迟运行、逻辑心跳的基础能力，例如：
+ * 使得{@link IGameLoop}自身及其组件也具备事件订阅、cron延迟运行、逻辑心跳的基础能力，例如：
  * <pre>
  *     final GameLoop gameLoop = new GameLoop(config);
  *     gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop));
  * </pre>
- * <li> {@link IGameLoop}作为{@link ScheduledExecutorService}的子接口，需要确保线程安全，因此如果在外部线程调用{@link IEntity}下除
- * {@link IEntity#getId()}之外的任何函数，都会抛出{@link GameLoopException}
+ * <li> {@link IGameLoop}作为{@link ScheduledExecutorService}的子接口，自身又是一个独立的线程，因此需要确保对其访问都是线程安全的，为
+ * 此，在其默认实现类：{@link GameLoop}的实现中，增加了线程检测的判定：如果在外部线程调用{@link IEntity}下除{@link IEntity#getId()}之外
+ * 的任何函数，都会抛出{@link GameLoopException}，如有必要，请使用线程安全的通信方式，例如在运行时期间，动态注册一个组件：
+ * <pre>
+ *     gameLoop.submit(gameLoop -&#62; gameLoop.addComponent(SomeInterface.class, new SomeImplementation()));
+ * </pre>
+ * 然而，需要记住的是：不要以把那些被{@link IGameLoop}线程管理的对象发布到外部线程（除非这是一个
+ * <a href=https://en.wikipedia.org/wiki/Immutable_object>不可变对象</a>），实际上不可变对象天然是线程安全的，因此也不必要多此一举：
+ * 事先线程安全地将其发布到{@link IGameLoop}中），这会带来包括内存可见性(memeory visibility)、竞态条件（race condition）在内的多线程并
+ * 发问题，例如：
+ * <pre>
+ *     gameLoop.submit(gameLoop -&#62; gameLoop.getComponentMap())
+ *                 .thenAccept(map -&#62; log.info("{}", map));
+ * </pre>
+ * 在本例中，虽然可以将componentMap线程安全地从{@link IGameLoop}发布到调用线程，然而由于componentMap仍然还存在于{@link IGameLoop}的管
+ * 理之下，并且随时可能对componentMap或者componentMap管理的的Object进行写操作，java内存模型（JMM）并不能保证其写操作对其他线程可见
+ * (happens before)，这就带来的内存可见性问题。此外，如果{@link IGameLoop}线程对componentMap进行了put/remove操作，于此同时，调用线程对
+ * map进行了遍历操作，这会导致调用线程抛出{@link ConcurrentModificationException}，这虽然不属于竞态条件的问题，但是其中的风险可想而知。
  * </ul>
  */
 public interface IGameLoop extends ScheduledExecutorService, IEntity {
@@ -99,6 +118,12 @@ public interface IGameLoop extends ScheduledExecutorService, IEntity {
      * @return true 表示当前处于本GameLoop线程中
      */
     boolean inThread();
+
+    /**
+     * 所归属的{@link IGameLoopGroup}
+     * @return 如果尚未注册，则返回Optional.empty()
+     */
+    Optional<IGameLoopGroup> owner();
 
     /**
      * 提交一个操作到该{@link IGameLoop}，本函数是线程安全的，如果提交操作的线程就是{@link IGameLoop}本线程，则任务立即执行，可以通过

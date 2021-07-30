@@ -6,4 +6,5 @@ import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 @Value
 public class EventRegisterEntityPre implements IEvent {
     String entityId;
+    String gameLoopId;
 }

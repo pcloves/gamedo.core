@@ -28,17 +28,24 @@ public class GameLoop extends Entity implements IGameLoop {
     public GameLoop(final String id) {
         super(id);
 
-        delegate = new SingleThreadScheduledThreadPoolExecutor(id);
+        delegate = new SingleThreadScheduledThreadPoolExecutor(id, false);
+    }
+
+    public GameLoop(final String id, boolean daemon) {
+        super(id);
+
+        delegate = new SingleThreadScheduledThreadPoolExecutor(id, daemon);
     }
 
     public GameLoop(final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext) {
-        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement());
+        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(),
+                gameLoopConfig.isDaemon());
 
         gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
     }
 
     public GameLoop(final GameLoopConfig gameLoopConfig) {
-        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement());
+        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(), gameLoopConfig.isDaemon());
 
         gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
     }
@@ -103,8 +110,8 @@ public class GameLoop extends Entity implements IGameLoop {
     }
 
     private class SingleThreadScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
-        private SingleThreadScheduledThreadPoolExecutor(String id) {
-            super(1, new NamedThreadFactory(id));
+        private SingleThreadScheduledThreadPoolExecutor(String id, boolean daemon) {
+            super(1, new NamedThreadFactory(id, daemon));
         }
 
         @Override

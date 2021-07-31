@@ -5,9 +5,17 @@
     <parent>
         <artifactId>gamedo.core</artifactId>
         <groupId>org.gamedo</groupId>
-        <version>0.7.5-SNAPSHOT</version>
+        <version>0.7.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>starter</artifactId>
+    <artifactId>gamedo-spring-boot-starter</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.gamedo</groupId>
+            <artifactId>autoconfigure</artifactId>
+            <version>0.7.6-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>

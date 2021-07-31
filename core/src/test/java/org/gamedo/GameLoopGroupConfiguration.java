@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 @Configuration(proxyBeanMethods = false)
@@ -44,23 +45,25 @@ public class GameLoopGroupConfiguration {
     GameLoopConfig gameLoopConfig() {
         return GameLoopConfig.builder()
                 .gameLoopIdPrefix("default-")
-                .gameLoopGroupId("defaultGroup")
+                .gameLoopIdCounter(new AtomicInteger(1))
+                .daemon(false)
                 .gameLoopCount(Runtime.getRuntime().availableProcessors())
+                .gameLoopGroupId("defaults")
                 .componentRegister(GameLoopComponentRegister.<GameLoopEntityManager>builder()
-                        .interfaceClazz(IGameLoopEntityManager.class)
-                        .componentClazz(GameLoopEntityManager.class)
+                        .allInterface(IGameLoopEntityManager.class)
+                        .implementation(GameLoopEntityManager.class)
                         .build())
                 .componentRegister(GameLoopComponentRegister.<GameLoopEventBus>builder()
-                        .interfaceClazz(IGameLoopEventBus.class)
-                        .componentClazz(GameLoopEventBus.class)
+                        .allInterface(IGameLoopEventBus.class)
+                        .implementation(GameLoopEventBus.class)
                         .build())
                 .componentRegister(GameLoopComponentRegister.<GameLoopScheduler>builder()
-                        .interfaceClazz(IGameLoopScheduler.class)
-                        .componentClazz(GameLoopScheduler.class)
+                        .allInterface(IGameLoopScheduler.class)
+                        .implementation(GameLoopScheduler.class)
                         .build())
                 .componentRegister(GameLoopComponentRegister.<GameLoopTickManager>builder()
-                        .interfaceClazz(IGameLoopTickManager.class)
-                        .componentClazz(GameLoopTickManager.class)
+                        .allInterface(IGameLoopTickManager.class)
+                        .implementation(GameLoopTickManager.class)
                         .build())
                 .build();
     }

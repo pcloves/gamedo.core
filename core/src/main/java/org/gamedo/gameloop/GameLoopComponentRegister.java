@@ -1,8 +1,6 @@
 package org.gamedo.gameloop;
 
-import lombok.Builder;
-import lombok.Singular;
-import lombok.Value;
+import lombok.*;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
@@ -43,16 +41,16 @@ import java.util.List;
  * 组件，这也正是本类存在的意义
  * @param <T> 组件的类型
  */
-@Value
 @Builder
+@Data
 public class GameLoopComponentRegister<T extends GameLoopComponent> {
     /**
      * 要注册的组件接口列表
      */
-    @Singular("interfaceClazz")
-    List<Class<? super T>> interfaceClazz;
+    @Singular
+    List<Class<? super T>> allInterfaces;
     /**
      * 组件实现类的类型
      */
-    Class<T> componentClazz;
+    Class<T> implementation;
 }

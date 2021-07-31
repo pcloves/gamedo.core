@@ -16,7 +16,7 @@ public class Application {
 
         final IGameLoop worker = Gamedo.worker().selectNext();
 
-        CompletableFuture.runAsync(() -> log.info("I'm in a worker thread."))
+        CompletableFuture.runAsync(() -> log.info("I'm in a worker thread."), worker)
                 .thenAcceptAsync(s -> log.info("then i came to some io thread"), Gamedo.io())
                 .thenAcceptAsync(s -> log.info("then i came back to the worker thread."), worker);
     }

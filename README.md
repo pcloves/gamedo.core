@@ -96,12 +96,24 @@ public class Application {
 }
 ```
 
-对于以上代码代表了gamedo.core线程模型的大概使用方式，当main函数执行完毕后，意味着如下事实发生：
+执行完毕后，输出日志如下：
+
+```
+2021-08-03 23:59:58.961  INFO 59376 --- [    main] com.example.demo.Application             : application start...
+2021-08-03 23:59:58.962  INFO 59376 --- [    io-1] com.example.demo.Application             : load entity from db, entity:Entity{hashCode=-1253235656, id=gamedo, componentMap=[MyComponent]}
+2021-08-03 23:59:58.977  INFO 59376 --- [worker-1] com.example.demo.Application             : receive greeting:hello gamedo
+2021-08-03 23:59:58.978  INFO 59376 --- [worker-1] com.example.demo.Application             : ticking...
+2021-08-04 00:00:00.007  INFO 59376 --- [worker-1] com.example.demo.Application             : it's a new day.
+2021-08-04 00:00:58.981  INFO 59376 --- [worker-1] com.example.demo.Application             : ticking...
+2021-08-04 00:01:58.990  INFO 59376 --- [worker-1] com.example.demo.Application             : ticking..
+```
+
+根据以上代码和日志可以得出如下分析：
 
 * entity实体是从io线程加载的
 
-* entity实体被**安全发布**到某个worker线程，从此在该线程生存
-* entity的MyComponent组件跟随entity被注册到worker线程，并且由于@Tick、@Cron、@Subscribe注解的原因，自动具备了3种能力：
+* entity实体被**安全发布**到worker-1线程
+* entity的MyComponent组件跟随entity被注册到worker线程，由于注册了@Tick、@Cron、@Subscribe注解，因此自动具备了3种能力：
   * 在worker线程内逻辑心跳（tick函数）
   * 延迟执行（cron函数）
   * 响应所有发布到worker线程的事件（eventGreeting函数）

@@ -25,6 +25,20 @@
           "name": "any"
         }
       ]
+    },
+    {
+      "name": "gamedo.metrics.disabled-game-loop-component",
+      "values": [
+        {
+          "value": "org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager",
+          "description": "监控注册到IGameLoop中的IEntity实例."
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
     }
   ]
 }

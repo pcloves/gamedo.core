@@ -99,13 +99,13 @@ public class Application {
 执行完毕后，输出日志如下：
 
 ```
-2021-08-03 23:59:58.961  INFO 59376 --- [    main] com.example.demo.Application             : application start...
-2021-08-03 23:59:58.962  INFO 59376 --- [    io-1] com.example.demo.Application             : load entity from db, entity:Entity{hashCode=-1253235656, id=gamedo, componentMap=[MyComponent]}
-2021-08-03 23:59:58.977  INFO 59376 --- [worker-1] com.example.demo.Application             : receive greeting:hello gamedo
-2021-08-03 23:59:58.978  INFO 59376 --- [worker-1] com.example.demo.Application             : ticking...
-2021-08-04 00:00:00.007  INFO 59376 --- [worker-1] com.example.demo.Application             : it's a new day.
-2021-08-04 00:00:58.981  INFO 59376 --- [worker-1] com.example.demo.Application             : ticking...
-2021-08-04 00:01:58.990  INFO 59376 --- [worker-1] com.example.demo.Application             : ticking..
+2021-08-03 23:59:58.961 INFO [    main] com.example.demo.Application : application start...
+2021-08-03 23:59:58.962 INFO [    io-1] com.example.demo.Application : load entity from db, entity:Entity{hashCode=-1253235656, id=gamedo, componentMap=[MyComponent]}
+2021-08-03 23:59:58.977 INFO [worker-1] com.example.demo.Application : receive greeting:hello gamedo
+2021-08-03 23:59:58.978 INFO [worker-1] com.example.demo.Application : ticking...
+2021-08-04 00:00:00.007 INFO [worker-1] com.example.demo.Application : it's a new day.
+2021-08-04 00:00:58.981 INFO [worker-1] com.example.demo.Application : ticking...
+2021-08-04 00:01:58.990 INFO [worker-1] com.example.demo.Application : ticking..
 ```
 
 根据以上代码和日志可以得出如下分析：

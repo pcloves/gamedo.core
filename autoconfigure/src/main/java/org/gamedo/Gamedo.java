@@ -1,5 +1,6 @@
 package org.gamedo;
 
+import org.gamedo.configuration.GameLoopProperties;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -14,12 +15,12 @@ public final class Gamedo {
     private static ApplicationContext applicationContext;
 
     @Autowired
-    private Gamedo(ApplicationContext applicationContext, GameLoopProperties applicationProperties) {
+    private Gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
         Gamedo.applicationContext = applicationContext;
 
-        worker = applicationContext.getBean(IGameLoopGroup.class, applicationProperties.getWorkers().convert());
-        io = applicationContext.getBean(IGameLoopGroup.class, applicationProperties.getIos().convert());
-        single = applicationContext.getBean(IGameLoopGroup.class, applicationProperties.getSingles().convert());
+        worker = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getWorkers().convert());
+        io = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getIos().convert());
+        single = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getSingles().convert());
     }
 
     private Gamedo() {

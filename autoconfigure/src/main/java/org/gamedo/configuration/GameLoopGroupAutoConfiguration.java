@@ -1,5 +1,7 @@
-package org.gamedo;
+package org.gamedo.configuration;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import org.gamedo.Gamedo;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.GameLoopGroup;
@@ -18,23 +20,27 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(GameLoopProperties.class)
-@ComponentScan
+@EnableConfigurationProperties({GamedoProperties.class, GameLoopProperties.class})
+@ComponentScan(basePackageClasses = Gamedo.class)
 public class GameLoopGroupAutoConfiguration {
 
     private final ApplicationContext context;
-    private final GameLoopProperties properties;
+    private final GameLoopProperties gameLoopProperties;
+    private final MetricProperties metricProperties;
 
-    public GameLoopGroupAutoConfiguration(ApplicationContext context, GameLoopProperties properties) {
+    public GameLoopGroupAutoConfiguration(ApplicationContext context,
+                                          GameLoopProperties gameLoopProperties,
+                                          MetricProperties metricProperties) {
         this.context = context;
-        this.properties = properties;
+        this.gameLoopProperties = gameLoopProperties;
+        this.metricProperties = metricProperties;
     }
 
     @Bean(name = "gameLoopConfig")
     @ConditionalOnMissingBean(value = GameLoopConfig.class, name = "gameLoopConfig")
     @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
     GameLoopConfig gameLoopConfig() {
-        final GameLoopConfig defaults = properties.getDefaults().convert();
+        final GameLoopConfig defaults = gameLoopProperties.getDefaults().convert();
 
         return GameLoopConfig.builder()
                 .gameLoopIdCounter(defaults.getGameLoopIdCounter())
@@ -51,7 +57,11 @@ public class GameLoopGroupAutoConfiguration {
     @ConditionalOnMissingBean(value = IGameLoop.class, name = "gameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     IGameLoop gameLoop(GameLoopConfig config) {
-        return new GameLoop(config, context);
+
+        boolean metricEnable = metricProperties.isEnable() &&
+                !metricProperties.getDisabledGameLoopGroup().contains(config.getGameLoopGroupId());
+
+        return metricEnable ? new GameLoop(config, context, context.getBean(MeterRegistry.class)) : new GameLoop(config, context);
     }
 
     @Bean(name = "gameLoopGroup")

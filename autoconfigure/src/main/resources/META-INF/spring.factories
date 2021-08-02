@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.gamedo.GameLoopGroupAutoConfiguration
+org.gamedo.configuration.GameLoopGroupAutoConfiguration, \
+org.gamedo.configuration.MetricAutoConfiguration

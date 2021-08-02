@@ -1,0 +1,30 @@
+{
+  "hints": [
+    {
+      "name": "gamedo.metrics.disabled-game-loop-group",
+      "values": [
+        {
+          "value": "workers",
+          "description": "cpu密集型线程池."
+        },
+        {
+          "value": "ios",
+          "description": "io密集型线程池."
+        },
+        {
+          "value": "single",
+          "description": "强一致性唯一线程池."
+        },
+        {
+          "value": "defaults",
+          "description": "默认线程池."
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    }
+  ]
+}

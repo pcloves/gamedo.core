@@ -72,7 +72,7 @@ public class GameLoopGroupConfiguration {
     @ConditionalOnMissingBean(value = IGameLoop.class, name = "gameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     IGameLoop gameLoop(GameLoopConfig config) {
-        return new GameLoop(config, context);
+        return new GameLoop(config, context );
     }
 
     @Bean(name = "gameLoopGroup")

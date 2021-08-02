@@ -185,7 +185,7 @@ gamedo.core默认内置了3种线程池：
   《JCP》一书中，建议通过估算任务等待时间和计算时间的比值，来估算io密集型的线程数量，并给出了确切的计算方案。
 * **single** 唯一线程的线程池，某些并发业务场景需要操作强一致性（例如经典的抢票行为），对于这种需求，可以将所有请求提交到本线程池，通过将并行请求串行化， 解决日常场景中的并发需求
 
-可以在application.yml中对上述线程池进行调整，例如可以通过如下配置调整io线程：
+可以在application.yml中对上述线程池进行调整，例如可以通过如下配置调整io线程，去掉**IGameLoopScheduler**和**IGameLoopTickManager**组件：
 
 ``` yaml
 gamedo:
@@ -205,7 +205,16 @@ gamedo:
       daemon: true #是否为后台线程池
 ```
 
-在实际使用中，可能会对IGameLoop的组件进行扩展，除了使用上述配置中的：component-registers，也可以在代码中动态注册组件。
+在实际使用中，可能会对IGameLoop的组件进行扩展，可以使用上述配置中的：component-registers将其挂载到IGameLoop上。此外，也可以在代码中动态注册组件。
+
+## 指标监控
+
+依赖于MicroMeter和Spring Boot的强大功能，gamedo.core内置了开箱即用的监控指标，可以简单通过配置开启或关闭这些监控指标。这些指标包括：
+
+* **IGameLoop** 线程池监控，监控指标包括：已完成任务（Counter）、正在运行的任务（Gauge）、队列中的任务（Gauge）、队列当前容量（Gauge）、活跃线程数量（Gauge）、核心线程数（Gaugle）、最大线程数（Gauge）、运行计时（Timer）、空闲计时（Timer）
+* **IGameLoopEntityManager**  //TODO
+* **IGameLoopEventBus**  //TODO
+* 
 
 # 后续工作
 
@@ -217,7 +226,7 @@ gamedo:
   - [ ] @Cron执行Timer统计
   - [ ] @Subscribe执行Timer采集
   - [ ] @Tick执行Timer采集
-  - [ ] IGameLoop（ScheduledExecutorService）线程池指标采集
+  - [x] IGameLoop（ScheduledExecutorService）线程池指标采集
 - [ ] 指标可视化：开箱即用的通用grafana dashboard id？
 - [ ] 持久化继承：考虑将gamedo.persistence集成到starter项目？
 - [ ] IGameLoop持续改进

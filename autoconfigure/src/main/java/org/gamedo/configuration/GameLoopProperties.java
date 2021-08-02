@@ -1,4 +1,4 @@
-package org.gamedo;
+package org.gamedo.configuration;
 
 import lombok.*;
 import org.gamedo.ecs.GameLoopComponent;
@@ -76,7 +76,7 @@ public class GameLoopProperties {
             .gameLoopIdPrefix("io-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
-            .gameLoopGroupId("defaults")
+            .gameLoopGroupId("ios")
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 
@@ -87,7 +87,7 @@ public class GameLoopProperties {
             .gameLoopIdPrefix("single-")
             .gameLoopIdCounter(1)
             .gameLoopCount(1)
-            .gameLoopGroupId("singles")
+            .gameLoopGroupId("single")
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 

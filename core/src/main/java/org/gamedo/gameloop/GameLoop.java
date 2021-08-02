@@ -1,8 +1,10 @@
 package org.gamedo.gameloop;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
-import org.gamedo.concurrent.NamedThreadFactory;
 import org.gamedo.ecs.Entity;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
@@ -14,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 @Slf4j
 public class GameLoop extends Entity implements IGameLoop {
@@ -28,13 +29,13 @@ public class GameLoop extends Entity implements IGameLoop {
     public GameLoop(final String id) {
         super(id);
 
-        delegate = new SingleThreadScheduledThreadPoolExecutor(id, false);
+        delegate = new GameLoopScheduledExecutorService(this, id, false);
     }
 
     public GameLoop(final String id, boolean daemon) {
         super(id);
 
-        delegate = new SingleThreadScheduledThreadPoolExecutor(id, daemon);
+        delegate = new GameLoopScheduledExecutorService(this, id, daemon);
     }
 
     public GameLoop(final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext) {
@@ -44,8 +45,22 @@ public class GameLoop extends Entity implements IGameLoop {
         gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
     }
 
+
+    public GameLoop(final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext, MeterRegistry meterRegistry) {
+        super(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement());
+
+        final boolean daemon = gameLoopConfig.isDaemon();
+        final GameLoopScheduledExecutorService executorService = new GameLoopScheduledExecutorService(this, id, daemon);
+        final Tags tags = Tags.of("owner", gameLoopConfig.getGameLoopGroupId());
+
+        delegate = ExecutorServiceMetrics.monitor(meterRegistry, executorService, id, tags);
+
+        gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
+    }
+
     public GameLoop(final GameLoopConfig gameLoopConfig) {
-        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(), gameLoopConfig.isDaemon());
+        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(),
+                gameLoopConfig.isDaemon());
 
         gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
     }
@@ -109,31 +124,4 @@ public class GameLoop extends Entity implements IGameLoop {
         owner = gameLoopGroup;
     }
 
-    private class SingleThreadScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
-        private SingleThreadScheduledThreadPoolExecutor(String id, boolean daemon) {
-            super(1, new NamedThreadFactory(id, daemon));
-        }
-
-        @Override
-        protected void beforeExecute(Thread t, Runnable r) {
-            super.beforeExecute(t, r);
-
-            //原子操作
-            synchronized (GameLoop.this) {
-                currentThread = Thread.currentThread();
-                GameLoops.GAME_LOOP_THREAD_LOCAL.set(gameLoopOptional);
-            }
-        }
-
-        @Override
-        protected void afterExecute(Runnable r, Throwable t) {
-            super.afterExecute(r, t);
-
-            //原子操作
-            synchronized (GameLoop.this) {
-                GameLoops.GAME_LOOP_THREAD_LOCAL.set(Optional.empty());
-                currentThread = null;
-            }
-        }
-    }
 }

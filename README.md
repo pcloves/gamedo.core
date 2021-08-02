@@ -70,19 +70,19 @@ public class Application {
             super(owner);
         }
 
-        //每隔60秒执行一次心跳
+        //每隔60秒执行一次心跳，可以声明任意数量的@Tick函数
         @Tick(delay = 0, tick = 60, timeUnit = TimeUnit.SECONDS)
         private void tick(Long currentMilliSecond, Long lastMilliSecond) {
             log.info("ticking...");
         }
       
-        //每天凌晨执行跨天调用
+        //每天凌晨执行跨天调用，可以声明任意数量的@Cron函数
         @Cron("@daily")
         private void cron(Long currentTime, Long lastTriggerTime) {
             log.info("it's a new day.");
         }
 
-        //响应EventGreeting事件
+        //响应EventGreeting事件，可以声明任意数量的@Subscribe函数
         @Subscribe
         private void eventHello(EventGreeting event) {
             log.info("receive greeting:{}", event.content);

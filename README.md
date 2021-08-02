@@ -35,15 +35,15 @@ public class Application {
         SpringApplication.run(Application.class, args);
 
         final String id = "gamedo";
-        //假设使用io线程加载entity
-        final CompletableFuture<IEntity> future = CompletableFuture.supplyAsync(() -> loadEntity(id), Gamedo.io());
+        final EventGreeting event = new EventGreeting("hello " + id);
+        final IGameLoop worker = Gamedo.worker().selectNext();
 
-        //加载完毕，将之安全发布到worker线程
-        future.thenAccept(entity -> Gamedo.worker().submit(IGameLoopEntityManagerFunction.registerEntity(entity)))
-                //从所有的worker线程中，选择曾经注册过该entity的线程
-                .thenAccept(s -> Gamedo.worker()
-                        .select(IGameLoopEntityManagerFunction.hasEntity(id))
-                        .thenAccept(list -> list.forEach(gameLoop -> gameLoop.submit(IGameLoopEventBusFunction.post(new EventGreeting("hello " + id))))));
+        //模拟使用io线程加载entity
+        CompletableFuture.supplyAsync(() -> loadEntity(id), Gamedo.io())
+                //加载完毕，将之安全发布到worker线程
+                .thenAccept(entity -> worker.submit(IGameLoopEntityManagerFunction.registerEntity(entity)))
+                //注册完毕，向其发送消息
+                .thenAccept(s -> worker.submit(IGameLoopEventBusFunction.post(event)));
     }
 
     private static IEntity loadEntity(String id) {

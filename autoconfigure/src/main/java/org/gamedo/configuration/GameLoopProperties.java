@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Data
 public class GameLoopProperties {
 
-    private static final GameLoopConfigInner DEFAULT = GameLoopConfigInner.builder()
+    public static final GameLoopConfigInner DEFAULT = GameLoopConfigInner.builder()
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)

@@ -17,7 +17,6 @@ import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
-import org.springframework.context.ApplicationContext;
 
 import java.util.ConcurrentModificationException;
 import java.util.Optional;
@@ -72,7 +71,7 @@ import java.util.function.BiConsumer;
  * <li> （可选）创建自己的{@link GameLoopFunction} helper类：IGameLoopMyDemoFunction类，提供可复用的{@link GameLoopFunction}
  * 逻辑，例如：{@link IGameLoopEventBusFunction}
  * <li> 通过{@link GameLoop#GameLoop(GameLoopConfig)}实例化{@link IGameLoop}
- * <li> 或者通过{@link GameLoop#GameLoop(GameLoopConfig, ApplicationContext)}实例化{@link IGameLoop}，该构造函数和上一
+ * <li> 或者通过{@link GameLoop#GameLoop(GameLoopConfig)}实例化{@link IGameLoop}，该构造函数和上一
  * 步的区别在于{@link GameLoopConfig}内的所有{@link GameLoopComponent}组件从spring容器获取，可以参考autoconfigure工程的
  * GameLoopGroupAutoConfiguration类自动装配实践
  * </ul>

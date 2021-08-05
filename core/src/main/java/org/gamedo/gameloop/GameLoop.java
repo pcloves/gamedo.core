@@ -10,7 +10,6 @@ import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
-import org.springframework.context.ApplicationContext;
 
 import java.util.Map;
 import java.util.Optional;
@@ -38,15 +37,14 @@ public class GameLoop extends Entity implements IGameLoop {
         delegate = new GameLoopScheduledExecutorService(this, id, daemon);
     }
 
-    public GameLoop(final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext) {
+    public GameLoop(final GameLoopConfig gameLoopConfig) {
         this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(),
                 gameLoopConfig.isDaemon());
 
-        gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
+        gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
     }
 
-
-    public GameLoop(final GameLoopConfig gameLoopConfig, ApplicationContext applicationContext, MeterRegistry meterRegistry) {
+    public GameLoop(final GameLoopConfig gameLoopConfig, MeterRegistry meterRegistry) {
         super(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement());
 
         final boolean daemon = gameLoopConfig.isDaemon();
@@ -54,13 +52,6 @@ public class GameLoop extends Entity implements IGameLoop {
         final Tags tags = Tags.of("owner", gameLoopConfig.getGameLoopGroupId());
 
         delegate = ExecutorServiceMetrics.monitor(meterRegistry, executorService, id, tags);
-
-        gameLoopConfig.componentMap(this, applicationContext).forEach((k, v) -> componentMap.put(k, v));
-    }
-
-    public GameLoop(final GameLoopConfig gameLoopConfig) {
-        this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(),
-                gameLoopConfig.isDaemon());
 
         gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
     }

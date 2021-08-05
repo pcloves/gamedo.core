@@ -160,7 +160,7 @@ public class GameLoopProperties {
          */
         private String implementation;
 
-        public GameLoopComponentRegister<? extends GameLoopComponent> convert() {
+        public GameLoopComponentRegister convert() {
             try {
                 return GameLoopComponentRegister.builder()
                         .allInterfaces(allInterfaces.stream()
@@ -173,10 +173,9 @@ public class GameLoopProperties {
             }
         }
 
-        @SuppressWarnings("unchecked")
-        private static Class<? super GameLoopComponent> toInterface(String s) {
+        private static Class<?> toInterface(String s) {
             try {
-                return (Class<? super GameLoopComponent>) Class.forName(s);
+                return Class.forName(s);
             } catch (Throwable t) {
                 throw new GameLoopException("Class.forName failed, clazz:" + s, t);
             }

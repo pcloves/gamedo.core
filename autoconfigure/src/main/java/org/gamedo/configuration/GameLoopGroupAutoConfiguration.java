@@ -14,7 +14,10 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -58,10 +61,11 @@ public class GameLoopGroupAutoConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     IGameLoop gameLoop(GameLoopConfig config) {
 
-        boolean metricEnable = metricProperties.isEnable() &&
+        final boolean metricEnable = metricProperties.isEnable() &&
                 !metricProperties.getDisabledGameLoopGroup().contains(config.getGameLoopGroupId());
+        final MeterRegistry meterRegistry = context.getBean(MeterRegistry.class);
 
-        return metricEnable ? new GameLoop(config, context, context.getBean(MeterRegistry.class)) : new GameLoop(config, context);
+        return metricEnable ? new GameLoop(config, meterRegistry) : new GameLoop(config);
     }
 
     @Bean(name = "gameLoopGroup")

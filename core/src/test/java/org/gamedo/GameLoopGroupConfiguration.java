@@ -49,19 +49,19 @@ public class GameLoopGroupConfiguration {
                 .daemon(false)
                 .gameLoopCount(Runtime.getRuntime().availableProcessors())
                 .gameLoopGroupId("defaults")
-                .componentRegister(GameLoopComponentRegister.<GameLoopEntityManager>builder()
+                .componentRegister(GameLoopComponentRegister.builder()
                         .allInterface(IGameLoopEntityManager.class)
                         .implementation(GameLoopEntityManager.class)
                         .build())
-                .componentRegister(GameLoopComponentRegister.<GameLoopEventBus>builder()
+                .componentRegister(GameLoopComponentRegister.builder()
                         .allInterface(IGameLoopEventBus.class)
                         .implementation(GameLoopEventBus.class)
                         .build())
-                .componentRegister(GameLoopComponentRegister.<GameLoopScheduler>builder()
+                .componentRegister(GameLoopComponentRegister.builder()
                         .allInterface(IGameLoopScheduler.class)
                         .implementation(GameLoopScheduler.class)
                         .build())
-                .componentRegister(GameLoopComponentRegister.<GameLoopTickManager>builder()
+                .componentRegister(GameLoopComponentRegister.builder()
                         .allInterface(IGameLoopTickManager.class)
                         .implementation(GameLoopTickManager.class)
                         .build())
@@ -72,7 +72,7 @@ public class GameLoopGroupConfiguration {
     @ConditionalOnMissingBean(value = IGameLoop.class, name = "gameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     IGameLoop gameLoop(GameLoopConfig config) {
-        return new GameLoop(config, context );
+        return new GameLoop(config);
     }
 
     @Bean(name = "gameLoopGroup")

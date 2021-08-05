@@ -47,7 +47,7 @@ class IGameLoopTest {
     @AfterEach
     void tearDown() throws InterruptedException {
         gameLoop.shutdown();
-        Assertions.assertDoesNotThrow(() -> gameLoop.awaitTermination(1, TimeUnit.MILLISECONDS));
+        Assertions.assertDoesNotThrow(() -> gameLoop.awaitTermination(10, TimeUnit.SECONDS));
     }
 
     @Test

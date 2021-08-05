@@ -6,7 +6,6 @@ import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 
@@ -34,23 +33,22 @@ import java.util.List;
  *     gameLoop.submit(gameLoop.addComponent(A.class, component));
  *     gameLoop.submit(gameLoop.addComponent(B.class, component));
  * </pre>
- * <li> 在{@link GameLoop}的构造函数{@link GameLoop#GameLoop(GameLoopConfig)}或
- * {@link GameLoop#GameLoop(GameLoopConfig, ApplicationContext)}中传入{@link GameLoopConfig}，使得在构造期间，将组件进行注册
+ * <li> 在{@link GameLoop}的构造函数{@link GameLoop#GameLoop(GameLoopConfig)}传入{@link GameLoopConfig}，使得在构造期间，将组件
+ * 进行注册
  * </ul>
  * 对于第2种方式，{@link GameLoopConfig}内需要配置一个{@link GameLoopComponentRegister}列表，代表{@link IGameLoop}构造时，要注册的
  * 组件，这也正是本类存在的意义
- * @param <T> 组件的类型
  */
 @Builder
 @Data
-public class GameLoopComponentRegister<T extends GameLoopComponent> {
+public class GameLoopComponentRegister {
     /**
-     * 要注册的组件接口列表
+     * 要注册的组件接口列表，该列表中的Class必须是implementation的实现类或者其父类
      */
     @Singular
-    List<Class<? super T>> allInterfaces;
+    List<Class<?>> allInterfaces;
     /**
      * 组件实现类的类型
      */
-    Class<T> implementation;
+    Class<? extends GameLoopComponent> implementation;
 }

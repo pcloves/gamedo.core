@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.components.tickManager;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
@@ -18,7 +18,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@Slf4j
+@Log4j2
 @GamedoComponent
 public class GameLoopTickManager extends GameLoopComponent implements IGameLoopTickManager {
 
@@ -44,13 +44,11 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         }
 
         final int count = annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopTickManager, "register tick finish, clazz:{}, totalCount:{}, successCount:{}",
-                    clazz.getSimpleName(),
-                    annotatedMethodSet.size(),
-                    count
-            );
-        }
+        log.debug(Markers.GameLoopTickManager, "register tick finish, clazz:{}, totalCount:{}, successCount:{}",
+                () -> clazz.getSimpleName(),
+                () -> annotatedMethodSet.size(),
+                () -> count
+        );
 
         return count;
     }
@@ -191,16 +189,14 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
         tickDataFutureMap.put(tickData, scheduledFuture);
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopTickManager, "register tick success, clazz:{}, method:{}, delay:{}, " +
-                            "tick:{}, timeUnit:{}, scheduleWithFixdDelay:{}",
-                    clazz.getName(),
-                    method.getName(),
-                    delay,
-                    tick,
-                    timeUnit,
-                    scheduleWithFixedDelay);
-        }
+        log.debug(Markers.GameLoopTickManager, "register tick success, clazz:{}, method:{}, delay:{}, " +
+                        "tick:{}, timeUnit:{}, scheduleWithFixdDelay:{}",
+                () -> clazz.getName(),
+                () -> method.getName(),
+                () -> delay,
+                () -> tick,
+                () -> timeUnit,
+                () -> scheduleWithFixedDelay);
         return true;
     }
 
@@ -233,12 +229,9 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         final ScheduledFuture<?> scheduledFuture = tickDataFutureMap.remove(tickData);
         scheduledFuture.cancel(false);
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopTickManager,
-                    "unregister tick, clazz:{}, method:{}",
-                    object.getClass().getName(),
-                    method.getName());
-        }
+        log.debug(Markers.GameLoopTickManager, "unregister tick, clazz:{}, method:{}",
+                () -> object.getClass().getName(),
+                () -> method.getName());
         return true;
     }
 

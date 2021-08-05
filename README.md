@@ -8,7 +8,7 @@ gamedo.core是gamedo游戏服务器框架的核心模块（正在开发中-进�
 
 ``` java
 @SpringBootApplication
-@Slf4j
+@Log4j2
 public class Application {
 
     public static void main(String[] args) {
@@ -28,7 +28,7 @@ public class Application {
 ``` java
 @SuppressWarnings("ALL")
 @SpringBootApplication
-@Slf4j
+@Log4j2
 public class Application {
 
     public static void main(String[] args) {

@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.components.entitymanager;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.ecs.interfaces.IEntity;
@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Slf4j
+@Log4j2
 @GamedoComponent
 public class GameLoopEntityManager extends GameLoopComponent implements IGameLoopEntityManager {
     private final Map<String, IEntity> entityMap = new HashMap<>(512);
@@ -39,9 +39,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
             return false;
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopEntityManager, "register begin, entityId:{}", entityId);
-        }
+        log.debug(Markers.GameLoopEntityManager, "register begin, entityId:{}", () -> entityId);
 
         //1 先将IEntity注册到IGameLoopEventBus，使之可以响应事件
         owner.submit(IGameLoopEventBusFunction.register(entity));
@@ -83,9 +81,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
             iGameLoopGroup.submitAll(eventPost);
         }, () -> owner.submit(eventPost));
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopEntityManager, "register finish, entityId:{}", entityId);
-        }
+        log.debug(Markers.GameLoopEntityManager, "register finish, entityId:{}", () -> entityId);
         return true;
     }
 

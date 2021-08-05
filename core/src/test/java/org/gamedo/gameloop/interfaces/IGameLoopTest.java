@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.interfaces;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Slf4j
+@Log4j2
 @SpringBootTest(classes = GameLoopGroupConfiguration.class)
 class IGameLoopTest {
     private static final int DEFAULT_WAIT_TIMEOUT = 5;

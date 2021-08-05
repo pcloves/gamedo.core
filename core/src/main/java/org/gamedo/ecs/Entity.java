@@ -1,7 +1,7 @@
 package org.gamedo.ecs;
 
 import lombok.EqualsAndHashCode;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GamedoException;
 
@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @EqualsAndHashCode(of = "id")
-@Slf4j
+@Log4j2
 public class Entity implements IEntity {
     protected final String id;
     protected final Map<Class<?>, Object> componentMap;

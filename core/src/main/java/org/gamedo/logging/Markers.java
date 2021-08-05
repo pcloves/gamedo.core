@@ -1,9 +1,8 @@
 package org.gamedo.logging;
 
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
-import java.util.Arrays;
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
 
 /**
  * 日志记录最佳实践：<p>
@@ -75,8 +74,6 @@ public final class Markers
     }
 
     public static Marker of(String name, Marker ... parents) {
-        final Marker marker = MarkerFactory.getMarker(name);
-        Arrays.stream(parents).forEach(parent -> marker.add(parent));
-        return marker;
+        return MarkerManager.getMarker(name).setParents(parents);
     }
 }

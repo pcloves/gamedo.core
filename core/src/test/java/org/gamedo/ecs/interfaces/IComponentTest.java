@@ -1,6 +1,6 @@
 package org.gamedo.ecs.interfaces;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.EntityComponent;
 import org.junit.jupiter.api.Assertions;
@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-@Slf4j
+@Log4j2
 class IComponentTest {
 
     private final IEntity entity = new Entity(UUID.randomUUID().toString());

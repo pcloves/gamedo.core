@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.components.scheduling;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Cron;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Slf4j
+@Log4j2
 @GamedoComponent
 public class GameLoopScheduler extends GameLoopComponent implements IGameLoopScheduler {
     /**
@@ -36,12 +36,10 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             }
 
             final int successCount = schedule(cron);
-            if (log.isDebugEnabled()) {
-                log.debug(Markers.GameLoopScheduler, "schedule finish, cron:{}, totalCount:{}, successCount:{}",
-                        cron,
-                        cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size(),
-                        successCount);
-            }
+            log.debug(Markers.GameLoopScheduler, "schedule finish, cron:{}, totalCount:{}, successCount:{}",
+                    () -> cron,
+                    () -> cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size(),
+                    () -> successCount);
         };
     };
 
@@ -87,13 +85,11 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
 
         final int count = annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopScheduler, "register schedule finish, clazz:{}, totalCount:{}, successCount:{}",
-                    clazz.getSimpleName(),
-                    annotatedMethodSet.size(),
-                    count
-            );
-        }
+        log.debug(Markers.GameLoopScheduler, "register schedule finish, clazz:{}, totalCount:{}, successCount:{}",
+                () -> clazz.getSimpleName(),
+                () -> annotatedMethodSet.size(),
+                () -> count
+        );
 
         return count;
     }
@@ -174,12 +170,10 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             if (runnable.schedule()) {
                 cronToscheduleDataMap.put(cron, runnable);
 
-                if (log.isDebugEnabled()) {
-                    log.debug(Markers.GameLoopScheduler, "register success, clazz:{}, method:{}, cron:{}",
-                            clazz.getSimpleName(),
-                            methodName,
-                            cron);
-                }
+                log.debug(Markers.GameLoopScheduler, "register success, clazz:{}, method:{}, cron:{}",
+                        () -> clazz.getSimpleName(),
+                        () -> methodName,
+                        () -> cron);
             }
         }
 
@@ -194,11 +188,9 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            if (log.isDebugEnabled()) {
-                log.debug(Markers.GameLoopScheduler, "the Object has none annotated method, annotation:{}, clazz:{}",
-                        Cron.class.getSimpleName(),
-                        clazz.getName());
-            }
+            log.debug(Markers.GameLoopScheduler, "the Object has none annotated method, annotation:{}, clazz:{}",
+                    () -> Cron.class.getSimpleName(),
+                    () -> clazz.getName());
             return 0;
         }
 
@@ -220,11 +212,9 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             if (empty) {
                 //可能有调度正在等待中，直接取消掉吧
                 final boolean cancel = runnable.getFuture().cancel(false);
-                if (log.isDebugEnabled()) {
-                    log.debug(Markers.GameLoopScheduler, "stop schedule {}, cancel:{}",
-                            trigger.getExpression(),
-                            cancel);
-                }
+                log.debug(Markers.GameLoopScheduler, "stop schedule {}, cancel:{}",
+                        () -> trigger.getExpression(),
+                        () -> cancel);
             }
 
             return empty;

@@ -2,7 +2,7 @@ package org.gamedo.gameloop.components.scheduling;
 
 import lombok.Getter;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
 import org.springframework.scheduling.support.CronTrigger;
@@ -17,7 +17,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@Slf4j
+@Log4j2
 @Getter
 @ToString(onlyExplicitlyIncluded = true)
 class SchedulingRunnable implements Runnable {
@@ -63,12 +63,9 @@ class SchedulingRunnable implements Runnable {
 
             future = CompletableFuture.runAsync(this, executor);
 
-            if (log.isDebugEnabled()) {
-                log.debug(Markers.GameLoopScheduler,
-                        "schedule next delay:{}, cron:{}",
-                        delay,
-                        trigger.getExpression());
-            }
+            log.debug(Markers.GameLoopScheduler, "schedule next delay:{}, cron:{}",
+                    () -> delay,
+                    () -> trigger.getExpression());
 
             return true;
         } else {

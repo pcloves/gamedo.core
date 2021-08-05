@@ -1,6 +1,6 @@
 package org.gamedo.gameloop;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Slf4j
+@Log4j2
 public class GameLoopGroup implements IGameLoopGroup {
     private final String id;
     private final AtomicInteger idx = new AtomicInteger(0);

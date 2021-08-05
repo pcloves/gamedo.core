@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.components.scheduling.interfaces;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Cron;
 import org.gamedo.ecs.Entity;
@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Slf4j
+@Log4j2
 @SpringBootTest(classes = GameLoopGroupConfiguration.class)
 class IGameLoopSchedulerTest {
 

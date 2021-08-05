@@ -4,7 +4,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import lombok.experimental.Delegate;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.GameLoopFunction;
@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
-@Slf4j
+@Log4j2
 public class GameLoop extends Entity implements IGameLoop {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     protected final Optional<IGameLoop> gameLoopOptional = Optional.of(this);

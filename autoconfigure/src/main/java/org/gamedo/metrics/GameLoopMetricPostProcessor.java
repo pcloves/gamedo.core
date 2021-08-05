@@ -4,7 +4,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.BaseUnits;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.configuration.MetricProperties;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
@@ -23,7 +23,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.ToDoubleFunction;
 
 @Component
-@Slf4j
+@Log4j2
 public class GameLoopMetricPostProcessor implements BeanPostProcessor {
 
     private final MeterRegistry meterRegistry;

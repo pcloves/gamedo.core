@@ -1,6 +1,6 @@
 package org.gamedo.gameloop.components.eventbus;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Slf4j
+@Log4j2
 @GamedoComponent
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
     private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
@@ -60,13 +60,11 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 .filter(method -> register(object, method))
                 .count();
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopEventBus, "register eventBus finish, clazz:{}, totalCount:{}, successCount:{}",
-                    clazz.getSimpleName(),
-                    annotatedMethodSet.size(),
-                    count
-            );
-        }
+        log.debug(Markers.GameLoopEventBus, "register eventBus finish, clazz:{}, totalCount:{}, successCount:{}",
+                clazz.getSimpleName(),
+                annotatedMethodSet.size(),
+                count
+        );
 
         return count;
     }
@@ -129,14 +127,12 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                             "method list:{}", eventClazz, object.getClass(), list);
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopEventBus, "register, event clazz:{}, object clazz:{}, method:{}, result:{}",
-                    eventClazz.getSimpleName(),
-                    object.getClass().getSimpleName(),
-                    method.getName(),
-                    add
-            );
-        }
+        log.debug(Markers.GameLoopEventBus, "register, event clazz:{}, object clazz:{}, method:{}, result:{}",
+                () -> eventClazz.getSimpleName(),
+                () -> object.getClass().getSimpleName(),
+                () -> method.getName(),
+                () -> add
+        );
 
         return add;
     }
@@ -187,14 +183,11 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         final EventData eventData = new EventData(object, method);
         final boolean remove = eventDataList.remove(eventData);
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopEventBus, "unregister, event clazz:{}, object clazz:{}, method:{}, result:{}",
-                    eventClazz.getSimpleName(),
-                    object.getClass().getSimpleName(),
-                    method.getName(),
-                    remove
-            );
-        }
+        log.debug(Markers.GameLoopEventBus, "unregister, event clazz:{}, object clazz:{}, method:{}, result:{}",
+                () -> eventClazz.getSimpleName(),
+                () -> object.getClass().getSimpleName(),
+                () -> method.getName(),
+                () -> remove);
 
         return remove;
     }
@@ -213,11 +206,9 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 .filter(eventData -> safeInvoke(eventData, iEvent))
                 .count();
 
-        if (log.isDebugEnabled()) {
-            log.debug(Markers.GameLoopEventBus, "event post, event:{}, invoke count:{}",
-                    iEvent.getClass().getSimpleName(),
-                    count);
-        }
+        log.debug(Markers.GameLoopEventBus, "event post, event:{}, invoke count:{}",
+                () -> iEvent.getClass().getSimpleName(),
+                () -> count);
 
         return count;
     }

@@ -1,6 +1,7 @@
 package org.gamedo.gameloop;
 
 import org.gamedo.concurrent.NamedThreadFactory;
+import org.gamedo.logging.GamedoLogContext;
 
 import java.util.Optional;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -19,6 +20,7 @@ public class GameLoopScheduledExecutorService extends ScheduledThreadPoolExecuto
 
         //原子操作
         synchronized (gameLoop) {
+            GamedoLogContext.pushEntityId(gameLoop);
             gameLoop.currentThread = Thread.currentThread();
             GameLoops.GAME_LOOP_THREAD_LOCAL.set(gameLoop.gameLoopOptional);
         }
@@ -32,6 +34,7 @@ public class GameLoopScheduledExecutorService extends ScheduledThreadPoolExecuto
         synchronized (gameLoop) {
             GameLoops.GAME_LOOP_THREAD_LOCAL.set(Optional.empty());
             gameLoop.currentThread = null;
+            GamedoLogContext.clearEntityId();
         }
     }
 }

@@ -218,9 +218,9 @@ gamedo:
 
 # 后续工作
 
-- [ ] slf4j MDC最佳实践落地
-  - [ ] log4j2.xml增加mdc字段
-  - [ ] ScheduledExecutorService在beforeExecutor和afterExecutor时，设置mdc字段，例如IEntity.getId
+- [x] slf4j MDC最佳实践落地
+  - [x] log4j2.xml增加mdc字段
+  - [x] ScheduledExecutorService在beforeExecutor和afterExecutor时，设置mdc字段，例如IEntity.getId
 - [ ] 指标采集
   - [ ] 每个线程的entity管理的Gauges统计
   - [ ] @Cron执行Timer统计
@@ -232,3 +232,4 @@ gamedo:
 - [ ] IGameLoop持续改进
   - [ ] 自定义RejectedExecutionHandler设置
   - [ ] jvm shutdown钩子注册，如何优雅退出？
+- [ ] IGameLoopTickManager优化：对于tick间隔相同的心跳进行合批（类似@Cron），没必要每个@Tick都单独提交task

@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
 /**
- * 日志记录最佳实践：<p>
+ * 日志记录最佳实践（1）：<p>
  * 当一个复杂系统由众多模块组成或者由团队多人开发时，输出的日志会逐渐偏向于混乱和无序，遇到如下场景时，就会愈加明显：
  * <ul>
  * <li> 在开发开发一个新的功能或模块时，只想关注某一个模块或几个模块日志，如何做到？
@@ -60,6 +60,7 @@ import org.apache.logging.log4j.MarkerManager;
  * 用bash命令就能快速高效的对日志top 10进行统计。<p>
  * 对于上面提到的第4个问题，log4j2官方手册中给出了{@link Marker}的使用场景，可以参考
  * <a href="https://logging.apache.org/log4j/2.x/manual/markers.html">官方文档</a>
+ * @see GamedoLogContext
  */
 public final class Markers
 {

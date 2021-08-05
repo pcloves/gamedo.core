@@ -6,6 +6,7 @@ import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
@@ -50,7 +51,8 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     public static boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
         final Method method = scheduleInvokeData.getMethod();
         final Object object = scheduleInvokeData.getObject();
-        try {
+
+        try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)){
             ReflectionUtils.makeAccessible(method);
             final Long currentTimeMillis = System.currentTimeMillis();
             final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();

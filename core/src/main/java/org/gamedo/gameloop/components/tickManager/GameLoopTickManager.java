@@ -6,6 +6,7 @@ import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.springframework.util.ReflectionUtils;
 
@@ -164,7 +165,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
             public void run() {
                 final long currentTimeMillis = System.currentTimeMillis();
                 final long lastTickMilliSecond = tickData.getLastTickMilliSecond();
-                try {
+                try(final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(tickData.getObject())) {
                     tickData.getMethod().invoke(tickData.getObject(), currentTimeMillis, lastTickMilliSecond);
                 }
                 catch (Throwable throwable) {

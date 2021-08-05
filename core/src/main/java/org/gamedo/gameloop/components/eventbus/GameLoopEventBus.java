@@ -7,6 +7,7 @@ import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.springframework.util.ReflectionUtils;
 
@@ -26,8 +27,8 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
     private static boolean safeInvoke(EventData eventData, IEvent event) {
         final Method method = eventData.getMethod();
-        try {
 
+        try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(eventData.getObject())) {
             ReflectionUtils.makeAccessible(method);
             method.invoke(eventData.getObject(), event);
             return true;

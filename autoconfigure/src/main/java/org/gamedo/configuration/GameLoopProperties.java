@@ -8,6 +8,7 @@ import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
+import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
@@ -90,6 +91,11 @@ public class GameLoopProperties {
             .gameLoopGroupId("single")
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
+
+    /**
+     * {@link IGameLoopEventBus#post(IEvent)}最大递归投递事件的深度
+     */
+    private int maxEventPostDepth = 20;
 
     @Data
     @Builder

@@ -2,6 +2,7 @@ package org.gamedo.gameloop.components.eventbus.interfaces;
 
 import lombok.Getter;
 import lombok.Value;
+import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
@@ -15,6 +16,7 @@ import org.mockito.Mockito;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Log4j2
 class IGameLoopEventBusTest {
 
     private final IGameLoop gameLoop = Mockito.spy(new GameLoop("IGameLoopEventBusTest"));
@@ -80,7 +82,7 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(2, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
-        iGameLoopEventBus.post(new MyEvent(postValue));
+        iGameLoopEventBus.post(new EventTest(postValue));
 
         Assertions.assertEquals(postValue, mySubComponent.getValue());
     }
@@ -95,13 +97,21 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(1, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
-        iGameLoopEventBus.post(new MyEvent(postValue));
+        iGameLoopEventBus.post(new EventTest(postValue));
 
         Assertions.assertEquals(postValue, myComponent.getValue());
     }
 
+    @Test
+    void testCircularPost() {
+        final CircularComponent component = new CircularComponent(gameLoop, iGameLoopEventBus);
+
+        iGameLoopEventBus.register(component);
+        iGameLoopEventBus.post(new EventTest(1));
+    }
+
     @Value
-    private static class MyEvent implements IEvent {
+    private static class EventTest implements IEvent {
         int value;
     }
 
@@ -116,8 +126,8 @@ class IGameLoopEventBusTest {
 
         @SuppressWarnings("unused")
         @Subscribe
-        private void myEvent(final MyEvent myEvent) {
-            value = myEvent.value;
+        private void eventTest(final EventTest eventTest) {
+            value = eventTest.value;
         }
     }
 
@@ -128,8 +138,26 @@ class IGameLoopEventBusTest {
 
         @SuppressWarnings("unused")
         @Subscribe
-        private void myEvent(final MyEvent myEvent) {
+        private void eventTestSub(final EventTest eventTest) {
             //do nothing
+        }
+    }
+
+    private static class CircularComponent extends EntityComponent {
+
+        private final IGameLoopEventBus eventBus;
+        private int count = 1;
+
+        private CircularComponent(IEntity owner, IGameLoopEventBus eventBus) {
+            super(owner);
+            this.eventBus = eventBus;
+        }
+
+        @SuppressWarnings("unused")
+        @Subscribe
+        private void eventTest(final EventTest eventTest) {
+            log.info("eventTest {}", eventTest);
+            eventBus.post(new EventTest(count++));
         }
     }
 }

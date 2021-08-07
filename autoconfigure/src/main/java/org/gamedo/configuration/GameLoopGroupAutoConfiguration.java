@@ -5,6 +5,7 @@ import org.gamedo.Gamedo;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.GameLoopGroup;
+import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.components.eventbus.event.EventGameLoopCreatePost;
 import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.env.Environment;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -37,6 +39,13 @@ public class GameLoopGroupAutoConfiguration {
         this.context = context;
         this.gameLoopProperties = gameLoopProperties;
         this.metricProperties = metricProperties;
+
+        setProperty(context.getEnvironment());
+    }
+
+    private static void setProperty(Environment environment) {
+        final String key = "gamedo.gameloop.max-event-post-depth";
+        System.setProperty(key, environment.getProperty(key, String.valueOf(GameLoopEventBus.MAX_EVENT_POST_DEPTH_DEFAULT)));
     }
 
     @Bean(name = "gameLoopConfig")

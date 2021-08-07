@@ -232,4 +232,8 @@ gamedo:
 - [ ] IGameLoop持续改进
   - [ ] 自定义RejectedExecutionHandler设置
   - [ ] jvm shutdown钩子注册，如何优雅退出？
-- [ ] IGameLoopTickManager优化：对于tick间隔相同的心跳进行合批（类似@Cron），没必要每个@Tick都单独提交task
+- [x] IGameLoopTickManager优化：对于tick间隔相同的心跳进行合批（类似@Cron），没必要每个@Tick都单独提交task
+- [ ] 单元测试完善
+  - [ ] @Tick 心跳函数里重复注册、反注册自己
+  - [ ] @Subscribe handle函数里重复注册、反注册自己
+  - [ ] @Cron cron函数里重复注册、反注册自己

@@ -19,7 +19,10 @@ import java.util.stream.Collectors;
 @Log4j2
 @GamedoComponent
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
+    public static final int MAX_EVENT_POST_DEPTH_DEFAULT = 20;
+    private static final int MAX_EVENT_POST_DEPTH = Integer.getInteger("gamedo.gameloop.max-event-post-depth", MAX_EVENT_POST_DEPTH_DEFAULT);
     private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
+    private final Deque<Class<?>> eventPostStack = new LinkedList<>();
 
     public GameLoopEventBus(IGameLoop owner) {
         super(owner);
@@ -197,19 +200,36 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     public int post(IEvent iEvent) {
 
         final Class<? extends IEvent> eventClazz = iEvent.getClass();
-        final Optional<List<EventData>> optionalList = Optional.ofNullable(classToEventDataMap.get(eventClazz));
-        if (optionalList.isEmpty()) {
+        final Optional<List<EventData>> optionalEventDataList = Optional.ofNullable(classToEventDataMap.get(eventClazz));
+        if (optionalEventDataList.isEmpty()) {
             return 0;
         }
 
-        final List<EventData> eventDataList = optionalList.get();
-        final int count = (int) eventDataList.stream()
-                .filter(eventData -> safeInvoke(eventData, iEvent))
-                .count();
+        if (eventPostStack.size() > MAX_EVENT_POST_DEPTH) {
+            final List<String> eventClazzList = eventPostStack.stream()
+                    .map(Class::getSimpleName)
+                    .collect(Collectors.toList());
+            log.error(Markers.GameLoopEventBus,
+                    "post event overflow, max depth:{}, current stack:{}",
+                    MAX_EVENT_POST_DEPTH,
+                    eventClazzList);
+            return 0;
+        }
 
-        log.debug(Markers.GameLoopEventBus, "event post, event:{}, invoke count:{}",
-                () -> iEvent.getClass().getSimpleName(),
-                () -> count);
+        eventPostStack.push(eventClazz);
+        final int count;
+        try {
+            final List<EventData> eventDataList = optionalEventDataList.get();
+            count = (int) eventDataList.stream()
+                    .filter(eventData -> safeInvoke(eventData, iEvent))
+                    .count();
+
+            log.debug(Markers.GameLoopEventBus, "event post, event:{}, invoke count:{}",
+                    () -> iEvent.getClass().getSimpleName(),
+                    () -> count);
+        } finally {
+            eventPostStack.pop();
+        }
 
         return count;
     }

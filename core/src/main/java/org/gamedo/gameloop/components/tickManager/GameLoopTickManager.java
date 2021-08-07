@@ -6,16 +6,11 @@ import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -23,7 +18,8 @@ import java.util.stream.Collectors;
 @GamedoComponent
 public class GameLoopTickManager extends GameLoopComponent implements IGameLoopTickManager {
 
-    private final Map<TickData, ScheduledFuture<?>> tickDataFutureMap = new HashMap<>(32);
+    private final Map<ScheduleDataKey, TickRunnable> scheduleDataMap = new HashMap<>(32);
+    private final Map<TickData, TickRunnable> tickDataScheduleDataMap = new HashMap<>(128);
 
     public GameLoopTickManager(IGameLoop owner) {
         super(owner);
@@ -146,8 +142,10 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
             return false;
         }
 
-        final TickData tickData = new TickData(object, method);
-        if (tickDataFutureMap.containsKey(tickData)) {
+        final long currentTimeMillis = System.currentTimeMillis();
+        final ScheduleDataKey scheduleDataKey = new ScheduleDataKey(tick, timeUnit, scheduleWithFixedDelay);
+        final TickData tickData = new TickData(object, method, currentTimeMillis + timeUnit.toMillis(delay));
+        if (tickDataScheduleDataMap.containsKey(tickData)) {
             log.error(Markers.GameLoopTickManager, "the method:{} has registered, clazz:{}, delay:{}, " +
                             "tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
                     method.getName(),
@@ -160,35 +158,10 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         }
 
         ReflectionUtils.makeAccessible(method);
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                final long currentTimeMillis = System.currentTimeMillis();
-                final long lastTickMilliSecond = tickData.getLastTickMilliSecond();
-                try(final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(tickData.getObject())) {
-                    tickData.getMethod().invoke(tickData.getObject(), currentTimeMillis, lastTickMilliSecond);
-                }
-                catch (Throwable throwable) {
-                    log.error(Markers.GameLoopTickManager, "exception caught, clazz:" + clazz.getName() +
-                            ", method:" + method.getName() +
-                            ", delay:" + delay +
-                            ", tick:" + tick +
-                            ", timeUnit:" + timeUnit +
-                            ", scheduleWithFixedDelay:" + scheduleWithFixedDelay, throwable);
-                } finally {
-                    tickData.setLastTickMilliSecond(currentTimeMillis);
-                }
-            }
-        };
 
-        final ScheduledFuture<?> scheduledFuture;
-        if (scheduleWithFixedDelay) {
-            scheduledFuture = owner.scheduleWithFixedDelay(runnable, delay, tick, timeUnit);
-        } else {
-            scheduledFuture = owner.scheduleAtFixedRate(runnable, delay, tick, timeUnit);
-        }
-
-        tickDataFutureMap.put(tickData, scheduledFuture);
+        final TickRunnable tickRunnable = scheduleDataMap.computeIfAbsent(scheduleDataKey, key -> new TickRunnable(owner, scheduleDataKey));
+        tickRunnable.addTickData(tickData);
+        tickDataScheduleDataMap.put(tickData, tickRunnable);
 
         log.debug(Markers.GameLoopTickManager, "register tick success, clazz:{}, method:{}, delay:{}, " +
                         "tick:{}, timeUnit:{}, scheduleWithFixdDelay:{}",
@@ -223,12 +196,16 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
     public boolean unregister(Object object, Method method) {
 
         final TickData tickData = new TickData(object, method);
-        if (!tickDataFutureMap.containsKey(tickData)) {
+        final TickRunnable tickRunnable = tickDataScheduleDataMap.remove(tickData);
+        if (tickRunnable == null) {
             return false;
         }
 
-        final ScheduledFuture<?> scheduledFuture = tickDataFutureMap.remove(tickData);
-        scheduledFuture.cancel(false);
+        tickRunnable.removeTickData(tickData);
+        if (tickRunnable.getTickDataMap().isEmpty()) {
+            scheduleDataMap.remove(tickRunnable.scheduleDataKey);
+            tickRunnable.future.cancel(false);
+        }
 
         log.debug(Markers.GameLoopTickManager, "unregister tick, clazz:{}, method:{}",
                 () -> object.getClass().getName(),
@@ -238,8 +215,10 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
     @Override
     public int unregisterAll() {
-        return new HashMap<>(tickDataFutureMap).keySet()
+
+        return new HashSet<>(scheduleDataMap.values())
                 .stream()
+                .flatMap(tickRunnable -> new ArrayList<>(tickRunnable.getTickDataList()).stream())
                 .mapToInt(tickData -> unregister(tickData.getObject(), tickData.getMethod()) ? 1 : 0).sum();
     }
 }

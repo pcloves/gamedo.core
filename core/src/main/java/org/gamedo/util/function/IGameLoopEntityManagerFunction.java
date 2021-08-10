@@ -1,8 +1,7 @@
-package org.gamedo.gameloop.functions;
+package org.gamedo.util.function;
 
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.util.Optional;

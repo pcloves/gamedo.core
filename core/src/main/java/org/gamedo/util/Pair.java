@@ -1,4 +1,4 @@
-package org.gamedo.utils;
+package org.gamedo.util;
 
 import lombok.Value;
 

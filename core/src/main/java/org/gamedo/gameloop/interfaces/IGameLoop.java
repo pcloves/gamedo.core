@@ -5,6 +5,7 @@ import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
+import org.gamedo.util.function.EntityFunction;
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
@@ -15,8 +16,9 @@ import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
-import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
-import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEventBusFunction;
+import org.gamedo.util.function.GameLoopFunction;
 
 import java.util.ConcurrentModificationException;
 import java.util.Optional;
@@ -34,7 +36,7 @@ import java.util.function.BiConsumer;
  * 线程安全话题的重要概念，详情可以查阅本书），这和Netty中任意Channel的整个生命周期都隶属于某一个线程（EventLoop）的理念也是一致的（这也是相对
  * 于Netty 3，Netty 4为什么能获得巨大性能提升的重要原因之一）。
  * <p>{@link IGameLoop}作为{@link IEntity}和{@link ScheduledExecutorService}的扩展，同时具备了两者的能力：异步（延迟、周期）执行任务
- * 和组件管理，除此之外，{@link IGameLoop}还提供了一个线程安全的，可以与之通信的能力：{@link IGameLoop#submit(GameLoopFunction)}，和
+ * 和组件管理，除此之外，{@link IGameLoop}还提供了一个线程安全的，可以与之通信的能力：{@link IGameLoop#submit(EntityFunction)}，和
  * {@link ScheduledExecutorService}不同的是：当提交线程不在本线程中时，任务被异步执行；当提交线程就在本线程内时，任务会同步立即执行，此时调
  * 用者可以通过{@link CompletableFuture#getNow(Object)}立刻得到结果，对于该函数的使用场景，主要包括以下几种：
  * <ul>
@@ -43,7 +45,7 @@ import java.util.function.BiConsumer;
  * <li> 明确在本线程内：优先考虑先通过{@link IEntity}接口查询组件，然后使用相应的组件提供的函数；其次考虑使用本函数
  * <li> 不确定是否在本线程内：优先推荐使用本函数；其次考虑使用{@link ScheduledExecutorService}提供的异步函数或异步延迟执行函数
  * </ul>
- * {@link IGameLoop#submit(GameLoopFunction)}提供了线程安全的，由外部世界发起的，将任意数据类型X提交到{@link IGameLoop}线程，并且可以
+ * {@link IGameLoop#submit(EntityFunction)}提供了线程安全的，由外部世界发起的，将任意数据类型X提交到{@link IGameLoop}线程，并且可以
  * 返回任意类型Y的双向通信能力，除此之外，{@link IGameLoop}的内置组件：{@link IGameLoopEventBus}也提供了外界与{@link IGameLoop}单向通
  * 信的能力，例如：
  * <pre>
@@ -61,8 +63,8 @@ import java.util.function.BiConsumer;
  * </ul>
  * <p>当某个{@link IEntity}实例被安全发布到{@link IGameLoop}上时，本实例及其所有组件都具备了事件订阅、cron延迟运行、逻辑心跳的能力，详情可
  * 以参考{@link org.gamedo.annotation}包内关于{@link Subscribe}、{@link Cron}以及{@link Tick}的注释。这些组件的使用方式可以参考
- * {@link org.gamedo.gameloop.functions}包内提供的IGameLoop*Function函数或者单元测试，在实际开发过程中，可以通过类似的扩展机制对
- * {@link IGameLoop}的组件进行扩展，一般的实现流程为：
+ * {@link org.gamedo.util.function}包内提供的IGameLoop*Function函数或者单元测试，在实际开发过程中，可以通过类似的扩展机制对
+ * {@link IGameLoop}的组件进行扩展，一般实现流程为：
  * <ul>
  * <li> 定义待扩展组件自己的接口，同时要求extends {@link IComponent}，并建议命名以“IGameLoop”作为前缀，这么做主要是为了和{@link IEntity}
  * 的组件做区分，例如某组件名为MyDemo，则命名为：IGameLoopMyDemo，可以参考{@link org.gamedo.gameloop.components}包内任意组件的接口定义
@@ -108,7 +110,7 @@ public interface IGameLoop extends ScheduledExecutorService, IEntity {
     /**
      * 检测当前线程是否就是{@link IGameLoop}本线程，在如下情况中，会返回true
      * <ul>
-     * <li> 当调用{@link IGameLoop#submit(GameLoopFunction)}提交任务后，如果在任务执行函数内调用本函数
+     * <li> 当调用{@link IGameLoop#submit(EntityFunction)}提交任务后，如果在任务执行函数内调用本函数
      * <li> 当调用{@link ScheduledExecutorService}}接口的任意函数提交异步任务或异步延迟任务后，如果在任务的执行函数
      * （{@link Callable#call()}、{@link Runnable#run()}）里调用本函数
      * <li> 在{@link Cron}、{@link Tick}、{@link Subscribe}注解函数里调用本函数
@@ -142,5 +144,5 @@ public interface IGameLoop extends ScheduledExecutorService, IEntity {
      * @param <R>      提交后的返回值类型
      * @return 操作返回结果
      */
-    <R> CompletableFuture<R> submit(GameLoopFunction<R> function);
+    <R> CompletableFuture<R> submit(EntityFunction<IGameLoop, R> function);
 }

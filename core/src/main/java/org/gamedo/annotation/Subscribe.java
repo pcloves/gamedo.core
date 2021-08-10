@@ -2,8 +2,8 @@ package org.gamedo.annotation;
 
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
-import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
-import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEventBusFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.lang.annotation.ElementType;

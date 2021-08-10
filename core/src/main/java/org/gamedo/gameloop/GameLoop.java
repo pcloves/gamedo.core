@@ -6,8 +6,8 @@ import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import lombok.experimental.Delegate;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
+import org.gamedo.util.function.EntityFunction;
 import org.gamedo.exception.GameLoopException;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 
@@ -41,7 +41,7 @@ public class GameLoop extends Entity implements IGameLoop {
         this(gameLoopConfig.getGameLoopIdPrefix() + gameLoopConfig.getGameLoopIdCounter().getAndIncrement(),
                 gameLoopConfig.isDaemon());
 
-        gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
+        componentMap.putAll(gameLoopConfig.componentMap(this));
     }
 
     public GameLoop(final GameLoopConfig gameLoopConfig, MeterRegistry meterRegistry) {
@@ -53,7 +53,7 @@ public class GameLoop extends Entity implements IGameLoop {
 
         delegate = ExecutorServiceMetrics.monitor(meterRegistry, executorService, id, tags);
 
-        gameLoopConfig.componentMap(this).forEach((k, v) -> componentMap.put(k, v));
+        componentMap.putAll(gameLoopConfig.componentMap(this));
     }
 
     @Override
@@ -91,7 +91,7 @@ public class GameLoop extends Entity implements IGameLoop {
     }
 
     @Override
-    public <R> CompletableFuture<R> submit(GameLoopFunction<R> function) {
+    public <R> CompletableFuture<R> submit(EntityFunction<IGameLoop, R> function) {
 
         if (inThread()) {
             try {

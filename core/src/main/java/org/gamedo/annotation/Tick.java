@@ -2,7 +2,7 @@ package org.gamedo.annotation;
 
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
-import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.lang.annotation.ElementType;

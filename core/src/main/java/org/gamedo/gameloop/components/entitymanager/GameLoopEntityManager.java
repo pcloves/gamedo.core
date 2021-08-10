@@ -9,10 +9,10 @@ import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPre;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPre;
-import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
-import org.gamedo.gameloop.functions.IGameLoopSchedulerFunction;
-import org.gamedo.gameloop.functions.IGameLoopTickManagerFunction;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
+import org.gamedo.util.function.IGameLoopEventBusFunction;
+import org.gamedo.util.function.IGameLoopSchedulerFunction;
+import org.gamedo.util.function.IGameLoopTickManagerFunction;
+import org.gamedo.util.function.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
 

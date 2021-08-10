@@ -1,9 +1,8 @@
-package org.gamedo.gameloop.functions;
+package org.gamedo.util.function;
 
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 public interface IGameLoopEventBusFunction {

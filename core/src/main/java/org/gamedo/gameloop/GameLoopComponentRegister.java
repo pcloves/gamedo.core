@@ -1,11 +1,13 @@
 package org.gamedo.gameloop;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Singular;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.util.function.EntityFunction;
 
 import java.util.List;
 
@@ -28,7 +30,7 @@ import java.util.List;
  * 实际上，上述代码虽然可以正常编译，但是在运行时期间会抛出{@link GameLoopException}异常，这是因为{@link IGameLoop}同时需要确保线程安全，
  * 禁止跨线程对其进行写操作，为了避免这个问题，需要将GameLoopTest线程安全地发布到{@link IGameLoop}实例上，gamedo.core提供了两个方式：
  * <ul>
- * <li> 线程安全地和{@link IGameLoop}进行通信，也即使用{@link IGameLoop#submit(GameLoopFunction)}，那么上述示例可以调整为：
+ * <li> 线程安全地和{@link IGameLoop}进行通信，也即使用{@link IGameLoop#submit(EntityFunction)}，那么上述示例可以调整为：
  * <pre>
  *     gameLoop.submit(gameLoop.addComponent(A.class, component));
  *     gameLoop.submit(gameLoop.addComponent(B.class, component));

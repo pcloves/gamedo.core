@@ -6,14 +6,17 @@ import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
+import org.gamedo.util.function.IEntityFunction;
+import org.gamedo.util.function.EntityPredicate;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
-import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
-import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEventBusFunction;
+import org.gamedo.util.function.GameLoopFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -164,18 +167,9 @@ class IGameLoopGroupTest {
                         .distinct()
                         .collect(Collectors.toList()));
 
-        final List<IGameLoop> gameLoopList = gameLoopGroup.select(gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)
-                .map(iGameLoopEntityManager -> iGameLoopEntityManager.getEntityMap().keySet()
-                        .stream()
-                        .anyMatch(s -> entityIdSet.contains(s))).orElse(false))
-                .exceptionally(throwable -> Collections.emptyList())
-                .join();
-
-        final Object[] expected1 = Arrays.stream(gameLoopGroup.selectAll()).limit(3).toArray();
-        final Object[] expected2 = future.join().toArray();
-        final Object[] actual = gameLoopList.toArray();
-        Assertions.assertArrayEquals(expected1, actual);
-        Assertions.assertArrayEquals(expected2, actual);
+        final Object[] actual = Arrays.stream(gameLoopGroup.selectAll()).limit(3).toArray();
+        final Object[] expected = future.join().toArray();
+        Assertions.assertArrayEquals(expected, actual);
     }
 
     @Test
@@ -227,6 +221,38 @@ class IGameLoopGroupTest {
 
         gameLoopGroup.shutdown();
         Assertions.assertDoesNotThrow(() -> gameLoopGroup.awaitTermination(10, TimeUnit.SECONDS));
+    }
+
+    @Test
+    void testSubmitFilter() {
+
+        final IGameLoop iGameLoop = gameLoopGroup.selectNext();
+        iGameLoop.submit(gameLoop -> gameLoop.addComponent(Object.class, new Object())).join();
+
+        final EntityPredicate<IGameLoop> filter1 = IEntityFunction.hasComponent(Object.class);
+        final EntityPredicate<IGameLoop> filter2 = IEntityFunction.hasComponent(IGameLoopEntityManager.class);
+        final GameLoopFunction<Integer> function = IGameLoopEventBusFunction.post(new EventTest("test"));
+        final List<Integer> list1 = gameLoopGroup.submit(EntityPredicate.And(filter1, filter2), function).join();
+
+        Assertions.assertEquals(1, list1.size());
+
+
+        final EntityPredicate<IGameLoop> filter3 = IEntityFunction.<IGameLoop>hasComponent(Object.class)
+                .and(IEntityFunction.hasComponent(IGameLoopEntityManager.class));
+        final List<Integer> list2 = gameLoopGroup.submit(filter3, function).join();
+        Assertions.assertEquals(1, list2.size());
+
+        final EntityPredicate<IGameLoop> filter4 = entity -> entity.hasComponent(Object.class);
+        final EntityPredicate<IGameLoop> filter5 = entity -> entity.hasComponent(IGameLoopEntityManager.class);
+        final List<Integer> list3 = gameLoopGroup.submit(EntityPredicate.And(filter4, filter5), function).join();
+        Assertions.assertEquals(1, list3.size());
+
+        final EntityPredicate<IGameLoop> filter6 = EntityPredicate.<IGameLoop>True()
+                .and(entity -> entity.hasComponent(Object.class))
+                .and(entity -> entity.hasComponent(IGameLoopEntityManager.class));
+
+        final List<Integer> list4 = gameLoopGroup.submit(filter6, function).join();
+        Assertions.assertEquals(1, list4.size());
     }
 
     @Test

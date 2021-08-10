@@ -1,9 +1,8 @@
-package org.gamedo.gameloop.functions;
+package org.gamedo.util.function;
 
-import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
-import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.annotation.Cron;
+import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.lang.reflect.Method;
 

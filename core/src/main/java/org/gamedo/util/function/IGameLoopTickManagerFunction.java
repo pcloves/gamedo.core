@@ -1,9 +1,8 @@
-package org.gamedo.gameloop.functions;
+package org.gamedo.util.function;
 
 import org.gamedo.annotation.Tick;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 public interface IGameLoopTickManagerFunction {

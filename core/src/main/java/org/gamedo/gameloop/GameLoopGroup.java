@@ -1,12 +1,14 @@
 package org.gamedo.gameloop;
 
 import lombok.extern.log4j.Log4j2;
+import org.gamedo.util.function.EntityFunction;
+import org.gamedo.util.function.EntityPredicate;
 import org.gamedo.exception.GameLoopException;
-import org.gamedo.gameloop.interfaces.GameLoopFunction;
+import org.gamedo.util.function.GameLoopFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.gamedo.logging.Markers;
-import org.gamedo.utils.Pair;
+import org.gamedo.util.Pair;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -176,7 +178,7 @@ public class GameLoopGroup implements IGameLoopGroup {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <C extends Comparable<? super C>> CompletableFuture<List<IGameLoop>> select(GameLoopFunction<C> chooser,
+    public <C extends Comparable<? super C>> CompletableFuture<List<IGameLoop>> select(EntityFunction<IGameLoop, C> chooser,
                                                                                        Comparator<C> comparator,
                                                                                        int limit) {
 
@@ -195,39 +197,36 @@ public class GameLoopGroup implements IGameLoopGroup {
                 );
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public CompletableFuture<List<IGameLoop>> select(GameLoopFunction<Boolean> filter) {
-
-        List<IGameLoop> gameLoopNewList = new ArrayList<>(gameLoopList);
-        final CompletableFuture<Boolean>[] futureList = gameLoopNewList.stream()
-                .map(gameLoop -> gameLoop.submit(filter))
-                .toArray(CompletableFuture[]::new);
-
-        return CompletableFuture.allOf(futureList)
-                .thenApply(v -> IntStream.range(0, gameLoopNewList.size())
-                                .filter(i -> futureList[i].join())
-                                .mapToObj(i -> gameLoopNewList.get(i))
-                                .collect(Collectors.toList()));
-    }
-
-    @Override
-    public <R> CompletableFuture<R> submit(GameLoopFunction<R> function) {
+    public <R> CompletableFuture<R> submit(EntityFunction<IGameLoop, R> function) {
         return selectNext().submit(function);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <R> CompletableFuture<List<R>> submitAll(GameLoopFunction<R> function) {
+    public <R> CompletableFuture<List<R>> submit(EntityFunction<IGameLoop, Boolean> filter,
+                                                 EntityFunction<IGameLoop, R> function) {
 
         final List<IGameLoop> gameLoopNewList = new ArrayList<>(gameLoopList);
-        final CompletableFuture<R>[] futureList = gameLoopNewList.stream()
-                .map(gameLoop -> gameLoop.submit(function))
+        final GameLoopFunction<Pair<Boolean, R>> functionInner = gameLoop -> {
+            final Boolean k = filter.apply(gameLoop);
+            final R v = k ? function.apply(gameLoop) : null;
+            return Pair.of(k, v);
+        };
+
+        final CompletableFuture<Pair<Boolean, R>>[] futureList = gameLoopNewList.stream()
+                .map(gameLoop -> gameLoop.submit(functionInner))
                 .toArray(CompletableFuture[]::new);
 
         return CompletableFuture.allOf(futureList)
-                .thenApply(v -> Arrays.stream(futureList)
-                        .map(CompletableFuture::join)
+                .thenApply(v -> IntStream.range(0, gameLoopNewList.size())
+                        .filter(i -> futureList[i].join().getK())
+                        .mapToObj(i -> futureList[i].join().getV())
                         .collect(Collectors.toList()));
+    }
+
+    @Override
+    public <R> CompletableFuture<List<R>> submitAll(EntityFunction<IGameLoop, R> function) {
+        return submit(EntityPredicate.True(), function);
     }
 }

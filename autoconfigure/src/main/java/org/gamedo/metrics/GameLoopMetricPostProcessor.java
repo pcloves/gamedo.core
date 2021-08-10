@@ -7,7 +7,7 @@ import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.configuration.MetricProperties;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
-import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;

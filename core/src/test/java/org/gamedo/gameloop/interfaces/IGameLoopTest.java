@@ -9,7 +9,7 @@ import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.GameLoops;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
-import org.gamedo.gameloop.functions.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

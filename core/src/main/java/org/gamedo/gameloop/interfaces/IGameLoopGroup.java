@@ -1,7 +1,9 @@
 package org.gamedo.gameloop.interfaces;
 
+import org.gamedo.util.function.EntityFunction;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.gameloop.functions.IGameLoopEventBusFunction;
+import org.gamedo.util.function.IGameLoopEventBusFunction;
+import org.gamedo.util.function.GameLoopFunction;
 
 import java.util.Comparator;
 import java.util.List;
@@ -84,7 +86,6 @@ public interface IGameLoopGroup extends ExecutorService {
      *                         .distinct()
      *                         .collect(Collectors.toList()));
      * </pre>
-     * 关于该示例更简便且高效的使用方式可以参考：{@link IGameLoopGroup#select(GameLoopFunction)}
      *
      * @param <C>        比较元素的类型
      * @param chooser    比较元素抽取器（如果同一个抽取器在多处使用，建议申明为静态函数以复用，例如：{@link IGameLoopEventBusFunction}）
@@ -92,50 +93,45 @@ public interface IGameLoopGroup extends ExecutorService {
      * @param limit      最大返回的{@link IGameLoop}的个数
      * @return 返回有效的IGameLoop集合，假如任意线程在执行chooser时抛出了异常，那么该返回CompletableFuture会抛出异常
      */
-    <C extends Comparable<? super C>> CompletableFuture<List<IGameLoop>> select(GameLoopFunction<C> chooser,
+    <C extends Comparable<? super C>> CompletableFuture<List<IGameLoop>> select(EntityFunction<IGameLoop, C> chooser,
                                                                                 Comparator<C> comparator,
                                                                                 int limit);
-
-    /**
-     * 根据过滤器选择一个或多个符合条件的{@link IGameLoop}<p>
-     * 例如：将某{@link IEntity}实例注册到{@link IEntity}最少的{@link IGameLoop}上
-     * <pre>
-     *     final IEntity entity = new Entity("entity-1");
-     *     gameLoopGroup.select(IGameLoopEntityManagerFunction.getEntityCount(), Comparator.reverseOrder(), 1)
-     *             .thenApply(list -&#62; list.get(0))
-     *             .thenCompose(gameLoop -&#62; gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(entity)))
-     *             .thenAccept(r -&#62; log.info("register finish, result:{}", r));
-     * </pre>
-     * 备注：上例中没有做异常处理，实际开发中，不要这么做<p>
-     * 又如：对于任意{@link IEntity} id集合：{"a"、"b"、"c"}，如果{@link IGameLoop}含有任意一个{@link IEntity}，则将其选择出来
-     * <pre>
-     *     final HashSet&#60;String&#62; entityIdSet = new HashSet&#60;&#62;(Arrays.asList("a", "b", "c"));
-     *     gameLoopGroup.select(gameLoop -&#62; gameLoop.getComponent(IGameLoopEntityManager.class)
-     *                 .map(iGameLoopEntityManager -&#62; iGameLoopEntityManager.getEntityMap().keySet()
-     *                         .stream()
-     *                         .anyMatch(s -&#62; entityIdSet.contains(s)))
-     *                 .orElse(false))
-     *                 .exceptionally(throwable -&#62; Collections.emptyList())
-     *                 .thenAccept(list -&#62; log.info("{}", list));
-     * </pre>
-     *
-     * @param filter 过滤器（如果同一个过滤器在多处使用，建议声明为静态函数以复用，例如：{@link IGameLoopEventBusFunction}）
-     * @return 返回有效的IGameLoop集合，假如任意线程在执行filter时抛出了异常，那么该返回CompletableFuture会抛出异常
-     */
-    CompletableFuture<List<IGameLoop>> select(GameLoopFunction<Boolean> filter);
 
     /**
      * 提交一个操作到轮询的当前{@link IGameLoop}线程
      * @param function 要提交的function
      * @param <R>      提交后的返回值类型
      * @return 操作返回结果
-     * @see IGameLoop#submit(GameLoopFunction)
+     * @see IGameLoop#submit(EntityFunction)
      */
-    <R> CompletableFuture<R> submit(GameLoopFunction<R> function);
+    <R> CompletableFuture<R> submit(EntityFunction<IGameLoop, R> function);
 
     /**
-     * 提交一个操作到被本{@link IGameLoopGroup}管理的所有的{@link IGameLoop}上，{@link GameLoopFunction}的使用方式可以参考
-     * {@link IGameLoop#submit(GameLoopFunction)}，一般性的做法为：
+     * 向{@link IGameLoopGroup}提交一个function操作，该操作仅在满足filter条件的gameLoop上被执行，该函数可以产生两种特例化变体：
+     * <ul>
+     * <li> 第1个过滤器参数filter永远为true，此时表示将操作提交到所有{@link IGameLoop}上，也即是{@link IGameLoopGroup#submitAll(EntityFunction)}：
+     * <pre>
+     *     gameLoopGroup.submit(EntityPredicate.True(), function);
+     * </pre>
+     * <li> 第2个操作参数直接返回{@link IGameLoop}本身，此时表示筛选符合条件的{@link IGameLoop}：
+     * <pre>
+     *     gameLoopGroup.submit(someFilter, gameLoop -> gameLoop);
+     * </pre>
+     * </ul>
+     * @param filter 过滤器
+     * @param function 要执行的操作
+     * @param <R> 返回值类型
+     * @return 返回值集合，假如任意线程在submit时抛出了异常，那么该返回CompletableFuture会抛出异常
+     */
+    <R> CompletableFuture<List<R>> submit(EntityFunction<IGameLoop, Boolean> filter, EntityFunction<IGameLoop, R> function);
+
+    /**
+     * 提交一个操作到被本{@link IGameLoopGroup}管理的所有的{@link IGameLoop}上，该方法是
+     * {@link IGameLoopGroup#submit(EntityFunction, EntityFunction)}的一个特例，也即：
+     * <pre>
+     *     gameLoopGroup.submit(EntityPredicate.True(), function);
+     * </pre>
+     * {@link EntityFunction}的使用方式可以参考{@link IGameLoop#submit(EntityFunction)}，一般性的做法为：
      * <pre>
      *     gameLoopGroup.submitAll(IGameLoopEventBusFunction.post(new EventTest()))
      *                 .exceptionally(throwable -&#62; Collections.emptyList())
@@ -146,5 +142,5 @@ public interface IGameLoopGroup extends ExecutorService {
      * @param <R>      返回值类型
      * @return 返回值集合，假如任意线程在submit时抛出了异常，那么该返回CompletableFuture会抛出异常
      */
-    <R> CompletableFuture<List<R>> submitAll(GameLoopFunction<R> function);
+    <R> CompletableFuture<List<R>> submitAll(EntityFunction<IGameLoop, R> function);
 }

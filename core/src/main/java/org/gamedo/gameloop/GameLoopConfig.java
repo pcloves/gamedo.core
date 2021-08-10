@@ -4,7 +4,7 @@ import lombok.*;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.utils.Pair;
+import org.gamedo.util.Pair;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;

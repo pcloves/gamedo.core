@@ -115,7 +115,7 @@ public interface IGameLoopGroup extends ExecutorService {
      * </pre>
      * <li> 第2个操作参数直接返回{@link IGameLoop}本身，此时表示筛选符合条件的{@link IGameLoop}：
      * <pre>
-     *     gameLoopGroup.submit(someFilter, gameLoop -> gameLoop);
+     *     gameLoopGroup.submit(someFilter, gameLoop -&#62; gameLoop);
      * </pre>
      * </ul>
      * @param filter 过滤器

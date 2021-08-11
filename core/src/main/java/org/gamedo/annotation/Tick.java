@@ -73,5 +73,5 @@ public @interface Tick {
     /**
      * @return true：以scheduleWithFixedDelay方式执行，false：以scheduleAtFixedRate方式执行
      */
-    boolean scheduleWithFixedDelay() default true;
+    boolean scheduleWithFixedDelay() default false;
 }

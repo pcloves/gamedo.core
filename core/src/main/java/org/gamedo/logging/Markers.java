@@ -65,6 +65,7 @@ import org.apache.logging.log4j.MarkerManager;
 public final class Markers
 {
     public static final Marker GamedoCore = of("gamedo.core");
+    public static final Marker GamedoMetrics = of("gamedo.metrics", GamedoCore);
     public static final Marker GameLoop = of("gamedo.gameLoop", GamedoCore);
     public static final Marker GameLoopEntityManager = of("gamedo.entityManager", GameLoop);
     public static final Marker GameLoopEventBus = of("gamedo.eventBus", GameLoop);

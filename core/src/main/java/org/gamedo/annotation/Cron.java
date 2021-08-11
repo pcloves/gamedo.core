@@ -22,7 +22,7 @@ import java.lang.annotation.*;
  * <pre>
  *     class MySchedule
  *     {
- *         &#064;Scheduled("*&#47;10 * * * * *")
+ *         &#064;Cron("*&#47;10 * * * * *")
  *         private void cron(Long currentTime, Long lastTriggerTime)
  *         {
  *             //currentTime 当前时间

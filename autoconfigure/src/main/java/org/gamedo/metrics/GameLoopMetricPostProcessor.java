@@ -7,20 +7,22 @@ import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.configuration.MetricProperties;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
-import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.Markers;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.ToDoubleFunction;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Component
 @Log4j2
@@ -62,31 +64,66 @@ public class GameLoopMetricPostProcessor implements BeanPostProcessor {
 
         gameLoop.submit(iGameLoop -> {
 
-            final Optional<IGameLoopEntityManager> component = iGameLoop.getComponent(IGameLoopEntityManager.class);
             final Tags tags = iGameLoop.owner()
                     .map(iGameLoopGroup -> Tags.of("name", iGameLoop.getId(), "owner", iGameLoopGroup.getId()))
                     .orElse(Tags.of("name", iGameLoop.getId()));
 
-            return component.map(entityManager -> {
-                Gauge.builder("gamedo.gameloop.entity", iGameLoop, getEntityCount())
-                        .description("the IEntity count of the IGameLoop")
-                        .baseUnit(BaseUnits.OBJECTS)
-                        .tags(tags)
-                        .register(meterRegistry);
-                return true;
-            }).orElse(false);
+            Gauge.builder("gamedo.gameloop.entity", () -> getEntityCountMap(gameLoop, tags, true).values()
+                            .stream()
+                            .mapToLong(Long::longValue)
+                            .sum())
+                    .description("the IEntity count in the IGameLoop")
+                    .baseUnit(BaseUnits.OBJECTS)
+                    .tags(tags)
+                    .tag("type", "All")
+                    .register(meterRegistry);
+
+            return true;
         });
     }
 
-    private static ToDoubleFunction<IGameLoop> getEntityCount() {
-        return iGameLoop -> {
-            try {
-                //需要安全发布到IGameLoop线程
-                return iGameLoop.submit(IGameLoopEntityManagerFunction.getEntityCount())
-                        .get(10, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                return -1;
+    private Map<String, Long> getEntityCountMap(IGameLoop iGameLoop, Tags tags, boolean addSubMetric) {
+
+        try {
+            log.debug(Markers.GamedoMetrics,
+                    "getEntityCountMap begin, gameLoop:{}, addSubMetric:{}",
+                    () -> iGameLoop.getId(),
+                    () -> addSubMetric);
+
+            final Map<String, Long> map = iGameLoop.submit(iGameLoop1 -> iGameLoop1.getComponent(IGameLoopEntityManager.class)
+                            .map(manager -> manager.getEntityMap()
+                                    .values()
+                                    .stream()
+                                    .collect(Collectors.groupingBy(entity -> entity
+                                            .getClass()
+                                            .getSimpleName()
+                                            , Collectors.counting())))
+                            .orElse(Collections.emptyMap()))
+                    .get(10, TimeUnit.SECONDS);
+
+            if (addSubMetric) {
+                map.forEach((clazz, count) -> {
+
+                    final Supplier<Number> supplier = () -> getEntityCountMap(iGameLoop, tags, false)
+                            .getOrDefault(clazz, 0L);
+
+                    Gauge.builder("gamedo.gameloop.entity", supplier)
+                            .description("the IEntity count in the IGameLoop")
+                            .baseUnit(BaseUnits.OBJECTS)
+                            .tags(tags)
+                            .tag("type", clazz)
+                            .register(meterRegistry);
+                });
             }
-        };
+
+            log.debug(Markers.GamedoMetrics,
+                    "getEntityCountMap finish, gameLoop:{}, addSubMetric:{}",
+                    () -> iGameLoop.getId(),
+                    () -> addSubMetric);
+            return map;
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(Markers.GamedoMetrics, "exception caught.", e);
+            return Collections.emptyMap();
+        }
     }
 }

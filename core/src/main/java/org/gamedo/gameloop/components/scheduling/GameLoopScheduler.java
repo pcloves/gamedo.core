@@ -1,5 +1,9 @@
 package org.gamedo.gameloop.components.scheduling;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Cron;
 import org.gamedo.annotation.GamedoComponent;
@@ -8,6 +12,7 @@ import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.Metric;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
@@ -48,26 +53,39 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
         super(owner);
     }
 
-    public static boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
+    public boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
         final Method method = scheduleInvokeData.getMethod();
         final Object object = scheduleInvokeData.getObject();
+        final Timer timer = owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> {
+                    final Tags tags = Metric.tags(owner);
+                    return Timer.builder(Metric.MetricNameCron)
+                            .tags(tags)
+                            .tag("class", method.getName())
+                            .tag("method", object.getClass().getName())
+                            .tag("cron", schedulingRunnable.getTrigger().getExpression())
+                            .description("invoke the @cron method")
+                            .register(meterRegistry);
+                })
+                .orElse(Metric.NOOP_TIMER);
 
-        try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)){
-            ReflectionUtils.makeAccessible(method);
-            final Long currentTimeMillis = System.currentTimeMillis();
-            final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
-            final Long lastExecutionTime = Optional.ofNullable(triggerContext.lastActualExecutionTime())
-                    .map(date -> date.getTime())
-                    .orElse(Long.valueOf(-1));
-            method.invoke(object, currentTimeMillis, lastExecutionTime);
-        } catch (Throwable t) {
-            final Class<?> clazz = object.getClass();
-            log.error(Markers.GameLoopScheduler, "exception caught. class:" + clazz.getSimpleName() +
-                    "method:" + method, t);
-            return false;
-        }
+        return timer.record(() -> {
+            try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)){
+                final Long currentTimeMillis = System.currentTimeMillis();
+                final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
+                final Long lastExecutionTime = Optional.ofNullable(triggerContext.lastActualExecutionTime())
+                        .map(date -> date.getTime())
+                        .orElse(Long.valueOf(-1));
+                method.invoke(object, currentTimeMillis, lastExecutionTime);
+            } catch (Exception e) {
+                final Class<?> clazz = object.getClass();
+                log.error(Markers.GameLoopScheduler, "exception caught. class:" + clazz.getSimpleName() +
+                        "method:" + method, e);
+                return false;
+            }
 
-        return true;
+            return true;
+        });
     }
 
     @Override
@@ -167,6 +185,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             return false;
         }
 
+        ReflectionUtils.makeAccessible(method);
         scheduleInvokeDataSet.add(scheduleInvokeData);
         if (isNewRunnable) {
             if (runnable.schedule()) {
@@ -178,6 +197,13 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                         () -> cron);
             }
         }
+
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final Tags tags = Metric.tags(owner);
+                    final Tag tag = Tag.of("cron", cron);
+                    meterRegistry.gauge(Metric.MetricNameCron, tags.and(tag), scheduleInvokeDataSet.size());
+                });
 
         return true;
     }
@@ -220,6 +246,15 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             }
 
             return empty;
+        });
+
+        schedulingRunnableList.forEach(schedulingRunnable -> {
+            owner.getComponent(MeterRegistry.class)
+                    .ifPresent(meterRegistry -> {
+                        final Tags tags = Metric.tags(owner);
+                        final Tag tag = Tag.of("cron", schedulingRunnable.getTrigger().getExpression());
+                        meterRegistry.gauge(Metric.MetricNameCron, tags.and(tag), schedulingRunnable.getScheduleInvokeDataSet().size());
+                    });
         });
 
         return !schedulingRunnableList.isEmpty();

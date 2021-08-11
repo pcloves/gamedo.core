@@ -11,4 +11,8 @@ public class ScheduleDataKey {
     final long tick;
     final TimeUnit timeUnit;
     final boolean scheduleWithFixedDelay;
+
+    String toTagString() {
+        return tick + "-" + timeUnit + (scheduleWithFixedDelay ? "fixedDelay" : "fixedRate");
+    }
 }

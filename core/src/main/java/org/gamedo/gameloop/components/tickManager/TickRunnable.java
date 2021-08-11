@@ -1,10 +1,14 @@
 package org.gamedo.gameloop.components.tickManager;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Timer;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.Metric;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -17,12 +21,14 @@ import java.util.concurrent.TimeUnit;
 @Data
 @Log4j2
 public class TickRunnable implements Runnable {
+    final IGameLoop gameLoop;
     final ScheduleDataKey scheduleDataKey;
     final ScheduledFuture<?> future;
     private final List<TickData> tickDataList = new ArrayList<>(2);
     private final Map<TickData, TickData> tickDataMap = new HashMap<>(2);
 
     public TickRunnable(IGameLoop gameLoop, ScheduleDataKey scheduleDataKey) {
+        this.gameLoop = gameLoop;
         this.scheduleDataKey = scheduleDataKey;
         final long delay = scheduleDataKey.getTick();
         final TimeUnit timeUnit = scheduleDataKey.getTimeUnit();
@@ -54,24 +60,39 @@ public class TickRunnable implements Runnable {
             return;
         }
 
-        final Method method = tickData.getMethod();
         final Object object = tickData.getObject();
         final Class<?> clazz = object.getClass();
-        final long lastTickMilliSecond = tickData.getLastTickMilliSecond();
+        final Method method = tickData.getMethod();
+        final Timer timer = gameLoop.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> {
 
-        try(final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
-            method.invoke(object, currentTimeMillis, lastTickMilliSecond);
-        }
-        catch (Throwable throwable) {
-            log.error(Markers.GameLoopTickManager, "exception caught, clazz:" + clazz.getName() +
-                    ", method:" + method.getName() +
-                    ", tick:" + scheduleDataKey.getTick() +
-                    ", timeUnit:" + scheduleDataKey.getTimeUnit() +
-                    ", scheduleWithFixedDelay:" + scheduleDataKey.isScheduleWithFixedDelay(), throwable);
+                    final Tags tags = Metric.tags(gameLoop);
+                    return Timer.builder(Metric.MetricNameTick)
+                            .tags(tags)
+                            .tag("class", clazz.getName())
+                            .tag("method", method.getName())
+                            .tag("tick", scheduleDataKey.toTagString())
+                            .description("invoke the @Subscribe method")
+                            .register(meterRegistry);
+                })
+                .orElse(Metric.NOOP_TIMER);
 
-        } finally {
-            tickData.setLastTickMilliSecond(currentTimeMillis);
-        }
+        timer.record(() -> {
+            final long lastTickMilliSecond = tickData.getLastTickMilliSecond();
+            try(final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
+                method.invoke(object, currentTimeMillis, lastTickMilliSecond);
+            }
+            catch (Exception e) {
+                log.error(Markers.GameLoopTickManager, "exception caught, clazz:" + clazz.getName() +
+                        ", method:" + method.getName() +
+                        ", tick:" + scheduleDataKey.getTick() +
+                        ", timeUnit:" + scheduleDataKey.getTimeUnit() +
+                        ", scheduleWithFixedDelay:" + scheduleDataKey.isScheduleWithFixedDelay(), e);
+
+            } finally {
+                tickData.setLastTickMilliSecond(currentTimeMillis);
+            }
+        });
     }
 
     @Override

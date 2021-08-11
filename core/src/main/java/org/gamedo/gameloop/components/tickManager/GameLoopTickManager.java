@@ -1,5 +1,8 @@
 package org.gamedo.gameloop.components.tickManager;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Tick;
@@ -7,6 +10,7 @@ import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.Metric;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -171,6 +175,14 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 () -> tick,
                 () -> timeUnit,
                 () -> scheduleWithFixedDelay);
+
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final Tag tag = Tag.of("cron", tickRunnable.scheduleDataKey.toTagString());
+                    final Tags tags = Metric.tags(owner).and(tag);
+                    meterRegistry.gauge(Metric.MetricNameTick, tags, tickRunnable.getTickDataList().size());
+                });
+
         return true;
     }
 
@@ -210,6 +222,14 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         log.debug(Markers.GameLoopTickManager, "unregister tick, clazz:{}, method:{}",
                 () -> object.getClass().getName(),
                 () -> method.getName());
+
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final Tag tag = Tag.of("cron", tickRunnable.scheduleDataKey.toTagString());
+                    final Tags tags = Metric.tags(owner).and(tag);
+                    meterRegistry.gauge(Metric.MetricNameTick, tags, tickRunnable.getTickDataList().size());
+                });
+
         return true;
     }
 

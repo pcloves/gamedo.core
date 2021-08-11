@@ -1,5 +1,9 @@
 package org.gamedo.gameloop.components.eventbus;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
@@ -9,6 +13,7 @@ import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.Metric;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -28,20 +33,37 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         super(owner);
     }
 
-    private static boolean safeInvoke(EventData eventData, IEvent event) {
+    private boolean safeInvoke(EventData eventData, IEvent event) {
+        final Object object = eventData.getObject();
         final Method method = eventData.getMethod();
 
-        try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(eventData.getObject())) {
-            ReflectionUtils.makeAccessible(method);
-            method.invoke(eventData.getObject(), event);
-            return true;
-        } catch (Throwable e) {
-            final Class<? extends IEvent> eventClazz = event.getClass();
-            log.error(Markers.GameLoopEventBus, "exception caught, method:" + method.getName() +
-                    ", event:" + eventClazz.getName(), e);
-        }
+        final Timer timer = owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> {
 
-        return false;
+                    final Tags tags = Metric.tags(owner);
+                    return Timer.builder(Metric.MetricNameEvent)
+                            .tags(tags)
+                            .tag("class", object.getClass().getName())
+                            .tag("method", method.getName())
+                            .tag("event", event.getClass().getSimpleName())
+                            .description("invoke the @Subscribe method")
+                            .register(meterRegistry);
+                })
+                .orElse(Metric.NOOP_TIMER);
+
+        return timer.record(() -> {
+            try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
+                ReflectionUtils.makeAccessible(method);
+                method.invoke(object, event);
+                return true;
+            } catch (Exception e) {
+                final Class<? extends IEvent> eventClazz = event.getClass();
+                log.error(Markers.GameLoopEventBus, "exception caught, method:" + method.getName() +
+                        ", event:" + eventClazz.getName(), e);
+            }
+
+            return false;
+        });
     }
 
     @Override
@@ -119,16 +141,16 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
         final boolean add = eventDataList.add(eventData);
 
-        final List<EventData> eventDataList1 = eventDataList.stream()
+        final List<EventData> duplicateEventDataList = eventDataList.stream()
                 .filter(eventData1 -> eventData1.getObject() == object)
                 .collect(Collectors.toList());
 
-        if (eventDataList1.size() > 1) {
-            final List<Method> list = eventDataList1.stream()
+        if (duplicateEventDataList.size() > 1) {
+            final List<Method> list = duplicateEventDataList.stream()
                     .map(eventData1 -> eventData1.getMethod())
                     .collect(Collectors.toList());
             log.warn(Markers.GameLoopEventBus, "multiply methods register on the same event:{}, object:{}, " +
-                            "method list:{}", eventClazz, object.getClass(), list);
+                    "method list:{}", eventClazz, object.getClass(), list);
         }
 
         log.debug(Markers.GameLoopEventBus, "register, event clazz:{}, object clazz:{}, method:{}, result:{}",
@@ -137,6 +159,13 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 () -> method.getName(),
                 () -> add
         );
+
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final Tags tags = Metric.tags(owner);
+                    final Tag tag = Tag.of("event", eventClazz.getSimpleName());
+                    meterRegistry.gauge(Metric.MetricNameEvent, tags.and(tag), eventDataList.size());
+                });
 
         return add;
     }
@@ -192,6 +221,13 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 () -> object.getClass().getSimpleName(),
                 () -> method.getName(),
                 () -> remove);
+
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final Tags tags = Metric.tags(owner);
+                    final Tag tag = Tag.of("event", eventClazz.getSimpleName());
+                    meterRegistry.gauge(Metric.MetricNameEvent, tags.and(tag), eventDataList.size());
+                });
 
         return remove;
     }

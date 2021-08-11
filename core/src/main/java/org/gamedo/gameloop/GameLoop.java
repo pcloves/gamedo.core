@@ -49,11 +49,12 @@ public class GameLoop extends Entity implements IGameLoop {
 
         final boolean daemon = gameLoopConfig.isDaemon();
         final GameLoopScheduledExecutorService executorService = new GameLoopScheduledExecutorService(this, id, daemon);
-        final Tags tags = Tags.of("owner", gameLoopConfig.getGameLoopGroupId());
+        final Tags tags = Tags.of("name", id, "owner", gameLoopConfig.getGameLoopGroupId());
 
         delegate = ExecutorServiceMetrics.monitor(meterRegistry, executorService, id, tags);
 
         componentMap.putAll(gameLoopConfig.componentMap(this));
+        componentMap.put(MeterRegistry.class, meterRegistry);
     }
 
     @Override

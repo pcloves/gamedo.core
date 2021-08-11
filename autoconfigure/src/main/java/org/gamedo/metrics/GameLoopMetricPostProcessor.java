@@ -9,6 +9,7 @@ import org.gamedo.configuration.MetricProperties;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.Metric;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -64,11 +65,9 @@ public class GameLoopMetricPostProcessor implements BeanPostProcessor {
 
         gameLoop.submit(iGameLoop -> {
 
-            final Tags tags = iGameLoop.owner()
-                    .map(iGameLoopGroup -> Tags.of("name", iGameLoop.getId(), "owner", iGameLoopGroup.getId()))
-                    .orElse(Tags.of("name", iGameLoop.getId()));
+            final Tags tags = Metric.tags(iGameLoop);
 
-            Gauge.builder("gamedo.gameloop.entity", () -> getEntityCountMap(gameLoop, tags, true).values()
+            Gauge.builder(Metric.MetricNameEntity, () -> getEntityCountMap(gameLoop, tags, true).values()
                             .stream()
                             .mapToLong(Long::longValue)
                             .sum())
@@ -107,7 +106,7 @@ public class GameLoopMetricPostProcessor implements BeanPostProcessor {
                     final Supplier<Number> supplier = () -> getEntityCountMap(iGameLoop, tags, false)
                             .getOrDefault(clazz, 0L);
 
-                    Gauge.builder("gamedo.gameloop.entity", supplier)
+                    Gauge.builder(Metric.MetricNameEntity, supplier)
                             .description("the IEntity count in the IGameLoop")
                             .baseUnit(BaseUnits.OBJECTS)
                             .tags(tags)

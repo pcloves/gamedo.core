@@ -221,11 +221,11 @@ gamedo:
 - [x] slf4j MDC最佳实践落地
   - [x] log4j2.xml增加mdc字段
   - [x] ScheduledExecutorService在beforeExecutor和afterExecutor时，设置mdc字段，例如IEntity.getId
-- [ ] 指标采集
-  - [ ] 每个线程的entity管理的Gauges统计
-  - [ ] @Cron执行Timer统计
-  - [ ] @Subscribe执行Timer采集
-  - [ ] @Tick执行Timer采集
+- [x] 指标采集
+  - [x] 每个线程的entity管理的Gauges统计
+  - [x] @Cron执行Timer统计
+  - [x] @Subscribe执行Timer采集
+  - [x] @Tick执行Timer采集
   - [x] IGameLoop（ScheduledExecutorService）线程池指标采集
 - [ ] 指标可视化：开箱即用的通用grafana dashboard id？
 - [ ] 持久化继承：考虑将gamedo.persistence集成到starter项目？

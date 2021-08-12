@@ -219,7 +219,7 @@ gamedo:
 
 可以使用预制的Grafana [dashboard模板（14865）](https://grafana.com/grafana/dashboards/14865)，直接监控gamedo.core的核心指标：
 
-![dashboard.png](https://raw.githubusercontent.com/pcloves/gamedo.core/main/images/dashboard.png)
+![dashboard.png](https://raw.githubusercontent.com/pcloves/gamedo.core/master/images/dashboard.png)
 
 # 后续工作
 

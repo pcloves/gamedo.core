@@ -1,9 +1,8 @@
 package org.gamedo.gameloop.components.scheduling;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.*;
+import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Cron;
 import org.gamedo.annotation.GamedoComponent;
@@ -13,6 +12,7 @@ import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.gamedo.util.Metric;
+import org.gamedo.util.Pair;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
@@ -20,12 +20,15 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
 @GamedoComponent
 public class GameLoopScheduler extends GameLoopComponent implements IGameLoopScheduler {
+
+    private final Map<String, Pair<AtomicLong, Gauge>> cron2GaugeMap = new HashMap<>(4);
     /**
      * cron表达式 --> 该表达式对应的所有运行时数据
      */
@@ -59,18 +62,18 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
         final Timer timer = owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> {
                     final Tags tags = Metric.tags(owner);
-                    return Timer.builder(Metric.MetricNameCron)
+                    return Timer.builder(Metric.MeterIdCronTimer)
                             .tags(tags)
                             .tag("class", method.getName())
                             .tag("method", object.getClass().getName())
                             .tag("cron", schedulingRunnable.getTrigger().getExpression())
-                            .description("invoke the @cron method")
+                            .description("the @" + Cron.class.getSimpleName() + " method timing")
                             .register(meterRegistry);
                 })
                 .orElse(Metric.NOOP_TIMER);
 
         return timer.record(() -> {
-            try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)){
+            try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
                 final Long currentTimeMillis = System.currentTimeMillis();
                 final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
                 final Long lastExecutionTime = Optional.ofNullable(triggerContext.lastActualExecutionTime())
@@ -198,12 +201,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             }
         }
 
-        owner.getComponent(MeterRegistry.class)
-                .ifPresent(meterRegistry -> {
-                    final Tags tags = Metric.tags(owner);
-                    final Tag tag = Tag.of("cron", cron);
-                    meterRegistry.gauge(Metric.MetricNameCron, tags.and(tag), scheduleInvokeDataSet.size());
-                });
+        metricGauge(cron);
 
         return true;
     }
@@ -248,14 +246,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             return empty;
         });
 
-        schedulingRunnableList.forEach(schedulingRunnable -> {
-            owner.getComponent(MeterRegistry.class)
-                    .ifPresent(meterRegistry -> {
-                        final Tags tags = Metric.tags(owner);
-                        final Tag tag = Tag.of("cron", schedulingRunnable.getTrigger().getExpression());
-                        meterRegistry.gauge(Metric.MetricNameCron, tags.and(tag), schedulingRunnable.getScheduleInvokeDataSet().size());
-                    });
-        });
+        schedulingRunnableList.forEach(schedulingRunnable -> metricGauge(schedulingRunnable.getTrigger().getExpression()));
 
         return !schedulingRunnableList.isEmpty();
     }
@@ -296,4 +287,23 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 .sum();
     }
 
+    private void metricGauge(String cron) {
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final long countNew = cronToscheduleDataMap.containsKey(cron) ?
+                            cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size() : 0;
+                    cron2GaugeMap.computeIfAbsent(cron, key -> {
+
+                        final Tags tags = Metric.tags(owner);
+                        final Tag tag = Tag.of("cron", cron);
+                        final AtomicLong count = new AtomicLong(countNew);
+                        return Pair.of(count, Gauge.builder(Metric.MeterIdCronRegisterGauge, count, AtomicLong::longValue)
+                                .tags(tags.and(tag))
+                                .baseUnit(BaseUnits.OBJECTS)
+                                .description("the instance count of a specific @" + Cron.class.getSimpleName())
+                                .register(meterRegistry)
+                        );
+                    }).getK().set(countNew);
+                });
+    }
 }

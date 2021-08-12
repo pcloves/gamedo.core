@@ -1,5 +1,9 @@
 package org.gamedo.gameloop.components.entitymanager;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
@@ -9,22 +13,26 @@ import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventRegisterEntityPre;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPre;
+import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.logging.Markers;
+import org.gamedo.util.Metric;
+import org.gamedo.util.Pair;
+import org.gamedo.util.function.GameLoopFunction;
 import org.gamedo.util.function.IGameLoopEventBusFunction;
 import org.gamedo.util.function.IGameLoopSchedulerFunction;
 import org.gamedo.util.function.IGameLoopTickManagerFunction;
-import org.gamedo.util.function.GameLoopFunction;
-import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.gamedo.logging.Markers;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Log4j2
 @GamedoComponent
 public class GameLoopEntityManager extends GameLoopComponent implements IGameLoopEntityManager {
     private final Map<String, IEntity> entityMap = new HashMap<>(512);
+    private final Map<String, Pair<AtomicLong, Gauge>> entityClazzMap = new HashMap<>(4);
 
     public GameLoopEntityManager(IGameLoop owner) {
         super(owner);
@@ -34,6 +42,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
     public boolean registerEntity(IEntity entity) {
 
         final String entityId = entity.getId();
+        final Class<? extends IEntity> entityClazz = entity.getClass();
         if (entityMap.containsKey(entityId)) {
             log.error(Markers.GameLoopEntityManager, "the entity has registered, entityId:{}", entityId);
             return false;
@@ -82,6 +91,9 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         }, () -> owner.submit(eventPost));
 
         log.debug(Markers.GameLoopEntityManager, "register finish, entityId:{}", () -> entityId);
+
+        metricGauge(entityClazz);
+
         return true;
     }
 
@@ -95,6 +107,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
         //1. 先触发事件
         final String id = owner.getId();
+        final Class<? extends IEntity> entityClazz = entity.getClass();
         final GameLoopFunction<Integer> eventPre = IGameLoopEventBusFunction.post(new EventUnregisterEntityPre(entityId, id));
         owner.owner().ifPresentOrElse(iGameLoopGroup -> iGameLoopGroup.submitAll(eventPre),
                 () -> owner.submit(eventPre));
@@ -131,6 +144,8 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         owner.owner().ifPresentOrElse(iGameLoopGroup -> iGameLoopGroup.submitAll(eventPost),
                 () -> owner.submit(eventPost));
 
+        metricGauge(entityClazz);
+
         return Optional.of(entity);
     }
 
@@ -147,5 +162,43 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
     @Override
     public Map<String, IEntity> getEntityMap() {
         return Collections.unmodifiableMap(entityMap);
+    }
+
+    private void metricGauge(Class<? extends IEntity> entityClazz) {
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final Tags tags = Metric.tags(owner);
+
+                    final int allCountNew = getEntityCount();
+                    final long entityCountNew = getEntityCount(entityClazz);
+
+                    entityClazzMap.computeIfAbsent("all", key -> {
+                                final AtomicLong count = new AtomicLong(allCountNew);
+                                return Pair.of(count, Gauge.builder(Metric.MeterIdEntityGauge, count, AtomicLong::longValue)
+                                        .tags(tags.and("type", "all"))
+                                        .description("the total IEntity count.")
+                                        .baseUnit(BaseUnits.OBJECTS)
+                                        .register(meterRegistry));
+                            }
+                    ).getK().set(allCountNew);
+
+                    entityClazzMap.computeIfAbsent(entityClazz.getSimpleName(), key -> {
+                                final AtomicLong count = new AtomicLong(entityCountNew);
+                                return Pair.of(count,
+                                        Gauge.builder(Metric.MeterIdEntityGauge, count, AtomicLong::longValue)
+                                                .tags(tags.and("type", key))
+                                                .description("the total IEntity count of a specific type")
+                                                .baseUnit(BaseUnits.OBJECTS)
+                                                .register(meterRegistry));
+                            }
+                    ).getK().set(entityCountNew);
+                });
+    }
+
+    private long getEntityCount(Class<?> clazz) {
+        return entityMap.values()
+                .stream()
+                .filter(entity -> entity.getClass().equals(clazz))
+                .count();
     }
 }

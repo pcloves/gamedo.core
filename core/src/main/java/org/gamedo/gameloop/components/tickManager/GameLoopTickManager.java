@@ -1,8 +1,10 @@
 package org.gamedo.gameloop.components.tickManager;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Tick;
@@ -11,11 +13,13 @@ import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManage
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
 import org.gamedo.util.Metric;
+import org.gamedo.util.Pair;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -24,6 +28,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
     private final Map<ScheduleDataKey, TickRunnable> scheduleDataMap = new HashMap<>(32);
     private final Map<TickData, TickRunnable> tickDataScheduleDataMap = new HashMap<>(128);
+    private final Map<ScheduleDataKey, Pair<AtomicLong, Gauge>> scheduleDataKey2GaugeMap = new HashMap<>(128);
 
     public GameLoopTickManager(IGameLoop owner) {
         super(owner);
@@ -176,15 +181,11 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 () -> timeUnit,
                 () -> scheduleWithFixedDelay);
 
-        owner.getComponent(MeterRegistry.class)
-                .ifPresent(meterRegistry -> {
-                    final Tag tag = Tag.of("cron", tickRunnable.scheduleDataKey.toTagString());
-                    final Tags tags = Metric.tags(owner).and(tag);
-                    meterRegistry.gauge(Metric.MetricNameTick, tags, tickRunnable.getTickDataList().size());
-                });
+        metricGauge(tickRunnable);
 
         return true;
     }
+
 
     @Override
     public int unregister(Object object) {
@@ -223,12 +224,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 () -> object.getClass().getName(),
                 () -> method.getName());
 
-        owner.getComponent(MeterRegistry.class)
-                .ifPresent(meterRegistry -> {
-                    final Tag tag = Tag.of("cron", tickRunnable.scheduleDataKey.toTagString());
-                    final Tags tags = Metric.tags(owner).and(tag);
-                    meterRegistry.gauge(Metric.MetricNameTick, tags, tickRunnable.getTickDataList().size());
-                });
+        metricGauge(tickRunnable);
 
         return true;
     }
@@ -240,5 +236,23 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 .stream()
                 .flatMap(tickRunnable -> new ArrayList<>(tickRunnable.getTickDataList()).stream())
                 .mapToInt(tickData -> unregister(tickData.getObject(), tickData.getMethod()) ? 1 : 0).sum();
+    }
+
+    private void metricGauge(TickRunnable tickRunnable) {
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final long countNew = tickRunnable.getTickDataList().size();
+                    scheduleDataKey2GaugeMap.computeIfAbsent(tickRunnable.getScheduleDataKey(), key -> {
+                        final AtomicLong count = new AtomicLong(countNew);
+                        final Tag tag = Tag.of("tick", tickRunnable.scheduleDataKey.toTagString());
+                        final Tags tags = Metric.tags(owner).and(tag);
+                        return Pair.of(count, Gauge.builder(Metric.MeterIdTickRegisterGauge, count, AtomicLong::longValue)
+                                        .tags(tags)
+                                        .description("the instance count of a specific @" + Tick.class.getSimpleName())
+                                        .baseUnit(BaseUnits.OBJECTS)
+                                        .register(meterRegistry));
+                            }
+                    ).getK().set(countNew);
+                });
     }
 }

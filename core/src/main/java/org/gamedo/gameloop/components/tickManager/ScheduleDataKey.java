@@ -13,6 +13,6 @@ public class ScheduleDataKey {
     final boolean scheduleWithFixedDelay;
 
     String toTagString() {
-        return tick + "-" + timeUnit + (scheduleWithFixedDelay ? "fixedDelay" : "fixedRate");
+        return tick + timeUnit.toString() + '.' + (scheduleWithFixedDelay ? "fixedDelay" : "fixedRate");
     }
 }

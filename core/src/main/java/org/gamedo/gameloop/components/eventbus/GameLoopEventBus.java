@@ -1,9 +1,8 @@
 package org.gamedo.gameloop.components.eventbus;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.*;
+import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
@@ -14,10 +13,12 @@ import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.gamedo.util.Metric;
+import org.gamedo.util.Pair;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -26,8 +27,9 @@ import java.util.stream.Collectors;
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
     public static final int MAX_EVENT_POST_DEPTH_DEFAULT = 20;
     private static final int MAX_EVENT_POST_DEPTH = Integer.getInteger("gamedo.gameloop.max-event-post-depth", MAX_EVENT_POST_DEPTH_DEFAULT);
-    private final Map<Class<? extends IEvent>, List<EventData>> classToEventDataMap = new HashMap<>(128);
+    private final Map<Class<? extends IEvent>, List<EventData>> eventClazzName2EventDataMap = new HashMap<>(128);
     private final Deque<Class<?>> eventPostStack = new LinkedList<>();
+    private final Map<String, Pair<AtomicLong, Gauge>> eventClazzName2GaugeMap = new HashMap<>(128);
 
     public GameLoopEventBus(IGameLoop owner) {
         super(owner);
@@ -41,12 +43,12 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 .map(meterRegistry -> {
 
                     final Tags tags = Metric.tags(owner);
-                    return Timer.builder(Metric.MetricNameEvent)
+                    return Timer.builder(Metric.MeterIdEventTimer)
                             .tags(tags)
                             .tag("class", object.getClass().getName())
                             .tag("method", method.getName())
                             .tag("event", event.getClass().getSimpleName())
-                            .description("invoke the @Subscribe method")
+                            .description("the @" + Subscribe.class.getSimpleName() + " method timing.")
                             .register(meterRegistry);
                 })
                 .orElse(Metric.NOOP_TIMER);
@@ -127,7 +129,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
     private <T extends IEvent> boolean register(Object object, Method method, Class<T> eventClazz) {
         final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>(32);
-        final List<EventData> eventDataList = classToEventDataMap.computeIfAbsent(eventClazz, function);
+        final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
 
         final EventData eventData = new EventData(object, method);
         if (eventDataList.contains(eventData)) {
@@ -160,12 +162,8 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 () -> add
         );
 
-        owner.getComponent(MeterRegistry.class)
-                .ifPresent(meterRegistry -> {
-                    final Tags tags = Metric.tags(owner);
-                    final Tag tag = Tag.of("event", eventClazz.getSimpleName());
-                    meterRegistry.gauge(Metric.MetricNameEvent, tags.and(tag), eventDataList.size());
-                });
+
+        metricGauge(eventClazz, eventDataList);
 
         return add;
     }
@@ -211,7 +209,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     private <T extends IEvent> boolean unregister(Object object, Method method, Class<T> eventClazz) {
 
         final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>(32);
-        final List<EventData> eventDataList = classToEventDataMap.computeIfAbsent(eventClazz, function);
+        final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
 
         final EventData eventData = new EventData(object, method);
         final boolean remove = eventDataList.remove(eventData);
@@ -222,21 +220,35 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 () -> method.getName(),
                 () -> remove);
 
-        owner.getComponent(MeterRegistry.class)
-                .ifPresent(meterRegistry -> {
-                    final Tags tags = Metric.tags(owner);
-                    final Tag tag = Tag.of("event", eventClazz.getSimpleName());
-                    meterRegistry.gauge(Metric.MetricNameEvent, tags.and(tag), eventDataList.size());
-                });
+        metricGauge(eventClazz, eventDataList);
 
         return remove;
+    }
+
+    private <T extends IEvent> void metricGauge(Class<T> eventClazz, List<EventData> eventDataList) {
+        owner.getComponent(MeterRegistry.class)
+                .ifPresent(meterRegistry -> {
+                    final long countNew = eventDataList.size();
+                    eventClazzName2GaugeMap.computeIfAbsent(eventClazz.getSimpleName(), key -> {
+                        final Tags tags = Metric.tags(owner);
+                        final Tag tag = Tag.of("event", key);
+                        final AtomicLong count = new AtomicLong(countNew);
+
+                        return Pair.of(count, Gauge.builder(Metric.MeterIdEntityGauge, count, AtomicLong::longValue)
+                                .tags(tags.and(tag))
+                                .baseUnit(BaseUnits.OBJECTS)
+                                .description("the instance count of a specific @" + Subscribe.class.getSimpleName())
+                                .register(meterRegistry)
+                        );
+                    }).getK().set(countNew);
+                });
     }
 
     @Override
     public int post(IEvent iEvent) {
 
         final Class<? extends IEvent> eventClazz = iEvent.getClass();
-        final Optional<List<EventData>> optionalEventDataList = Optional.ofNullable(classToEventDataMap.get(eventClazz));
+        final Optional<List<EventData>> optionalEventDataList = Optional.ofNullable(eventClazzName2EventDataMap.get(eventClazz));
         if (optionalEventDataList.isEmpty()) {
             return 0;
         }

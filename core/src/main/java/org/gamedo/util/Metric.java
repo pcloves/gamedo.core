@@ -11,7 +11,7 @@ public final class Metric {
     public static final Meter.Id NOOP_ID = new Meter.Id("gamedo.noop",
             Tags.empty(),
             "",
-            "noop id",
+            "a noop id",
             Meter.Type.OTHER);
     public static final Timer NOOP_TIMER = new NoopTimer(NOOP_ID);
     public static final LongTaskTimer NOOP_LONG_TASK_TIMER = new NoopLongTaskTimer(NOOP_ID);
@@ -23,10 +23,13 @@ public final class Metric {
     public static final FunctionCounter NOOP_FUNCTIONCOUNTER = new NoopFunctionCounter(NOOP_ID);
     public static final FunctionTimer NOOP_FUNCTION_TIMER = new NoopFunctionTimer(NOOP_ID);
 
-    public static final String MetricNameEvent = "gamedo.gameloop.event";
-    public static final String MetricNameCron = "gamedo.gameloop.cron";
-    public static final String MetricNameTick = "gamedo.gameloop.tick";
-    public static final String MetricNameEntity = "gamedo.gameloop.entity";
+    public static final String MeterIdEventTimer = "gamedo.gameloop.event";
+    public static final String MeterIdEventRegisterGauge = "gamedo.gameloop.event.register";
+    public static final String MeterIdCronTimer = "gamedo.gameloop.cron";
+    public static final String MeterIdCronRegisterGauge = "gamedo.gameloop.cron.register";
+    public static final String MeterIdTickTimer = "gamedo.gameloop.tick";
+    public static final String MeterIdTickRegisterGauge = "gamedo.gameloop.tick.register";
+    public static final String MeterIdEntityGauge = "gamedo.gameloop.entity";
 
     private Metric() {
     }

@@ -13,10 +13,10 @@ import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.GameLoopTickManager;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
-import org.gamedo.util.function.IGameLoopEntityManagerFunction;
-import org.gamedo.util.function.IGameLoopEventBusFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
+import org.gamedo.util.function.IGameLoopEventBusFunction;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
@@ -82,13 +82,13 @@ public class GameLoopGroupConfiguration {
 
         final IGameLoop[] iGameLoops = IntStream.rangeClosed(1, config.getGameLoopCount())
                 .mapToObj(i -> context.getBean(IGameLoop.class, config))
-                .peek(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop)))
                 .toArray(IGameLoop[]::new);
 
         final IGameLoopGroup gameLoopGroup = new GameLoopGroup(config.getGameLoopGroupId(), iGameLoops);
 
         Arrays.stream(gameLoopGroup.selectAll())
                 .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))
+                .peek(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop)))
                 .map(gameLoop -> IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop.getId())))
                 .forEach(post -> gameLoopGroup.submitAll(post));
 

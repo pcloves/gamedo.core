@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
+import org.gamedo.annotation.Tick;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
@@ -67,12 +68,12 @@ public class TickRunnable implements Runnable {
                 .map(meterRegistry -> {
 
                     final Tags tags = Metric.tags(gameLoop);
-                    return Timer.builder(Metric.MetricNameTick)
+                    return Timer.builder(Metric.MeterIdTickTimer)
                             .tags(tags)
                             .tag("class", clazz.getName())
                             .tag("method", method.getName())
                             .tag("tick", scheduleDataKey.toTagString())
-                            .description("invoke the @Subscribe method")
+                            .description("the @" + Tick.class.getSimpleName() + " method timing")
                             .register(meterRegistry);
                 })
                 .orElse(Metric.NOOP_TIMER);

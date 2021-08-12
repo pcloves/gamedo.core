@@ -64,8 +64,8 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                     final Tags tags = Metric.tags(owner);
                     return Timer.builder(Metric.MeterIdCronTimer)
                             .tags(tags)
-                            .tag("class", method.getName())
-                            .tag("method", object.getClass().getName())
+                            .tag("class", object.getClass().getName())
+                            .tag("method", method.getName())
                             .tag("cron", schedulingRunnable.getTrigger().getExpression())
                             .description("the @" + Cron.class.getSimpleName() + " method timing")
                             .register(meterRegistry);

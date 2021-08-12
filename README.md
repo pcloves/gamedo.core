@@ -209,12 +209,17 @@ gamedo:
 
 ## 指标监控
 
-依赖于MicroMeter和Spring Boot的强大功能，gamedo.core内置了开箱即用的监控指标，可以简单通过配置开启或关闭这些监控指标。这些指标包括：
+依赖于MicroMeter和Spring Boot Actuator的强大特性，gamedo.core内置了开箱即用的监控指标以及Grafana dashboard，可以简单通过配置开启或关闭这些监控指标。这些指标包括：
 
-* **IGameLoop** 线程池监控，监控指标包括：已完成任务（Counter）、正在运行的任务（Gauge）、队列中的任务（Gauge）、队列当前容量（Gauge）、活跃线程数量（Gauge）、核心线程数（Gaugle）、最大线程数（Gauge）、运行计时（Timer）、空闲计时（Timer）
-* **IGameLoopEntityManager**  //TODO
-* **IGameLoopEventBus**  //TODO
-* 
+* **IGameLoop** 线程池监控，监控指标包括：已完成任务（Counter）、正在运行的任务（Gauge）、队列中的任务（Gauge）、队列当前容量（Gauge）、活跃线程数量（Gauge）、核心线程数（Gauge）、最大线程数（Gauge）、运行计时（Timer）、空闲计时（Timer）
+* **IGameLoopEntityManager**  当前线程内的管理的IEntity数量（Gauge）
+* **IGameLoopEventBus** 通过**@Subscribe**注解注册handle函数的实例（Gauge）、事件被消费的计时（Timer）
+* **IGameLoopTickManger** 通过**@Tick**注解注册心跳函数的实例（Gauge）、心跳函数执行时的计时（Timer）
+* **IGameLoopScheduler** 通过**@Cron**注解注册cron函数的实例的实例（Gauge）、cron函数被调用时的计时（Timer）
+
+可以使用预制的Grafana [dashboard模板（14865）](https://grafana.com/grafana/dashboards/14865)，直接监控gamedo.core的核心指标：
+
+![gamedo.persistence.DbData-UML.png](https://raw.githubusercontent.com/pcloves/gamedo.core/main/images/dashboard.png)
 
 # 后续工作
 
@@ -227,7 +232,7 @@ gamedo:
   - [x] @Subscribe执行Timer采集
   - [x] @Tick执行Timer采集
   - [x] IGameLoop（ScheduledExecutorService）线程池指标采集
-- [ ] 指标可视化：开箱即用的通用grafana dashboard id？
+- [x] 指标可视化：开箱即用的通用grafana dashboard id？
 - [ ] 持久化继承：考虑将gamedo.persistence集成到starter项目？
 - [ ] IGameLoop持续改进
   - [ ] 自定义RejectedExecutionHandler设置

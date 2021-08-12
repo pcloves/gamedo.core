@@ -234,7 +234,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                         final Tag tag = Tag.of("event", key);
                         final AtomicLong count = new AtomicLong(countNew);
 
-                        return Pair.of(count, Gauge.builder(Metric.MeterIdEntityGauge, count, AtomicLong::longValue)
+                        return Pair.of(count, Gauge.builder(Metric.MeterIdEventRegisterGauge, count, AtomicLong::longValue)
                                 .tags(tags.and(tag))
                                 .baseUnit(BaseUnits.OBJECTS)
                                 .description("the instance count of a specific @" + Subscribe.class.getSimpleName())

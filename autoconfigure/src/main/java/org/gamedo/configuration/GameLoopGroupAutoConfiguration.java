@@ -5,10 +5,10 @@ import org.gamedo.Gamedo;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.GameLoopGroup;
-import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.components.eventbus.event.EventGameLoopCreatePost;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
+import org.gamedo.util.GamedoConfiguration;
 import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.gamedo.util.function.IGameLoopEventBusFunction;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -19,7 +19,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-import org.springframework.core.env.Environment;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -40,12 +39,20 @@ public class GameLoopGroupAutoConfiguration {
         this.gameLoopProperties = gameLoopProperties;
         this.metricProperties = metricProperties;
 
-        setProperty(context.getEnvironment());
+        updateSystemProperty();
     }
 
-    private static void setProperty(Environment environment) {
-        final String key = "gamedo.gameloop.max-event-post-depth";
-        System.setProperty(key, environment.getProperty(key, String.valueOf(GameLoopEventBus.MAX_EVENT_POST_DEPTH_DEFAULT)));
+    private void updateSystemProperty() {
+        System.setProperty(GamedoConfiguration.MAX_EVENT_POST_DEPTH_KEY,
+                String.valueOf(gameLoopProperties.getMaxEventPostDepth()));
+        System.setProperty(GamedoConfiguration.GAMEDO_METRIC_ENTITY_ENABLE_KEY,
+                String.valueOf(metricProperties.isEnable() && metricProperties.isEntityEnable()));
+        System.setProperty(GamedoConfiguration.GAMEDO_METRIC_EVENT_ENABLE_KEY,
+                String.valueOf(metricProperties.isEnable() && metricProperties.isEventEnable()));
+        System.setProperty(GamedoConfiguration.GAMEDO_METRIC_CRON_ENABLE_KEY,
+                String.valueOf(metricProperties.isEnable() && metricProperties.isCronEnable()));
+        System.setProperty(GamedoConfiguration.GAMEDO_METRIC_TICK_ENABLE_KEY,
+                String.valueOf(metricProperties.isEnable() && metricProperties.isTickEnable()));
     }
 
     @Bean(name = "gameLoopConfig")

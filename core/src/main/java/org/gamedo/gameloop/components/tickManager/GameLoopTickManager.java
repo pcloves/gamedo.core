@@ -12,6 +12,7 @@ import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.GamedoConfiguration;
 import org.gamedo.util.Metric;
 import org.gamedo.util.Pair;
 import org.springframework.util.ReflectionUtils;
@@ -43,7 +44,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.warn(Markers.GameLoopTickManager, "the Object has none annotated method, annotation:{}, clazz:{}",
+            log.info(Markers.GameLoopTickManager, "none annotation {} method found, clazz:{}",
                     Tick.class.getSimpleName(),
                     clazz.getName());
             return 0;
@@ -195,8 +196,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.warn(Markers.GameLoopTickManager, "the Object has none annotated method, annotation:{}, " +
-                            "clazz:{}",
+            log.info(Markers.GameLoopTickManager, "none annotation {} method found, clazz:{}",
                     Tick.class.getName(),
                     object.getClass().getName());
             return 0;
@@ -240,6 +240,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
     private void metricGauge(TickRunnable tickRunnable) {
         owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricTickEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {
                     final long countNew = tickRunnable.getTickDataList().size();
                     scheduleDataKey2GaugeMap.computeIfAbsent(tickRunnable.getScheduleDataKey(), key -> {

@@ -15,6 +15,7 @@ import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPost;
 import org.gamedo.gameloop.components.eventbus.event.EventUnregisterEntityPre;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.GamedoConfiguration;
 import org.gamedo.util.Metric;
 import org.gamedo.util.Pair;
 import org.gamedo.util.function.GameLoopFunction;
@@ -166,6 +167,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
     private void metricGauge(Class<? extends IEntity> entityClazz) {
         owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricEntityEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {
                     final Tags tags = Metric.tags(owner);
 

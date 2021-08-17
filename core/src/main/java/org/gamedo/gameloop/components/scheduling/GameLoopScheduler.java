@@ -11,6 +11,7 @@ import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.GamedoConfiguration;
 import org.gamedo.util.Metric;
 import org.gamedo.util.Pair;
 import org.springframework.scheduling.TaskScheduler;
@@ -60,6 +61,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
         final Method method = scheduleInvokeData.getMethod();
         final Object object = scheduleInvokeData.getObject();
         final Timer timer = owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricCronEnable() ? meterRegistry : null)
                 .map(meterRegistry -> {
                     final Tags tags = Metric.tags(owner);
                     return Timer.builder(Metric.MeterIdCronTimer)
@@ -100,7 +102,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.warn(Markers.GameLoopScheduler, "the Object has none annotated method, annotation:{}, clazz:{}",
+            log.info(Markers.GameLoopScheduler, "none annotation {} method found, clazz:{}",
                     Cron.class.getSimpleName(),
                     clazz.getName());
             return 0;
@@ -214,9 +216,9 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.debug(Markers.GameLoopScheduler, "the Object has none annotated method, annotation:{}, clazz:{}",
-                    () -> Cron.class.getSimpleName(),
-                    () -> clazz.getName());
+            log.info(Markers.GameLoopScheduler, "none annotation {} method found, clazz:{}",
+                    Cron.class.getSimpleName(),
+                    clazz.getName());
             return 0;
         }
 
@@ -289,6 +291,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
 
     private void metricGauge(String cron) {
         owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricCronEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {
                     final long countNew = cronToscheduleDataMap.containsKey(cron) ?
                             cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size() : 0;

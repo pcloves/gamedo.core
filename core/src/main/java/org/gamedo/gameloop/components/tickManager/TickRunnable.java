@@ -9,6 +9,7 @@ import org.gamedo.annotation.Tick;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.GamedoConfiguration;
 import org.gamedo.util.Metric;
 
 import java.lang.reflect.Method;
@@ -65,6 +66,7 @@ public class TickRunnable implements Runnable {
         final Class<?> clazz = object.getClass();
         final Method method = tickData.getMethod();
         final Timer timer = gameLoop.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricTickEnable() ? meterRegistry : null)
                 .map(meterRegistry -> {
 
                     final Tags tags = Metric.tags(gameLoop);

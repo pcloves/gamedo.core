@@ -14,6 +14,7 @@ import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
 import org.gamedo.util.Metric;
 import org.gamedo.util.Pair;
+import org.gamedo.util.GamedoConfiguration;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -25,8 +26,6 @@ import java.util.stream.Collectors;
 @Log4j2
 @GamedoComponent
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
-    public static final int MAX_EVENT_POST_DEPTH_DEFAULT = 20;
-    private static final int MAX_EVENT_POST_DEPTH = Integer.getInteger("gamedo.gameloop.max-event-post-depth", MAX_EVENT_POST_DEPTH_DEFAULT);
     private final Map<Class<? extends IEvent>, List<EventData>> eventClazzName2EventDataMap = new HashMap<>(128);
     private final Deque<Class<?>> eventPostStack = new LinkedList<>();
     private final Map<String, Pair<AtomicLong, Gauge>> eventClazzName2GaugeMap = new HashMap<>(128);
@@ -40,6 +39,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         final Method method = eventData.getMethod();
 
         final Timer timer = owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricEventEnable() ? meterRegistry : null)
                 .map(meterRegistry -> {
 
                     final Tags tags = Metric.tags(owner);
@@ -77,7 +77,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 .collect(Collectors.toSet());
 
         if (annotatedMethodSet.isEmpty()) {
-            log.warn(Markers.GameLoopEventBus, "the Object has none annotated method, annotation:{}, clazz:{}",
+            log.info(Markers.GameLoopEventBus, "none annotation {} method found, clazz:{}",
                     Subscribe.class.getSimpleName(),
                     clazz.getName());
             return 0;
@@ -227,6 +227,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
     private <T extends IEvent> void metricGauge(Class<T> eventClazz, List<EventData> eventDataList) {
         owner.getComponent(MeterRegistry.class)
+                .map(meterRegistry -> GamedoConfiguration.isMetricEventEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {
                     final long countNew = eventDataList.size();
                     eventClazzName2GaugeMap.computeIfAbsent(eventClazz.getSimpleName(), key -> {
@@ -253,13 +254,13 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             return 0;
         }
 
-        if (eventPostStack.size() > MAX_EVENT_POST_DEPTH) {
+        if (eventPostStack.size() > GamedoConfiguration.getMaxEventPostDepth()) {
             final List<String> eventClazzList = eventPostStack.stream()
                     .map(Class::getSimpleName)
                     .collect(Collectors.toList());
             log.error(Markers.GameLoopEventBus,
                     "post event overflow, max depth:{}, current stack:{}",
-                    MAX_EVENT_POST_DEPTH,
+                    GamedoConfiguration.getMaxEventPostDepth(),
                     eventClazzList);
             return 0;
         }

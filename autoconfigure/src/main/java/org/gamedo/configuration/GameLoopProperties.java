@@ -14,6 +14,7 @@ import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.GameLoopTickManager;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
+import org.gamedo.util.GamedoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
@@ -95,7 +96,7 @@ public class GameLoopProperties {
     /**
      * {@link IGameLoopEventBus#post(IEvent)}最大递归投递事件的深度
      */
-    private int maxEventPostDepth = 20;
+    private int maxEventPostDepth = GamedoConfiguration.MAX_EVENT_POST_DEPTH_DEFAULT;
 
     @Data
     @Builder

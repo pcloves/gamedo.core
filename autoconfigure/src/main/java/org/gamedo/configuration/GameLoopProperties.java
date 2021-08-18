@@ -27,10 +27,11 @@ import java.util.stream.Collectors;
 public class GameLoopProperties {
 
     public static final GameLoopConfigInner DEFAULT = GameLoopConfigInner.builder()
+            .gameLoopGroupId("defaults")
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
-            .gameLoopGroupId("defaults")
+            .daemon(false)
             .componentRegister(GameLoopComponentRegisterInner.builder()
                     .allInterface(IGameLoopEntityManager.class.getName())
                     .implementation(GameLoopEntityManager.class.getName())

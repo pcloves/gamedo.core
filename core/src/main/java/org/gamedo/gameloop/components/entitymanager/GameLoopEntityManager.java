@@ -171,18 +171,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
                 .ifPresent(meterRegistry -> {
                     final Tags tags = Metric.tags(owner);
 
-                    final int allCountNew = getEntityCount();
                     final long entityCountNew = getEntityCount(entityClazz);
-
-                    entityClazzMap.computeIfAbsent("all", key -> {
-                                final AtomicLong count = new AtomicLong(allCountNew);
-                                return Pair.of(count, Gauge.builder(Metric.MeterIdEntityGauge, count, AtomicLong::longValue)
-                                        .tags(tags.and("type", "all"))
-                                        .description("the total IEntity count.")
-                                        .baseUnit(BaseUnits.OBJECTS)
-                                        .register(meterRegistry));
-                            }
-                    ).getK().set(allCountNew);
 
                     entityClazzMap.computeIfAbsent(entityClazz.getSimpleName(), key -> {
                                 final AtomicLong count = new AtomicLong(entityCountNew);

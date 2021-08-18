@@ -1,29 +1,67 @@
 package org.gamedo;
 
+import org.gamedo.configuration.GameLoopGroupAutoConfiguration;
 import org.gamedo.configuration.GameLoopProperties;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Component;
 
+/**
+ * 默认的线程池应用类，上层应用需要继承该类，并根据实际需求实现类似的{@link IGameLoopGroup}，例如：
+ * <pre>
+ * &#64;Component
+ * public class MyApp extends Gamedo
+ * {
+ *     &#64;SuppressWarnings({"NonFinalStaticVariableUsedInClassInitialization"})
+ *     private static final class MyHolder
+ *     {
+ *         //代码式创建线程池，也可以根据外部配置文件创建线程池
+ *         public static final IGameLoopGroup db = applicationContext.getBean(IGameLoopGroup.class, GameLoopConfig.builder()
+ *                 .gameLoopGroupId("dbs")
+ *                 .gameLoopCount(10)
+ *                 .gameLoopIdPrefix("db-")
+ *                 .componentRegisters(GameLoopConfig.DEFAULT.getComponentRegisters())
+ *                 .daemon(false)
+ *                 .build()
+ *         );
+ *     }
+ *
+ *     protected MyApp(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
+ *         super(applicationContext, gameLoopProperties);
+ *     }
+ *
+ *     public static IGameLoopGroup db() {
+ *         return MyHolder.db;
+ *     }
+ * }
+ * </pre>
+ * 有如下几点需要注意：
+ * <ul>
+ * <li> {@link Gamedo}及其子类都应该作为单例的bean而存在，不应该存在多份，否则线程池将会被重复创建
+ * <li> 假如应用层没有实现{@link Gamedo}的子类，那么{@link GameLoopGroupAutoConfiguration}会自动装配一个{@link Gamedo}
+ * <li> {@link Gamedo}采用懒加载机制，当且仅当第一次调用诸如{@link Gamedo#io()}静态方法时，{@link Holder#io}线程池才会被创建
+ * <li> 在调用{@link Gamedo}及其子类的构造函数前，不要调用{@link Holder#io}、{@link Holder#single}、{@link Holder#worker}（例如
+ * 在IDE中wath这3个变量），否则会导致构造失败
+ * </ul>
+ */
 @SuppressWarnings("unused")
-@Component
-public final class Gamedo {
-    private static IGameLoopGroup worker;
-    private static IGameLoopGroup io;
-    private static IGameLoopGroup single;
-    private static ApplicationContext applicationContext;
+public abstract class Gamedo {
+    protected static ApplicationContext applicationContext;
+    protected static GameLoopProperties gameLoopProperties;
 
-    @Autowired
-    private Gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
-        Gamedo.applicationContext = applicationContext;
-
-        worker = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getWorkers().convert());
-        io = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getIos().convert());
-        single = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getSingles().convert());
+    /**
+     * 实现延迟加载，当且仅当{@link Gamedo#io()}被调用时，{@link Holder#io}线程组才会被初始化，并且由jvm的class lock确保线程安全
+     */
+    @SuppressWarnings("NonFinalStaticVariableUsedInClassInitialization")
+    private static class Holder
+    {
+        private static final IGameLoopGroup worker = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getWorkers().convert());
+        private static final IGameLoopGroup io = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getIos().convert());
+        private static final IGameLoopGroup single = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getSingles().convert());
     }
 
-    private Gamedo() {
+    protected Gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
+        Gamedo.applicationContext = applicationContext;
+        Gamedo.gameLoopProperties = gameLoopProperties;
     }
 
     /**
@@ -45,7 +83,7 @@ public final class Gamedo {
      * @return 计算型线程池
      */
     public static IGameLoopGroup worker() {
-        return worker;
+        return Holder.worker;
     }
 
     /**
@@ -65,7 +103,7 @@ public final class Gamedo {
      * @return io密集型线程池
      */
     public static IGameLoopGroup io() {
-        return io;
+        return Holder.io;
     }
 
     /**
@@ -75,6 +113,6 @@ public final class Gamedo {
      * @return 单线程线程池
      */
     public static IGameLoopGroup single() {
-        return single;
+        return Holder.single;
     }
 }

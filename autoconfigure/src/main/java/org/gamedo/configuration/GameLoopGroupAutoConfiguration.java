@@ -55,6 +55,12 @@ public class GameLoopGroupAutoConfiguration {
                 String.valueOf(metricProperties.isEnable() && metricProperties.isTickEnable()));
     }
 
+    @Bean
+    @ConditionalOnMissingBean(Gamedo.class)
+    Gamedo gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
+        return new Gamedo(applicationContext, gameLoopProperties) {};
+    }
+
     @Bean(name = "gameLoopConfig")
     @ConditionalOnMissingBean(value = GameLoopConfig.class, name = "gameLoopConfig")
     @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)

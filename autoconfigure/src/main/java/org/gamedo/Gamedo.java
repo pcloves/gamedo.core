@@ -37,10 +37,10 @@ import org.springframework.context.ApplicationContext;
  * 有如下几点需要注意：
  * <ul>
  * <li> {@link Gamedo}及其子类都应该作为单例的bean而存在，不应该存在多份，否则线程池将会被重复创建
- * <li> 假如应用层没有实现{@link Gamedo}的子类，那么{@link GameLoopGroupAutoConfiguration}会自动装配一个{@link Gamedo}
- * <li> {@link Gamedo}采用懒加载机制，当且仅当第一次调用诸如{@link Gamedo#io()}静态方法时，{@link Holder#io}线程池才会被创建
- * <li> 在调用{@link Gamedo}及其子类的构造函数前，不要调用{@link Holder#io}、{@link Holder#single}、{@link Holder#worker}（例如
- * 在IDE中wath这3个变量），否则会导致构造失败
+ * <li> 假如应用层没有实现{@link Gamedo}的子类，那么{@link GameLoopGroupAutoConfiguration}会自动装配一个{@link Gamedo}单例
+ * <li> {@link Gamedo}采用懒加载机制，当且仅当第一次调用诸如{@link Gamedo#io()}静态方法时，{@link HolderIo#io}线程池才会被创建
+ * <li> 在调用{@link Gamedo}及其子类的构造函数前，不要调用{@link HolderIo#io}、{@link HolderSingle#single}、
+ * {@link HolderWorker#worker}（例如在IDE中watch这），否则会导致构造失败
  * </ul>
  */
 @SuppressWarnings("unused")
@@ -49,13 +49,32 @@ public abstract class Gamedo {
     protected static GameLoopProperties gameLoopProperties;
 
     /**
-     * 实现延迟加载，当且仅当{@link Gamedo#io()}被调用时，{@link Holder#io}线程组才会被初始化，并且由jvm的class lock确保线程安全
+     * 实现延迟加载，当且仅当{@link Gamedo#worker() Gamedo.worker()}被调用时，{@link HolderWorker#worker}线程组才会被初始化，并且由
+     * jvm的class lock确保线程安全
      */
     @SuppressWarnings("NonFinalStaticVariableUsedInClassInitialization")
-    private static class Holder
+    private static class HolderWorker
     {
         private static final IGameLoopGroup worker = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getWorkers().convert());
+    }
+
+    /**
+     * 实现延迟加载，当且仅当{@link Gamedo#io() Gamedo.io()}被调用时，{@link HolderIo#io}线程组才会被初始化，并且由jvm的class lock
+     * 确保线程安全
+     */
+    @SuppressWarnings("NonFinalStaticVariableUsedInClassInitialization")
+    private static class HolderIo
+    {
         private static final IGameLoopGroup io = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getIos().convert());
+    }
+
+    /**
+     * 实现延迟加载，当且仅当{@link Gamedo#single() Gamedo.single}被调用时，{@link HolderSingle#single}线程组才会被初始化，并且由
+     * jvm的class lock确保线程安全
+     */
+    @SuppressWarnings("NonFinalStaticVariableUsedInClassInitialization")
+    private static class HolderSingle
+    {
         private static final IGameLoopGroup single = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getSingles().convert());
     }
 
@@ -83,7 +102,7 @@ public abstract class Gamedo {
      * @return 计算型线程池
      */
     public static IGameLoopGroup worker() {
-        return Holder.worker;
+        return HolderWorker.worker;
     }
 
     /**
@@ -103,7 +122,7 @@ public abstract class Gamedo {
      * @return io密集型线程池
      */
     public static IGameLoopGroup io() {
-        return Holder.io;
+        return HolderIo.io;
     }
 
     /**
@@ -113,6 +132,6 @@ public abstract class Gamedo {
      * @return 单线程线程池
      */
     public static IGameLoopGroup single() {
-        return Holder.single;
+        return HolderSingle.single;
     }
 }

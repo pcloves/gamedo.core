@@ -43,7 +43,6 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
     public boolean registerEntity(IEntity entity) {
 
         final String entityId = entity.getId();
-        final Class<? extends IEntity> entityClazz = entity.getClass();
         if (entityMap.containsKey(entityId)) {
             log.error(Markers.GameLoopEntityManager, "the entity has registered, entityId:{}", entityId);
             return false;
@@ -51,45 +50,45 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
         log.debug(Markers.GameLoopEntityManager, "register begin, entityId:{}", () -> entityId);
 
-        //1 先将IEntity注册到IGameLoopEventBus，使之可以响应事件
+        final String gameLoopId = owner.getId();
+        final Class<? extends IEntity> entityClazz = entity.getClass();
+
+        //1 触发Pre事件
+        final EventRegisterEntityPre eventRegisterEntityPre = new EventRegisterEntityPre(entityId, gameLoopId);
+        final GameLoopFunction<Integer> eventPreFunction = IGameLoopEventBusFunction.post(eventRegisterEntityPre);
+        owner.submit(eventPreFunction);
+
+        //2 注册IEntity的事件监听
         owner.submit(IGameLoopEventBusFunction.register(entity));
-        //1.1 再注册所有的组件
+        //2.1 注册组件的事件监听
         entity.getComponentMap().values()
                 .stream()
                 .distinct()
                 .forEach(component -> owner.submit(IGameLoopEventBusFunction.register(component)));
 
-        //2
+        //3 注册IEntity的@Cron方法
         owner.submit(IGameLoopSchedulerFunction.register(entity));
-        //2.1
+        //3.1 注册组件的@Cron方法
         entity.getComponentMap().values()
                 .stream()
                 .distinct()
                 .forEach(component -> owner.submit(IGameLoopSchedulerFunction.register(component)));
 
-        //3
+        //4 注册IEntity的@Tick方法
         owner.submit(IGameLoopTickManagerFunction.register(entity));
-        //3.1
+        //4.1 注册组件的@Tick方法
         entity.getComponentMap().values()
                 .stream()
                 .distinct()
                 .forEach(component -> owner.submit(IGameLoopTickManagerFunction.register(component)));
 
-        final String id = owner.getId();
-        //4 然后触发事件
-        final GameLoopFunction<Integer> eventPre = IGameLoopEventBusFunction.post(new EventRegisterEntityPre(entityId, id));
-        owner.owner().ifPresentOrElse(iGameLoopGroup -> {
-            iGameLoopGroup.submitAll(eventPre);
-        }, () -> owner.submit(eventPre));
-
-        //5 再然后加入管理
+        //5 加入管理
         entityMap.put(entityId, entity);
 
-        //6 至此已经完全加入管理，再通知一次
-        final GameLoopFunction<Integer> eventPost = IGameLoopEventBusFunction.post(new EventRegisterEntityPost(entityId, id));
-        owner.owner().ifPresentOrElse(iGameLoopGroup -> {
-            iGameLoopGroup.submitAll(eventPost);
-        }, () -> owner.submit(eventPost));
+        //6 触发Post事件
+        final EventRegisterEntityPost registerEntityPost = new EventRegisterEntityPost(entityId, gameLoopId);
+        final GameLoopFunction<Integer> eventPostFunction = IGameLoopEventBusFunction.post(registerEntityPost);
+        owner.submit(eventPostFunction);
 
         log.debug(Markers.GameLoopEntityManager, "register finish, entityId:{}", () -> entityId);
 
@@ -106,44 +105,45 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
             return Optional.empty();
         }
 
-        //1. 先触发事件
-        final String id = owner.getId();
+        final String gameLoopId = owner.getId();
         final Class<? extends IEntity> entityClazz = entity.getClass();
-        final GameLoopFunction<Integer> eventPre = IGameLoopEventBusFunction.post(new EventUnregisterEntityPre(entityId, id));
-        owner.owner().ifPresentOrElse(iGameLoopGroup -> iGameLoopGroup.submitAll(eventPre),
-                () -> owner.submit(eventPre));
 
-        //2 先移除组件的组成
+        //1 触发Pre事件
+        final EventUnregisterEntityPre eventUnregisterEntityPre = new EventUnregisterEntityPre(entityId, gameLoopId);
+        final GameLoopFunction<Integer> eventPreFunction = IGameLoopEventBusFunction.post(eventUnregisterEntityPre);
+        owner.submit(eventPreFunction);
+
+        //2 反注册组件的@Tick函数
         entity.getComponentMap().values()
                 .stream()
                 .distinct()
                 .forEach(component -> owner.submit(IGameLoopTickManagerFunction.unregister(component)));
-        //2.1 再移除自身的注册
+        //2.1 反注册IEntity的@Tick函数
         owner.submit(IGameLoopTickManagerFunction.unregister(entity));
 
-        //3
+        //3 反注册组件的@Cron函数
         entity.getComponentMap().values()
                 .stream()
                 .distinct()
                 .forEach(component -> owner.submit(IGameLoopSchedulerFunction.unregister(component.getClass())));
-        //3.1
+        //3.1 反注册IEntity的@Cron函数
         owner.submit(IGameLoopSchedulerFunction.unregister(entity.getClass()));
 
-        //4
+        //4 反注册组件的事件监听
         entity.getComponentMap().values()
                 .stream()
                 .distinct()
                 .forEach(component -> owner.submit(IGameLoopEventBusFunction.unregister(component)));
-        //4.1
+        //4.1 反注册IEntity的事件监听
         owner.submit(IGameLoopEventBusFunction.unregister(entity));
 
         //5 再然后移除管理
         entityMap.remove(entityId);
 
-        //6 最后一次事件通知
-        final GameLoopFunction<Integer> eventPost = IGameLoopEventBusFunction.post(new EventUnregisterEntityPost(entityId, id));
-        owner.owner().ifPresentOrElse(iGameLoopGroup -> iGameLoopGroup.submitAll(eventPost),
-                () -> owner.submit(eventPost));
+        //6 触发post事件
+        final EventUnregisterEntityPost eventUnregisterEntityPost = new EventUnregisterEntityPost(entityId, gameLoopId);
+        final GameLoopFunction<Integer> eventPostFunction = IGameLoopEventBusFunction.post(eventUnregisterEntityPost);
+        owner.submit(eventPostFunction);
 
         metricGauge(entityClazz);
 
@@ -169,8 +169,8 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricEntityEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {
-                    final Tags tags = Metric.tags(owner);
 
+                    final Tags tags = Metric.tags(owner);
                     final long entityCountNew = getEntityCount(entityClazz);
 
                     entityClazzMap.computeIfAbsent(entityClazz.getSimpleName(), key -> {

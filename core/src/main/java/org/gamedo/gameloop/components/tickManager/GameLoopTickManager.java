@@ -126,8 +126,10 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         }
 
         if (method.getParameterCount() != 2 ||
-                method.getParameters()[0].getType() != Long.class ||
-                method.getParameters()[1].getType() != Long.class) {
+                method.getParameters()[0].getType() != Long.class &&
+                method.getParameters()[0].getType() != long.class ||
+                method.getParameters()[1].getType() != Long.class &&
+                method.getParameters()[1].getType() != long.class) {
             log.error(Markers.GameLoopTickManager, "tick method should has two parameter of " +
                             "(java.lang.Long, java.lang.Long)', clazz:{}, method:{}, delay:{}, tick:{}, " +
                             "timeUnit:{}, scheduleWithFixedDelay:{}",

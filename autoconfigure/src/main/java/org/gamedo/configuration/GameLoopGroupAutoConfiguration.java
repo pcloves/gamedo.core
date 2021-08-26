@@ -29,13 +29,15 @@ import java.util.stream.IntStream;
 public class GameLoopGroupAutoConfiguration {
 
     private final ApplicationContext context;
+    private final GamedoProperties gamedoProperties;
     private final GameLoopProperties gameLoopProperties;
     private final MetricProperties metricProperties;
 
     public GameLoopGroupAutoConfiguration(ApplicationContext context,
-                                          GameLoopProperties gameLoopProperties,
+                                          GamedoProperties gamedoProperties, GameLoopProperties gameLoopProperties,
                                           MetricProperties metricProperties) {
         this.context = context;
+        this.gamedoProperties = gamedoProperties;
         this.gameLoopProperties = gameLoopProperties;
         this.metricProperties = metricProperties;
 
@@ -58,7 +60,7 @@ public class GameLoopGroupAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(Gamedo.class)
     Gamedo gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
-        return new Gamedo(applicationContext, gameLoopProperties) {};
+        return new Gamedo(applicationContext, gamedoProperties, gameLoopProperties) {};
     }
 
     @Bean(name = "gameLoopConfig")

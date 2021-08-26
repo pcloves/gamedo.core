@@ -1,11 +1,9 @@
 package org.gamedo.gameloop.interfaces;
 
 import org.gamedo.annotation.Cron;
-import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
-import org.gamedo.util.function.EntityFunction;
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
@@ -16,9 +14,10 @@ import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
+import org.gamedo.util.function.EntityFunction;
+import org.gamedo.util.function.GameLoopFunction;
 import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.gamedo.util.function.IGameLoopEventBusFunction;
-import org.gamedo.util.function.GameLoopFunction;
 
 import java.util.ConcurrentModificationException;
 import java.util.Optional;
@@ -68,8 +67,6 @@ import java.util.function.BiConsumer;
  * <ul>
  * <li> 定义待扩展组件自己的接口，同时要求extends {@link IComponent}，并建议命名以“IGameLoop”作为前缀，这么做主要是为了和{@link IEntity}
  * 的组件做区分，例如某组件名为MyDemo，则命名为：IGameLoopMyDemo，可以参考{@link org.gamedo.gameloop.components}包内任意组件的接口定义
- * <li> （可选）在组件类上增加注解：{@link GamedoComponent}，该操作的目的在于允许通过spring容器生成组件，当后续对该组件进行指标采集时，可以
- * 使用AOP技术进行非侵入式的指标采集
  * <li> （可选）创建自己的{@link GameLoopFunction} helper类：IGameLoopMyDemoFunction类，提供可复用的{@link GameLoopFunction}
  * 逻辑，例如：{@link IGameLoopEventBusFunction}
  * <li> 通过{@link GameLoop#GameLoop(GameLoopConfig)}实例化{@link IGameLoop}

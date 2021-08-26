@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.*;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Cron;
-import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -26,7 +25,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-@GamedoComponent
 public class GameLoopScheduler extends GameLoopComponent implements IGameLoopScheduler {
 
     private final Map<String, Pair<AtomicLong, Gauge>> cron2GaugeMap = new HashMap<>(4);

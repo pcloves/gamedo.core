@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.*;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
@@ -12,9 +11,9 @@ import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
 import org.gamedo.logging.Markers;
+import org.gamedo.util.GamedoConfiguration;
 import org.gamedo.util.Metric;
 import org.gamedo.util.Pair;
-import org.gamedo.util.GamedoConfiguration;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -24,7 +23,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Log4j2
-@GamedoComponent
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
     private final Map<Class<? extends IEvent>, List<EventData>> eventClazzName2EventDataMap = new HashMap<>(128);
     private final Deque<Class<?>> eventPostStack = new LinkedList<>();

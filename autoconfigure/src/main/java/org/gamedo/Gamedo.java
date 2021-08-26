@@ -2,6 +2,8 @@ package org.gamedo;
 
 import org.gamedo.configuration.GameLoopGroupAutoConfiguration;
 import org.gamedo.configuration.GameLoopProperties;
+import org.gamedo.configuration.GamedoProperties;
+import org.gamedo.ecs.Entity;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.springframework.context.ApplicationContext;
 
@@ -44,7 +46,7 @@ import org.springframework.context.ApplicationContext;
  * </ul>
  */
 @SuppressWarnings("unused")
-public abstract class Gamedo {
+public abstract class Gamedo extends Entity {
     protected static ApplicationContext applicationContext;
     protected static GameLoopProperties gameLoopProperties;
 
@@ -78,7 +80,10 @@ public abstract class Gamedo {
         private static final IGameLoopGroup single = applicationContext.getBean(IGameLoopGroup.class, gameLoopProperties.getSingles().convert());
     }
 
-    protected Gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
+    protected Gamedo(ApplicationContext applicationContext, GamedoProperties gamedoProperties, GameLoopProperties gameLoopProperties) {
+
+        super(gamedoProperties.getName());
+
         Gamedo.applicationContext = applicationContext;
         Gamedo.gameLoopProperties = gameLoopProperties;
     }

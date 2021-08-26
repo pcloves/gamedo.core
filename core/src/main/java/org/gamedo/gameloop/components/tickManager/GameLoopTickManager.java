@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
@@ -24,7 +23,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Log4j2
-@GamedoComponent
 public class GameLoopTickManager extends GameLoopComponent implements IGameLoopTickManager {
 
     private final Map<ScheduleDataKey, TickRunnable> scheduleDataMap = new HashMap<>(32);

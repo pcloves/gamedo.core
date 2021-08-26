@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
-import org.gamedo.annotation.GamedoComponent;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
@@ -30,7 +29,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Log4j2
-@GamedoComponent
 public class GameLoopEntityManager extends GameLoopComponent implements IGameLoopEntityManager {
     private final Map<String, IEntity> entityMap = new HashMap<>(512);
     private final Map<String, Pair<AtomicLong, Gauge>> entityClazzMap = new HashMap<>(4);

@@ -36,6 +36,13 @@ public interface IGameLoopEntityManager extends IComponent<IGameLoop> {
     boolean hasEntity(String entityId);
 
     /**
+     * 获取一个实体
+     * @param entityId 要获取的实体Id
+     * @return 如果实体不在管理器管理者，则返回{@link Optional#empty()}，否则返回实体{@link Optional}
+     */
+    Optional<IEntity> getEntity(String entityId);
+
+    /**
      * 返回实体的数量
      * @return 实体的数量
      */

@@ -8,6 +8,7 @@
         <module>autoconfigure</module>
         <module>core</module>
         <module>starter</module>
+        <module>cache</module>
     </modules>
 
     <parent>

@@ -8,14 +8,16 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="core" />
-        <module name="gamedo-spring-boot-starter" />
+        <module name="cache" />
         <module name="autoconfigure" />
+        <module name="gamedo-spring-boot-starter" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="autoconfigure" options="-parameters" />
+      <module name="cache" options="-parameters" />
       <module name="core" options="-parameters" />
       <module name="gamedo-spring-boot-starter" options="-parameters" />
     </option>

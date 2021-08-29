@@ -48,11 +48,10 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
         log.debug(Markers.GameLoopEntityManager, "register begin, entityId:{}", () -> entityId);
 
-        final String gameLoopId = owner.getId();
         final Class<? extends IEntity> entityClazz = entity.getClass();
 
         //1 触发Pre事件
-        final EventRegisterEntityPre eventRegisterEntityPre = new EventRegisterEntityPre(entityId, gameLoopId);
+        final EventRegisterEntityPre eventRegisterEntityPre = new EventRegisterEntityPre(entityId, owner);
         final GameLoopFunction<Integer> eventPreFunction = IGameLoopEventBusFunction.post(eventRegisterEntityPre);
         owner.submit(eventPreFunction);
 
@@ -84,7 +83,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         entityMap.put(entityId, entity);
 
         //6 触发Post事件
-        final EventRegisterEntityPost registerEntityPost = new EventRegisterEntityPost(entityId, gameLoopId);
+        final EventRegisterEntityPost registerEntityPost = new EventRegisterEntityPost(entityId, owner);
         final GameLoopFunction<Integer> eventPostFunction = IGameLoopEventBusFunction.post(registerEntityPost);
         owner.submit(eventPostFunction);
 
@@ -103,11 +102,10 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
             return Optional.empty();
         }
 
-        final String gameLoopId = owner.getId();
         final Class<? extends IEntity> entityClazz = entity.getClass();
 
         //1 触发Pre事件
-        final EventUnregisterEntityPre eventUnregisterEntityPre = new EventUnregisterEntityPre(entityId, gameLoopId);
+        final EventUnregisterEntityPre eventUnregisterEntityPre = new EventUnregisterEntityPre(entityId, owner);
         final GameLoopFunction<Integer> eventPreFunction = IGameLoopEventBusFunction.post(eventUnregisterEntityPre);
         owner.submit(eventPreFunction);
 
@@ -139,7 +137,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         entityMap.remove(entityId);
 
         //6 触发post事件
-        final EventUnregisterEntityPost eventUnregisterEntityPost = new EventUnregisterEntityPost(entityId, gameLoopId);
+        final EventUnregisterEntityPost eventUnregisterEntityPost = new EventUnregisterEntityPost(entityId, owner);
         final GameLoopFunction<Integer> eventPostFunction = IGameLoopEventBusFunction.post(eventUnregisterEntityPost);
         owner.submit(eventPostFunction);
 

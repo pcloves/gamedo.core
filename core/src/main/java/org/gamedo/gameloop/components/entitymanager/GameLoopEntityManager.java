@@ -152,6 +152,11 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
     }
 
     @Override
+    public Optional<IEntity> getEntity(String entityId) {
+        return Optional.ofNullable(entityMap.get(entityId));
+    }
+
+    @Override
     public int getEntityCount() {
         return entityMap.size();
     }

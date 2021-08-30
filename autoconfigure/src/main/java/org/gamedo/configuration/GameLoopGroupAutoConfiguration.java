@@ -16,7 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
@@ -24,8 +23,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({GamedoProperties.class, GameLoopProperties.class})
-@ComponentScan(basePackageClasses = Gamedo.class)
+@EnableConfigurationProperties({GamedoProperties.class, GameLoopProperties.class, MetricProperties.class})
 public class GameLoopGroupAutoConfiguration {
 
     private final ApplicationContext context;
@@ -87,9 +85,10 @@ public class GameLoopGroupAutoConfiguration {
 
         final boolean metricEnable = metricProperties.isEnable() &&
                 !metricProperties.getDisabledGameLoopGroup().contains(config.getGameLoopGroupId());
-        final MeterRegistry meterRegistry = context.getBean(MeterRegistry.class);
+        final MeterRegistry meterRegistry = context.containsBean("meterRegistry") ?
+                context.getBean(MeterRegistry.class) : null;
 
-        return metricEnable ? new GameLoop(config, meterRegistry) : new GameLoop(config);
+        return metricEnable && meterRegistry != null ? new GameLoop(config, meterRegistry) : new GameLoop(config);
     }
 
     @Bean(name = "gameLoopGroup")

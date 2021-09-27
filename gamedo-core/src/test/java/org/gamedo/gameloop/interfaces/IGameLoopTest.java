@@ -1,19 +1,20 @@
 package org.gamedo.gameloop.interfaces;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
+import org.gamedo.gameloop.GameLoop;
+import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.GameLoops;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.util.function.IGameLoopEntityManagerFunction;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -45,9 +46,42 @@ class IGameLoopTest {
     }
 
     @AfterEach
-    void tearDown() throws InterruptedException {
+    void tearDown() {
         gameLoop.shutdown();
         Assertions.assertDoesNotThrow(() -> gameLoop.awaitTermination(10, TimeUnit.SECONDS));
+    }
+
+    @SuppressWarnings("unused")
+    public static class MyGameLoop extends GameLoop
+    {
+        public MyGameLoop(GameLoopConfig gameLoopConfig) {
+            super(gameLoopConfig);
+        }
+
+        public MyGameLoop(GameLoopConfig gameLoopConfig, MeterRegistry meterRegistry) {
+            super(gameLoopConfig, meterRegistry);
+        }
+    }
+
+    @Test
+    @DisplayName("自定义IGameLoop的实现类")
+    void testCustomGameLoop() {
+        GameLoopConfig config = GameLoopConfig.builder()
+                .gameLoopGroupId("defaults")
+                .gameLoopIdPrefix("default-")
+                .gameLoopIdCounter(new AtomicInteger(1))
+                .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
+                .daemon(false)
+                .gameLoopImplClazz(MyGameLoop.class)
+                .componentRegisters(GameLoopConfig.DEFAULT.getComponentRegisters())
+                .build();
+
+        final IGameLoopGroup gameLoopGroup = context.getBean(IGameLoopGroup.class, config);
+
+        final IGameLoop[] iGameLoops = gameLoopGroup.selectAll();
+        for (IGameLoop iGameLoop : iGameLoops) {
+            Assertions.assertTrue(iGameLoop instanceof MyGameLoop);
+        }
     }
 
     @Test
@@ -57,15 +91,15 @@ class IGameLoopTest {
 
         final AtomicInteger integer = new AtomicInteger(1);
         final CompletableFuture<Integer> future1 = gameLoop1.submit(iGameLoop -> iGameLoop.getComponent(IGameLoopEntityManager.class)
-                .map(iGameLoopEntityManager -> iGameLoopEntityManager.hashCode())
+                .map(Object::hashCode)
                 .orElse(integer.getAndIncrement()));
 
         final CompletableFuture<Integer> future2 = gameLoop2.submit(iGameLoop -> iGameLoop.getComponent(IGameLoopEntityManager.class)
-                .map(iGameLoopEntityManager -> iGameLoopEntityManager.hashCode())
+                .map(Object::hashCode)
                 .orElse(integer.getAndIncrement()));
 
-        final Integer hashCode1 = Assertions.assertDoesNotThrow(() -> future1.get());
-        final Integer hashCode2 = Assertions.assertDoesNotThrow(() -> future2.get());
+        final Integer hashCode1 = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future1::get);
+        final Integer hashCode2 = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future2::get);
 
         Assertions.assertNotEquals(hashCode1, hashCode2);
     }
@@ -73,7 +107,7 @@ class IGameLoopTest {
     @Test
     void testInThread()
     {
-        final CompletableFuture<Boolean> future1 = gameLoop.submit(iGameLoop -> iGameLoop.inThread());
+        final CompletableFuture<Boolean> future1 = gameLoop.submit(IGameLoop::inThread);
         final Boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result1);
 
@@ -86,19 +120,19 @@ class IGameLoopTest {
         Assertions.assertTrue(result3);
 
         final CompletableFuture<Boolean> future4 = gameLoop.submit(iGameLoop -> GameLoops.current()
-                .map(iGameLoop1 -> iGameLoop1.inThread())
+                .map(IGameLoop::inThread)
                 .orElse(false));
         final Boolean result4 = Assertions.assertDoesNotThrow(() -> future4.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result4);
 
         final CompletableFuture<Boolean> future5 = CompletableFuture.supplyAsync(() -> GameLoops.current()
-                .map(iGameLoop -> iGameLoop.inThread())
+                .map(IGameLoop::inThread)
                 .orElse(false));
         final Boolean result5 = Assertions.assertDoesNotThrow(() -> future5.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertFalse(result5);
 
         final CompletableFuture<Boolean> future6 = CompletableFuture.supplyAsync(() -> GameLoops.current()
-                .map(iGameLoop -> iGameLoop.inThread())
+                .map(IGameLoop::inThread)
                 .orElse(false), gameLoop);
         final Boolean result6 = Assertions.assertDoesNotThrow(() -> future6.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(result6);
@@ -146,11 +180,9 @@ class IGameLoopTest {
         final Boolean registerResult = Assertions.assertDoesNotThrow(() -> future.get(DEFAULT_WAIT_TIMEOUT, DEFAULT_TIME_UNIT));
         Assertions.assertTrue(registerResult);
 
-        final CompletableFuture<Boolean> future1 = CompletableFuture.supplyAsync(() -> {
-            return gameLoop.getComponent(IGameLoopEntityManager.class)
-                    .map(iEntityMgr -> iEntityMgr.registerEntity(new Entity(entityId)))
-                    .orElse(false);
-        });
+        final CompletableFuture<Boolean> future1 = CompletableFuture.supplyAsync(() -> gameLoop.getComponent(IGameLoopEntityManager.class)
+                .map(iEntityMgr -> iEntityMgr.registerEntity(new Entity(entityId)))
+                .orElse(false));
 
         future1.whenComplete((r, t) -> {
             Assertions.assertNotNull(t);
@@ -193,6 +225,7 @@ class IGameLoopTest {
     void postEvent() {
     }
 
+    @SuppressWarnings("unused")
     private static class MyEntity extends Entity {
         private final List<Boolean> inGameLoopList;
         private final int listSize;
@@ -215,7 +248,7 @@ class IGameLoopTest {
                     else {
                         Optional<IGameLoop> iGameLoop = GameLoops.current();
                         inGameLoopList.add(iGameLoop
-                                .map(gameLoop -> gameLoop.inThread())
+                                .map(IGameLoop::inThread)
                                 .orElse(false));
                     }
                 }

@@ -3,6 +3,7 @@ package org.gamedo.configuration;
 import lombok.*;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.exception.GameLoopException;
+import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopComponentRegister;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
@@ -14,6 +15,7 @@ import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.GameLoopTickManager;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
+import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.util.GamedoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -32,6 +34,7 @@ public class GameLoopProperties {
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
             .daemon(false)
+            .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegister(GameLoopComponentRegisterInner.builder()
                     .allInterface(IGameLoopEntityManager.class.getName())
                     .implementation(GameLoopEntityManager.class.getName())
@@ -119,6 +122,11 @@ public class GameLoopProperties {
          * 是否为后台线程
          */
         private boolean daemon;
+
+        /**
+         * {@link IGameLoop}的实现类
+         */
+        private String gameLoopImplClazz = GameLoop.class.getName();
 
         /**
          * gameLoop的数量

@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
@@ -81,14 +82,16 @@ public class GameLoopGroupAutoConfiguration {
     @Bean(name = "gameLoop")
     @ConditionalOnMissingBean(value = IGameLoop.class, name = "gameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    IGameLoop gameLoop(GameLoopConfig config) {
+    IGameLoop gameLoop(GameLoopConfig config) throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+            IllegalAccessException {
 
         final boolean metricEnable = metricProperties.isEnable() &&
-                !metricProperties.getDisabledGameLoopGroup().contains(config.getGameLoopGroupId());
-        final MeterRegistry meterRegistry = context.containsBean("meterRegistry") ?
-                context.getBean(MeterRegistry.class) : null;
-
-        return metricEnable && meterRegistry != null ? new GameLoop(config, meterRegistry) : new GameLoop(config);
+                !metricProperties.getDisabledGameLoopGroup().contains(config.getGameLoopGroupId()) &&
+                context.containsBean("meterRegistry");
+        final Class<? extends IGameLoop> gameLoopClazz = config.getGameLoopImplClazz();
+        return metricEnable ? gameLoopClazz.getConstructor(GameLoopConfig.class, MeterRegistry.class)
+                .newInstance(config, context.getBean(MeterRegistry.class)) :
+                gameLoopClazz.getConstructor(GameLoopConfig.class).newInstance(config);
     }
 
     @Bean(name = "gameLoopGroup")

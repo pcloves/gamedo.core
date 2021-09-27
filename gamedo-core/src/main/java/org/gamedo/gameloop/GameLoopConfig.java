@@ -1,5 +1,6 @@
 package org.gamedo.gameloop;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.*;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.exception.GameLoopException;
@@ -33,6 +34,7 @@ public class GameLoopConfig {
             .gameLoopIdCounter(new AtomicInteger(1))
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
             .daemon(false)
+            .gameLoopImplClazz(GameLoop.class)
             .componentRegister(GameLoopComponentRegister.builder()
                     .allInterface(IGameLoopEntityManager.class)
                     .implementation(GameLoopEntityManager.class)
@@ -66,6 +68,12 @@ public class GameLoopConfig {
      * 是否为后台线程
      */
     private boolean daemon;
+
+    /**
+     * {@link IGameLoop}的实现类，其子类必须实现{@link GameLoop#GameLoop(GameLoopConfig)}和
+     * {@link GameLoop#GameLoop(GameLoopConfig, MeterRegistry)}两个构造函数
+     */
+    private Class<? extends IGameLoop> gameLoopImplClazz;
 
     /**
      * gameLoop的数量
@@ -106,6 +114,6 @@ public class GameLoopConfig {
                         throw new GameLoopException("instantiate GameLoopComponentRegister failed, register:" + register, t);
                     }
                 })
-                .collect(Collectors.toMap(pair -> (Class<?>) pair.getK(), pair -> pair.getV()));
+                .collect(Collectors.toMap(pair -> (Class<?>) pair.getK(), Pair::getV));
     }
 }

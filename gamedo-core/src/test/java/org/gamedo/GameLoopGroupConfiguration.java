@@ -25,6 +25,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
@@ -47,6 +48,7 @@ public class GameLoopGroupConfiguration {
                 .gameLoopIdPrefix("default-")
                 .gameLoopIdCounter(new AtomicInteger(1))
                 .daemon(false)
+                .gameLoopImplClazz(GameLoop.class)
                 .gameLoopCount(Runtime.getRuntime().availableProcessors())
                 .gameLoopGroupId("defaults")
                 .componentRegister(GameLoopComponentRegister.builder()
@@ -71,8 +73,11 @@ public class GameLoopGroupConfiguration {
     @Bean(name = "gameLoop")
     @ConditionalOnMissingBean(value = IGameLoop.class, name = "gameLoop")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    IGameLoop gameLoop(GameLoopConfig config) {
-        return new GameLoop(config);
+    IGameLoop gameLoop(GameLoopConfig config) throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+            IllegalAccessException {
+
+        final Class<? extends IGameLoop> gameLoopClazz = config.getGameLoopImplClazz();
+        return gameLoopClazz.getConstructor(GameLoopConfig.class).newInstance(config);
     }
 
     @Bean(name = "gameLoopGroup")
@@ -89,8 +94,7 @@ public class GameLoopGroupConfiguration {
         Arrays.stream(gameLoopGroup.selectAll())
                 .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))
                 .peek(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop)))
-                .map(gameLoop -> IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop)))
-                .forEach(post -> gameLoopGroup.submitAll(post));
+                .forEach(gameLoop -> gameLoop.submit(IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop))));
 
         return gameLoopGroup;
     }

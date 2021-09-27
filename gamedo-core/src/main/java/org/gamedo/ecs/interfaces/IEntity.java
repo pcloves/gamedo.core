@@ -20,7 +20,7 @@ public interface IEntity {
      * 是否拥有某种类型的组件
      *
      * @param interfaceClazz 要检测的组件
-     * @param <T>   组件的类型
+     * @param <T>            组件的类型
      * @return true表示拥有该组件
      * @see IEntity#addComponent(Class, Object)
      */
@@ -29,7 +29,7 @@ public interface IEntity {
     /**
      * 返回某种类型的组件
      *
-     * @param <T>   组件的类型
+     * @param <T>            组件的类型
      * @param interfaceClazz 要获取的类型
      * @return 如果没有指定类型的组件，返回{@link Optional#empty()}
      */
@@ -58,11 +58,19 @@ public interface IEntity {
      * 当调用{@link IEntity#addComponent}将B添加到实体中后，只能通过本方法获取到B，而无无法
      * 获取到A，除非也将A加入到实体中
      *
-     * @param <T>       组件要暴露给外界的接口类型
-     * @param <R>       组件的真正实现类型
-     * @param interfaceClazz     该组件的类型
-     * @param component 要添加的组件
-     * @return 如果之前存在相同clazz的组件，则返回旧组件的{@link Optional}，否则返回{@link Optional#empty()}
+     * @param <T>            组件要暴露给外界的接口类型
+     * @param <R>            组件的真正实现类型
+     * @param interfaceClazz 该组件的类型
+     * @param component      要添加的组件
+     * @return 添加成功返回true， 如果组件已经存在或者参数检测失败，则返回false
      */
     <T, R extends T> boolean addComponent(Class<T> interfaceClazz, R component);
+
+    /**
+     * @param interfaceClazz 该组件的类型
+     * @param <T>            组件要暴露给外界的接口类型
+     * @param <R>            组件的真正实现类型
+     * @return 返回被删除的组件，如果组件不存在，则返回{@link Optional#empty()}
+     */
+    <T, R extends T> Optional<R> removeComponent(Class<T> interfaceClazz);
 }

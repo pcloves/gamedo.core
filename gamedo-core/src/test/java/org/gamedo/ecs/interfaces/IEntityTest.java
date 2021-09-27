@@ -72,4 +72,15 @@ class IEntityTest {
         assertFalse(result2);
 
     }
+
+    @Test
+    void removeComponent() {
+        final Object object = new Object();
+        entity.addComponent(Object.class, object);
+
+        final Optional<Object> removeComponent = entity.removeComponent(Object.class);
+
+        assertFalse(removeComponent.isEmpty());
+        assertEquals(object, removeComponent.get());
+    }
 }

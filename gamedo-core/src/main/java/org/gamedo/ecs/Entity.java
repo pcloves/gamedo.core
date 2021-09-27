@@ -68,6 +68,14 @@ public class Entity implements IEntity {
         return componentMap.put(interfaceClazz, component) == null;
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T, R extends T> Optional<R> removeComponent(Class<T> interfaceClazz) {
+
+        final R component = (R) componentMap.remove(interfaceClazz);
+        return Optional.ofNullable(component);
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Entity{");

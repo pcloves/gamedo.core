@@ -7,19 +7,25 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="core" />
+        <module name="gamedo-core" />
         <module name="gamedo-spring-boot-starter" />
-        <module name="autoconfigure" />
+        <module name="gamedo-autoconfigure" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="autoconfigure" target="11" />
       <module name="cache" target="11" />
+      <module name="core" target="1.5" />
+      <module name="gamedo.core" target="11" />
+      <module name="gamedo.core-parent" target="11" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="autoconfigure" options="-parameters" />
       <module name="core" options="-parameters" />
+      <module name="gamedo-autoconfigure" options="-parameters" />
+      <module name="gamedo-core" options="-parameters" />
       <module name="gamedo-spring-boot-starter" options="-parameters" />
     </option>
   </component>

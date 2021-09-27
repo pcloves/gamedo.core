@@ -2,14 +2,6 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <packaging>pom</packaging>
-    <modules>
-        <module>autoconfigure</module>
-        <module>core</module>
-        <module>starter</module>
-    </modules>
-
     <parent>
         <groupId>org.gamedo</groupId>
         <artifactId>gamedo-pom</artifactId>
@@ -17,7 +9,52 @@
         <relativePath/>
     </parent>
 
-    <artifactId>gamedo.core</artifactId>
-    <version>0.8.3-SNAPSHOT</version>
+    <modelVersion>4.0.0</modelVersion>
 
+    <packaging>pom</packaging>
+    <modules>
+        <module>gamedo-autoconfigure</module>
+        <module>gamedo-core</module>
+        <module>gamedo-spring-boot-starter</module>
+    </modules>
+
+    <artifactId>gamedo-core-parent</artifactId>
+    <version>${revision}</version>
+
+    <properties>
+        <revision>0.8.4-SNAPSHOT</revision>
+    </properties>
+
+    <build>
+        <plugins>
+            <!--solve https://stackoverflow.com/questions/52173260/how-to-resolve-parent-pom-dependency-issue-failed-to-read-artifact-descriptor/52173650#52173650-->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <configuration>
+                            <flattenMode>ossrh</flattenMode>
+                        </configuration>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

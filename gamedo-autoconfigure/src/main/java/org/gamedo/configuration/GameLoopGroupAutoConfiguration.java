@@ -59,7 +59,8 @@ public class GameLoopGroupAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(Gamedo.class)
     Gamedo gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
-        return new Gamedo(applicationContext, gamedoProperties, gameLoopProperties) {};
+        return new Gamedo(applicationContext, gamedoProperties, gameLoopProperties) {
+        };
     }
 
     @Bean(name = "gameLoopConfig")

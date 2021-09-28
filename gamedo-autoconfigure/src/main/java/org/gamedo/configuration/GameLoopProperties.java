@@ -69,7 +69,7 @@ public class GameLoopProperties {
     /**
      * cpu密集型线程池配置
      */
-    private GameLoopConfigInner workers =GameLoopConfigInner.builder()
+    private GameLoopConfigInner workers = GameLoopConfigInner.builder()
             .gameLoopGroupId("workers")
             .gameLoopIdPrefix("worker-")
             .gameLoopIdCounter(1)
@@ -82,7 +82,7 @@ public class GameLoopProperties {
     /**
      * io密集型线程池配置
      */
-    private GameLoopConfigInner ios =GameLoopConfigInner.builder()
+    private GameLoopConfigInner ios = GameLoopConfigInner.builder()
             .gameLoopGroupId("ios")
             .gameLoopIdPrefix("io-")
             .gameLoopIdCounter(1)
@@ -114,8 +114,7 @@ public class GameLoopProperties {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class GameLoopConfigInner
-    {
+    public static class GameLoopConfigInner {
         /**
          * gameLoop的id前缀
          */
@@ -152,6 +151,8 @@ public class GameLoopProperties {
         @Singular
         private List<GameLoopComponentRegisterInner> componentRegisters = new ArrayList<>();
 
+        @SneakyThrows
+        @SuppressWarnings("unchecked")
         public GameLoopConfig convert() {
             return GameLoopConfig.builder()
                     .gameLoopIdPrefix(gameLoopIdPrefix)
@@ -159,6 +160,7 @@ public class GameLoopProperties {
                     .daemon(daemon)
                     .gameLoopCount(gameLoopCount)
                     .gameLoopGroupId(gameLoopGroupId)
+                    .gameLoopImplClazz((Class<? extends IGameLoop>) Class.forName(gameLoopImplClazz))
                     .componentRegisters(componentRegisters.stream()
                             .map(GameLoopComponentRegisterInner::convert)
                             .collect(Collectors.toList())
@@ -171,8 +173,7 @@ public class GameLoopProperties {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class GameLoopComponentRegisterInner
-    {
+    public static class GameLoopComponentRegisterInner {
         /**
          * 接口类的全限定类名列表
          */

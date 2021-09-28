@@ -57,10 +57,12 @@ public class GameLoopProperties {
      * 默认线程池配置
      */
     private GameLoopConfigInner defaults = GameLoopConfigInner.builder()
+            .gameLoopGroupId("defaults")
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
-            .gameLoopGroupId("defaults")
+            .daemon(false)
+            .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 
@@ -68,10 +70,12 @@ public class GameLoopProperties {
      * cpu密集型线程池配置
      */
     private GameLoopConfigInner workers =GameLoopConfigInner.builder()
+            .gameLoopGroupId("workers")
             .gameLoopIdPrefix("worker-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
-            .gameLoopGroupId("workers")
+            .daemon(false)
+            .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 
@@ -79,10 +83,12 @@ public class GameLoopProperties {
      * io密集型线程池配置
      */
     private GameLoopConfigInner ios =GameLoopConfigInner.builder()
+            .gameLoopGroupId("ios")
             .gameLoopIdPrefix("io-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
-            .gameLoopGroupId("ios")
+            .daemon(false)
+            .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 
@@ -90,10 +96,12 @@ public class GameLoopProperties {
      * 强一致性操作线程池配置（只有一个线程）
      */
     private GameLoopConfigInner singles = GameLoopConfigInner.builder()
+            .gameLoopGroupId("single")
             .gameLoopIdPrefix("single-")
             .gameLoopIdCounter(1)
             .gameLoopCount(1)
-            .gameLoopGroupId("single")
+            .daemon(false)
+            .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 

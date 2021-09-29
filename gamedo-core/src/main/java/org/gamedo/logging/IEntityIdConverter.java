@@ -18,6 +18,8 @@ public interface IEntityIdConverter {
             id = ((IEntity) object).getId();
         } else if (object instanceof IComponent) {
             id = ((IComponent<?>) object).getOwner().getId();
+        } else if (object instanceof String) {
+            id = (String) object;
         } else {
             id = String.valueOf(object.hashCode());
         }

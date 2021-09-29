@@ -88,7 +88,7 @@ public class GameLoopGroupAutoConfiguration {
 
         final boolean metricEnable = metricProperties.isEnable() &&
                 !metricProperties.getDisabledGameLoopGroup().contains(config.getGameLoopGroupId()) &&
-                context.containsBean("meterRegistry");
+                context.getBeanNamesForType(MeterRegistry.class).length > 0;
         final Class<? extends IGameLoop> gameLoopClazz = config.getGameLoopImplClazz();
         return metricEnable ? gameLoopClazz.getConstructor(GameLoopConfig.class, MeterRegistry.class)
                 .newInstance(config, context.getBean(MeterRegistry.class)) :

@@ -76,6 +76,7 @@ public class GameLoopGroupAutoConfiguration {
                 .gameLoopGroupId(defaults.getGameLoopGroupId())
                 .gameLoopCount(defaults.getGameLoopCount())
                 .gameLoopIdCounter(defaults.getGameLoopIdCounter())
+                .gameLoopImplClazz(GameLoop.class)
                 .componentRegisters(defaults.getComponentRegisters())
                 .build();
     }

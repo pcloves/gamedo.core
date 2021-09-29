@@ -73,7 +73,7 @@ public class GameLoopConfig {
      * {@link IGameLoop}的实现类，其子类必须实现{@link GameLoop#GameLoop(GameLoopConfig)}和
      * {@link GameLoop#GameLoop(GameLoopConfig, MeterRegistry)}两个构造函数
      */
-    private Class<? extends IGameLoop> gameLoopImplClazz;
+    private Class<? extends IGameLoop> gameLoopImplClazz = GameLoop.class;
 
     /**
      * gameLoop的数量

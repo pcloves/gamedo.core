@@ -228,7 +228,7 @@ class IGameLoopSchedulerTest {
                 .filter(value -> Math.abs(value - expected) >= 2)
                 .collect(Collectors.toList());
 
-        Assertions.assertTrue(failedValueList.isEmpty());
+        Assertions.assertTrue(failedValueList.isEmpty(), () -> "failedValueList:" + failedValueList);
     }
 
 

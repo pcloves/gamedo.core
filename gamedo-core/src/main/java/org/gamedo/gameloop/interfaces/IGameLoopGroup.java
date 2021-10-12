@@ -65,7 +65,7 @@ public interface IGameLoopGroup extends ExecutorService {
     IGameLoop selectNext();
 
     /**
-     * 根据hash值固定选出一个固定的{@link IGameLoop}线程，该方法首先取得object2Hash的hash值，然后根据hash值对线程数组长度取模，最后将该模
+     * 根据hash值选出一个固定的{@link IGameLoop}线程，该方法首先取得object2Hash的hash值，然后根据hash值对线程数组长度取模，最后将该模
      * 值作为数组索引获取线程，并返回
      * @param object2Hash 要进行hash的对象
      * @return 返回计算后的线程

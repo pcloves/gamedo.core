@@ -146,7 +146,7 @@ public class GameLoopGroup implements IGameLoopGroup {
     }
 
     @Override
-    public synchronized boolean register(IGameLoop gameLoop) {
+    public boolean register(IGameLoop gameLoop) {
 
         if (gameLoopList.contains(gameLoop)) {
             return false;
@@ -174,6 +174,11 @@ public class GameLoopGroup implements IGameLoopGroup {
     @Override
     public IGameLoop selectNext() {
         return gameLoopList.get(Math.abs(idx.getAndIncrement() % gameLoopList.size()));
+    }
+
+    @Override
+    public IGameLoop selectHashing(Object object2Hash) {
+        return gameLoopList.get(Math.abs(object2Hash.hashCode() % gameLoopList.size()));
     }
 
     @SuppressWarnings("unchecked")

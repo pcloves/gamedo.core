@@ -269,6 +269,15 @@ class IGameLoopGroupTest {
         Assertions.assertEquals(iGameLoops.length, future.stream().filter(c -> c == 1).count());
     }
 
+    @Test
+    void selectHashing() {
+
+        for (int i = 0; i < 100; i++) {
+            final Object object2Hash = Long.valueOf(ThreadLocalRandom.current().nextLong());
+            Assertions.assertEquals(gameLoopGroup.selectHashing(object2Hash), gameLoopGroup.selectHashing(object2Hash));
+        }
+    }
+
     @Value
     private static class EventTest implements IEvent {
         String eventName;

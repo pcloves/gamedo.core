@@ -6,21 +6,14 @@ import org.gamedo.GameLoopGroupConfiguration;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
-import org.gamedo.util.function.IEntityFunction;
-import org.gamedo.util.function.EntityPredicate;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
-import org.gamedo.util.function.IGameLoopEntityManagerFunction;
-import org.gamedo.util.function.IGameLoopEventBusFunction;
-import org.gamedo.util.function.GameLoopFunction;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.gamedo.util.function.*;
+import org.junit.jupiter.api.*;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -62,7 +55,7 @@ class IGameLoopGroupTest {
         final int i = ThreadLocalRandom.current().nextInt(gameLoopList.size()) + 1;
         gameLoopList.add(new GameLoop("test" + i));
 
-        Assertions.assertThrows(GameLoopException.class, () -> new GameLoopGroup("testGroup", gameLoopList.toArray(IGameLoop[]::new)));
+        Assertions.assertThrows(GameLoopException.class, () -> new GameLoopGroup("testGroup", 1, gameLoopList.toArray(IGameLoop[]::new)));
     }
 
     @Test
@@ -96,12 +89,40 @@ class IGameLoopGroupTest {
     }
 
     @Test
+    void testConcurrentRegister() {
+
+        final int gameLoopCount = 100;
+        final String gameLoopIdPrefix = "testGameLoop-";
+
+        final IGameLoop[] gameLoops = IntStream.rangeClosed(1, gameLoopCount)
+                .mapToObj(i -> new GameLoop(gameLoopIdPrefix + i))
+                .toArray(IGameLoop[]::new);
+        final IGameLoopGroup gameLoopGroup = new GameLoopGroup("testGameLoopGroup", 0);
+
+        Arrays.stream(gameLoops).parallel().forEach(gameLoop -> gameLoopGroup.register(gameLoop));
+
+        Assertions.assertEquals(gameLoopCount, gameLoopGroup.size());
+    }
+
+    @Test
+    @DisplayName("多线程并发注册同一个gameLoop")
+    void testConcurrentRegisterSameGameLoop() {
+        final IGameLoopGroup gameLoopGroup = new GameLoopGroup("testGameLoopGroup", 0);
+        final GameLoop gameLoop = new GameLoop("testGameLoop");
+
+        IntStream.rangeClosed(1, Runtime.getRuntime().availableProcessors())
+                .forEach(i -> gameLoopGroup.register(gameLoop));
+
+        Assertions.assertEquals(1, gameLoopGroup.size());
+    }
+
+    @Test
     void testSelect() {
         final Map<String, GameLoop> gameLoopMap = IntStream.rangeClosed(1, 10)
                 .mapToObj(i -> new GameLoop("test" + i))
                 .collect(Collectors.toMap(IGameLoop::getId, Function.identity()));
 
-        final GameLoopGroup gameLoopGroup1 = new GameLoopGroup("testGroup", gameLoopMap.values().toArray(IGameLoop[]::new));
+        final GameLoopGroup gameLoopGroup1 = new GameLoopGroup("testGroup", 1, gameLoopMap.values().toArray(IGameLoop[]::new));
 
         gameLoopMap.forEach((key, value) -> Assertions.assertEquals(Optional.of(value), gameLoopGroup1.select(key)));
     }
@@ -273,9 +294,30 @@ class IGameLoopGroupTest {
     void selectHashing() {
 
         for (int i = 0; i < 100; i++) {
-            final Object object2Hash = Long.valueOf(ThreadLocalRandom.current().nextLong());
-            Assertions.assertEquals(gameLoopGroup.selectHashing(object2Hash), gameLoopGroup.selectHashing(object2Hash));
+            final String hashKey = Long.valueOf(ThreadLocalRandom.current().nextLong()).toString();
+            Assertions.assertEquals(gameLoopGroup.selectHashing(hashKey), gameLoopGroup.selectHashing(hashKey));
         }
+    }
+
+    @Test
+    @DisplayName("测试一致性hash的分布")
+    void selectHashingDistribution()
+    {
+        final GameLoopGroup gameLoopGroup = new GameLoopGroup("test", 600, Runtime.getRuntime().availableProcessors());
+        final int gameLoopSize = gameLoopGroup.size();
+        final int selectCountPerGameLoop = 10000;
+        final Map<String, Integer> statisticMap = new HashMap<>(gameLoopSize);
+
+        for (int i = 0; i < gameLoopSize * selectCountPerGameLoop; i++) {
+            final IGameLoop gameLoop = gameLoopGroup.selectHashing(UUID.randomUUID().toString());
+            statisticMap.compute(gameLoop.getId(), (id, count) -> count == null ? 1 : count + 1);
+        }
+
+        IntSummaryStatistics stats = statisticMap.values().stream().mapToInt( c -> c ).summaryStatistics();
+
+        Assertions.assertEquals(statisticMap.size(), gameLoopGroup.size());
+        Assertions.assertTrue(stats.getMin() > selectCountPerGameLoop * 0.9, () -> "stats:" + stats);
+        Assertions.assertTrue(stats.getMax() < selectCountPerGameLoop * 1.1, () -> "stats:" + stats);
     }
 
     @Value

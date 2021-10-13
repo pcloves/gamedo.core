@@ -30,6 +30,7 @@ public class GameLoopProperties {
 
     public static final GameLoopConfigInner DEFAULT = GameLoopConfigInner.builder()
             .gameLoopGroupId("defaults")
+            .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
@@ -58,6 +59,7 @@ public class GameLoopProperties {
      */
     private GameLoopConfigInner defaults = GameLoopConfigInner.builder()
             .gameLoopGroupId("defaults")
+            .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
@@ -71,6 +73,7 @@ public class GameLoopProperties {
      */
     private GameLoopConfigInner workers = GameLoopConfigInner.builder()
             .gameLoopGroupId("workers")
+            .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("worker-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
@@ -84,6 +87,7 @@ public class GameLoopProperties {
      */
     private GameLoopConfigInner ios = GameLoopConfigInner.builder()
             .gameLoopGroupId("ios")
+            .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("io-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
@@ -97,6 +101,7 @@ public class GameLoopProperties {
      */
     private GameLoopConfigInner singles = GameLoopConfigInner.builder()
             .gameLoopGroupId("single")
+            .nodeCountPerGameLoop(0)
             .gameLoopIdPrefix("single-")
             .gameLoopIdCounter(1)
             .gameLoopCount(1)
@@ -146,6 +151,11 @@ public class GameLoopProperties {
         private String gameLoopGroupId = "defaults";
 
         /**
+         * 当使用一致性hash算法选择{@link IGameLoop}时，hash环上每个{@link IGameLoop}对应的节点的个数
+         */
+        private int nodeCountPerGameLoop = 500;
+
+        /**
          * gameLoop的组件列表
          */
         @Singular
@@ -156,6 +166,7 @@ public class GameLoopProperties {
         public GameLoopConfig convert() {
             return GameLoopConfig.builder()
                     .gameLoopIdPrefix(gameLoopIdPrefix)
+                    .nodeCountPerGameLoop(nodeCountPerGameLoop)
                     .gameLoopIdCounter(new AtomicInteger(gameLoopIdCounter))
                     .daemon(daemon)
                     .gameLoopCount(gameLoopCount)

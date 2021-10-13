@@ -1,6 +1,7 @@
 package org.gamedo.gameloop;
 
 import lombok.extern.log4j.Log4j2;
+import org.gamedo.util.Hashing;
 import org.gamedo.util.function.EntityFunction;
 import org.gamedo.util.function.EntityPredicate;
 import org.gamedo.exception.GameLoopException;
@@ -13,21 +14,59 @@ import org.gamedo.util.Pair;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Log4j2
 public class GameLoopGroup implements IGameLoopGroup {
+    private static final Hashing HASHING;
+
     private final String id;
+    private final int nodeCountPerGameLoop;
     private final AtomicInteger idx = new AtomicInteger(0);
-    private final List<IGameLoop> gameLoopList = new CopyOnWriteArrayList<>();
+    private final AtomicReference<Data> dataAtomicReference = new AtomicReference<>();
 
-    public GameLoopGroup(String id, IGameLoop... gameLoops) {
+    private volatile List<IGameLoop> gameLoopList = new ArrayList<>();
 
-        if (gameLoops.length == 0) {
-            log.error(Markers.GameLoop, "none gameLoop setted for:{}", id);
-            throw new GameLoopException("");
+    static {
+        HASHING = Hashing.KETAMA_HASH;
+    }
+
+    private static class Data {
+        private final List<IGameLoop> gameLoopList = new ArrayList<>();
+        private final TreeMap<Long, IGameLoop> gameLoopTreeMap = new TreeMap<>();
+
+        private Data(List<IGameLoop> gameLoopList, int nodeCountPerGameLoop) {
+
+            this.gameLoopList.addAll(gameLoopList);
+            this.gameLoopList.forEach(gameLoop -> {
+                for (int i = 0; i < nodeCountPerGameLoop; i++) {
+                    final long hash = HASHING.hash(gameLoop.getId() + '-' + i);
+                    gameLoopTreeMap.put(hash, gameLoop);
+                }
+            });
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Data data = (Data) o;
+            return Objects.equals(gameLoopList, data.gameLoopList);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(gameLoopList);
+        }
+    }
+
+    public GameLoopGroup(String id, int nodeCountPerGameLoop, IGameLoop... gameLoops) {
 
         final List<List<IGameLoop>> duplicateList = Arrays.stream(gameLoops)
                 .collect(Collectors.groupingBy(IGameLoop::getId))
@@ -42,11 +81,19 @@ public class GameLoopGroup implements IGameLoopGroup {
         }
 
         this.id = id;
+        this.nodeCountPerGameLoop = nodeCountPerGameLoop;
         gameLoopList.addAll(Arrays.stream(gameLoops).collect(Collectors.toList()));
+        dataAtomicReference.set(new Data(gameLoopList, nodeCountPerGameLoop));
     }
 
     public GameLoopGroup(String id, int gameLoopCount) {
-        this(id, IntStream.rangeClosed(1, gameLoopCount)
+        this(id, 10, IntStream.rangeClosed(1, gameLoopCount)
+                .mapToObj(value -> new GameLoop(id + '-' + value))
+                .toArray(GameLoop[]::new));
+    }
+
+    public GameLoopGroup(String id, int nodeCountPerGameLoop, int gameLoopCount) {
+        this(id, nodeCountPerGameLoop, IntStream.rangeClosed(1, gameLoopCount)
                 .mapToObj(value -> new GameLoop(id + '-' + value))
                 .toArray(GameLoop[]::new));
     }
@@ -148,14 +195,38 @@ public class GameLoopGroup implements IGameLoopGroup {
     @Override
     public boolean register(IGameLoop gameLoop) {
 
+        //先检测是否已经注册
         if (gameLoopList.contains(gameLoop)) {
             return false;
         }
 
-        final int size = gameLoopList.size();
-        //计算位置：当前位置的前一个位置，也就是说轮询一圈后才能被select到
-        final int indexAdd = Math.abs((idx.get() + size) % (size + 1));
-        gameLoopList.add(indexAdd, gameLoop);
+        //再cas无锁更新
+        final Data data = dataAtomicReference.updateAndGet(old -> {
+
+            //再次检测
+            if (old.gameLoopList.contains(gameLoop)) {
+                return old;
+            }
+
+            final int size = old.gameLoopList.size();
+            //计算位置：当前位置的前一个位置，也就是说轮询一圈后才能被select到
+            final int indexAdd = Math.abs((idx.get() + size) % (size + 1));
+
+            final ArrayList<IGameLoop> gameLoopListNew = new ArrayList<>(old.gameLoopList);
+            gameLoopListNew.add(indexAdd, gameLoop);
+
+            return new Data(gameLoopListNew, nodeCountPerGameLoop);
+        });
+
+        //更新成功
+        gameLoopList = data.gameLoopList;
+
+        log.error(Markers.GameLoop,
+                "register new gameLoop:{}, index:{}, count:{}",
+                () -> gameLoop.getId(),
+                () -> gameLoopList.indexOf(gameLoop),
+                () -> gameLoopList.size());
+
         return true;
     }
 
@@ -177,8 +248,16 @@ public class GameLoopGroup implements IGameLoopGroup {
     }
 
     @Override
-    public IGameLoop selectHashing(Object object2Hash) {
-        return gameLoopList.get(Math.abs(object2Hash.hashCode() % gameLoopList.size()));
+    public IGameLoop selectHashing(String hashKey) {
+
+        final long hashCode = HASHING.hash(hashKey);
+
+        final TreeMap<Long, IGameLoop> gameLoopTreeMap = dataAtomicReference.get().gameLoopTreeMap;
+        //找到所有大于该hashCode的节点
+        final SortedMap<Long, IGameLoop> tailMap = gameLoopTreeMap.tailMap(hashCode);
+
+        //没找到的话就返回第一个节点，否则就返回
+        return tailMap.isEmpty() ? gameLoopTreeMap.get(gameLoopTreeMap.firstKey()) : gameLoopTreeMap.get(tailMap.firstKey());
     }
 
     @SuppressWarnings("unchecked")

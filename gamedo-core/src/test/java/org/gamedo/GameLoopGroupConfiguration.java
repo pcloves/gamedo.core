@@ -45,12 +45,13 @@ public class GameLoopGroupConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
     GameLoopConfig gameLoopConfig() {
         return GameLoopConfig.builder()
+                .gameLoopGroupId("defaults")
+                .nodeCountPerGameLoop(500)
                 .gameLoopIdPrefix("default-")
                 .gameLoopIdCounter(new AtomicInteger(1))
                 .daemon(false)
                 .gameLoopImplClazz(GameLoop.class)
                 .gameLoopCount(Runtime.getRuntime().availableProcessors())
-                .gameLoopGroupId("defaults")
                 .componentRegister(GameLoopComponentRegister.builder()
                         .allInterface(IGameLoopEntityManager.class)
                         .implementation(GameLoopEntityManager.class)
@@ -89,7 +90,7 @@ public class GameLoopGroupConfiguration {
                 .mapToObj(i -> context.getBean(IGameLoop.class, config))
                 .toArray(IGameLoop[]::new);
 
-        final IGameLoopGroup gameLoopGroup = new GameLoopGroup(config.getGameLoopGroupId(), iGameLoops);
+        final IGameLoopGroup gameLoopGroup = new GameLoopGroup(config.getGameLoopGroupId(), config.getNodeCountPerGameLoop(), iGameLoops);
 
         Arrays.stream(gameLoopGroup.selectAll())
                 .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))

@@ -70,10 +70,11 @@ public class GameLoopGroupAutoConfiguration {
         final GameLoopConfig defaults = gameLoopProperties.getDefaults().convert();
 
         return GameLoopConfig.builder()
+                .gameLoopGroupId(defaults.getGameLoopGroupId())
+                .nodeCountPerGameLoop(defaults.getNodeCountPerGameLoop())
                 .gameLoopIdCounter(defaults.getGameLoopIdCounter())
                 .gameLoopIdPrefix(defaults.getGameLoopIdPrefix())
                 .daemon(defaults.isDaemon())
-                .gameLoopGroupId(defaults.getGameLoopGroupId())
                 .gameLoopCount(defaults.getGameLoopCount())
                 .gameLoopIdCounter(defaults.getGameLoopIdCounter())
                 .gameLoopImplClazz(GameLoop.class)
@@ -105,7 +106,7 @@ public class GameLoopGroupAutoConfiguration {
                 .mapToObj(i -> context.getBean(IGameLoop.class, config))
                 .toArray(IGameLoop[]::new);
 
-        final IGameLoopGroup gameLoopGroup = new GameLoopGroup(config.getGameLoopGroupId(), iGameLoops);
+        final IGameLoopGroup gameLoopGroup = new GameLoopGroup(config.getGameLoopGroupId(), config.getNodeCountPerGameLoop(), iGameLoops);
 
         Arrays.stream(gameLoopGroup.selectAll())
                 .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))

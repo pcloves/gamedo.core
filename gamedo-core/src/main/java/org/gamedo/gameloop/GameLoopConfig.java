@@ -30,6 +30,7 @@ public class GameLoopConfig {
 
     public static final GameLoopConfig DEFAULT = builder()
             .gameLoopGroupId("defaults")
+            .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(new AtomicInteger(1))
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
@@ -84,6 +85,11 @@ public class GameLoopConfig {
      * 所属gameLoopGroup的id
      */
     private String gameLoopGroupId = "defaults";
+
+    /**
+     * 当使用一致性hash算法选择{@link IGameLoop}时，hash环上每个{@link IGameLoop}对应的节点的个数
+     */
+    private int nodeCountPerGameLoop = 500;
 
     /**
      * gameLoop的组件列表

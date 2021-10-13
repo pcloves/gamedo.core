@@ -22,7 +22,7 @@
     <version>${revision}</version>
 
     <properties>
-        <revision>0.8.4-SNAPSHOT</revision>
+        <revision>0.8.5-SNAPSHOT</revision>
     </properties>
 
     <build>

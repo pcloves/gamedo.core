@@ -2,8 +2,9 @@ package org.gamedo.util.function;
 
 import org.gamedo.ecs.interfaces.IEntity;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 @SuppressWarnings({"unused", "unchecked"})
 @FunctionalInterface
@@ -53,23 +54,110 @@ public interface EntityPredicate<T extends IEntity> extends EntityFunction<T, Bo
     /**
      * 通过逻辑{@link EntityPredicate#and(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
      *
-     * @param predicates 要reduce的谓词数组
-     * @param <P>        谓词的入参类型
-     * @return 返回reduce后的谓词，假如入参的谓词数组元素为空，则返回False()
+     * @param p1  第1个参数
+     * @param p2  第2个参数
+     * @param <P> 谓词的入参类型
+     * @return 返回reduce后的谓词，默认返回FALSE
      */
-    static <P extends IEntity> EntityPredicate<P> And(final EntityPredicate<P>... predicates) {
-        return Arrays.stream(predicates).reduce(EntityPredicate::and).orElse((EntityPredicate<P>) FALSE);
+    static <P extends IEntity> EntityPredicate<P> And(final EntityPredicate<P> p1, final EntityPredicate<P> p2) {
+        return Stream.of(p1, p2).reduce(EntityPredicate::and).orElse((EntityPredicate<P>) FALSE);
+    }
+
+    /**
+     * 通过逻辑{@link EntityPredicate#and(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
+     *
+     * @param p1  第1个参数
+     * @param p2  第2个参数
+     * @param p3  第3个参数
+     * @param <P> 谓词的入参类型
+     * @return 返回reduce后的谓词，默认返回FALSE
+     */
+    static <P extends IEntity> EntityPredicate<P> And(final EntityPredicate<P> p1,
+                                                      final EntityPredicate<P> p2,
+                                                      final EntityPredicate<P> p3) {
+        return Stream.of(p1, p2, p3).reduce(EntityPredicate::and).orElse((EntityPredicate<P>) FALSE);
+    }
+
+    /**
+     * 通过逻辑{@link EntityPredicate#and(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
+     *
+     * @param p1 第1个参数
+     * @param p2 第2个参数
+     * @param p3 第3个参数
+     * @param p4 第4个参数
+     * @return 返回reduce后的谓词，默认返回FALSE
+     */
+    static <P extends IEntity> EntityPredicate<P> And(final EntityPredicate<P> p1,
+                                                      final EntityPredicate<P> p2,
+                                                      final EntityPredicate<P> p3,
+                                                      final EntityPredicate<P> p4) {
+        return Stream.of(p1, p2, p3, p4).reduce(EntityPredicate::and).orElse((EntityPredicate<P>) FALSE);
+    }
+
+    /**
+     * 通过逻辑{@link EntityPredicate#and(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
+     *
+     * @param predicateList 谓词列表
+     * @param <P>           谓词的入参类型
+     * @return 返回reduce后的谓词，如果列表为空，默认返回FALSE
+     */
+    static <P extends IEntity> EntityPredicate<P> And(final List<EntityPredicate<P>> predicateList) {
+        return predicateList.stream().reduce(EntityPredicate::and).orElse((EntityPredicate<P>) FALSE);
     }
 
     /**
      * 通过{@link EntityPredicate#or(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
      *
-     * @param predicates 要reduce的谓词数组
-     * @param <P>        谓词的入参类型
-     * @return 返回reduce后的谓词，假如入参的谓词数组元素为空，则返回True()
+     * @param p1  第1个参数
+     * @param p2  第2个参数
+     * @param <P> 谓词的入参类型
+     * @return 返回reduce后的谓词，默认返回TRUE
      */
-    static <P extends IEntity> EntityPredicate<P> Or(final EntityPredicate<P>... predicates) {
-        return Arrays.stream(predicates).reduce(EntityPredicate::or).orElse((EntityPredicate<P>) TRUE);
+    static <P extends IEntity> EntityPredicate<P> Or(final EntityPredicate<P> p1, final EntityPredicate<P> p2) {
+        return Stream.of(p1, p2).reduce(EntityPredicate::or).orElse((EntityPredicate<P>) TRUE);
+    }
+
+    /**
+     * 通过{@link EntityPredicate#or(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
+     *
+     * @param p1  第1个参数
+     * @param p2  第2个参数
+     * @param p3  第3个参数
+     * @param <P> 谓词的入参类型
+     * @return 返回reduce后的谓词，默认返回TRUE
+     */
+    static <P extends IEntity> EntityPredicate<P> Or(final EntityPredicate<P> p1,
+                                                     final EntityPredicate<P> p2,
+                                                     final EntityPredicate<P> p3) {
+        return Stream.of(p1, p2, p3).reduce(EntityPredicate::or).orElse((EntityPredicate<P>) TRUE);
+    }
+
+    /**
+     * 通过{@link EntityPredicate#or(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
+     *
+     * @param p1  第1个参数
+     * @param p2  第2个参数
+     * @param p3  第3个参数
+     * @param p4  第4个参数
+     * @param <P> 谓词的入参类型
+     * @return 返回reduce后的谓词，默认返回TRUE
+     */
+    static <P extends IEntity> EntityPredicate<P> Or(final EntityPredicate<P> p1,
+                                                     final EntityPredicate<P> p2,
+                                                     final EntityPredicate<P> p3,
+                                                     final EntityPredicate<P> p4) {
+        return Stream.of(p1, p2, p3, p4).reduce(EntityPredicate::or).orElse((EntityPredicate<P>) TRUE);
+    }
+
+    /**
+     * 通过逻辑{@link EntityPredicate#or(EntityPredicate)}的方式将多个{@link EntityPredicate}谓词reduce为1个
+     *
+     * @param predicateList 谓词列表
+     * @param <P>           谓词的入参类型
+     * @return 返回reduce后的谓词，如果列表为空，默认返回TRUE
+     */
+    static <P extends IEntity> EntityPredicate<P> Or(final List<EntityPredicate<P>> predicateList) {
+        return predicateList.stream().reduce(EntityPredicate::or).orElse((EntityPredicate<P>) TRUE);
     }
 
     /**
@@ -92,6 +180,13 @@ public interface EntityPredicate<T extends IEntity> extends EntityFunction<T, Bo
         return (EntityPredicate<P>) FALSE;
     }
 
+    /**
+     * 对一个谓词取反
+     *
+     * @param target 要取反的谓词
+     * @param <P>    谓词的入参类型
+     * @return 取反后的谓词
+     */
     static <P extends IEntity> EntityPredicate<P> Not(EntityPredicate<? super P> target) {
         Objects.requireNonNull(target);
         return (EntityPredicate<P>) target.negate();

@@ -3,6 +3,9 @@ package org.gamedo.util;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * 线程安全的信息摘要工具类
+ */
 public final class ThreadLocalMessageDigest {
 
     public static final ThreadLocal<MessageDigest> MD5_DIGEST = createThreadLocalMessageDigest("MD5");

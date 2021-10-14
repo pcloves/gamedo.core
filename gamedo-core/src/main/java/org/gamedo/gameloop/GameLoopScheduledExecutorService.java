@@ -18,23 +18,17 @@ public class GameLoopScheduledExecutorService extends ScheduledThreadPoolExecuto
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
 
-        //原子操作
-        synchronized (gameLoop) {
-            GamedoLogContext.pushEntityId(gameLoop);
-            gameLoop.currentThread = Thread.currentThread();
-            GameLoops.GAME_LOOP_THREAD_LOCAL.set(gameLoop.gameLoopOptional);
-        }
+        GamedoLogContext.pushEntityId(gameLoop);
+        gameLoop.currentThread = Thread.currentThread();
+        GameLoops.GAME_LOOP_THREAD_LOCAL.set(gameLoop.gameLoopOptional);
     }
 
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
 
-        //原子操作
-        synchronized (gameLoop) {
-            GameLoops.GAME_LOOP_THREAD_LOCAL.set(Optional.empty());
-            gameLoop.currentThread = null;
-            GamedoLogContext.clearEntityId();
-        }
+        GameLoops.GAME_LOOP_THREAD_LOCAL.set(Optional.empty());
+        gameLoop.currentThread = null;
+        GamedoLogContext.clearEntityId();
     }
 }

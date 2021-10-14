@@ -55,7 +55,7 @@ public interface IEntity {
      * 添加一个组件到该实体上，使之具备了该组件的功能，该方法只是将clazz作为key，将component作为value添加到一个Map中，并不会将clazz的父接口
      * 以及祖先接口添加到Map中，因此假如某组件的继承关系为：<br>
      * IComponent &lt;-- A &lt;-- B &lt;-- ComponentImpl<br>
-     * 当调用{@link IEntity#addComponent}将B添加到实体中后，只能通过本方法获取到B，而无无法
+     * 当调用本方法将B添加到实体中后，只能通过本方法获取到B，而无无法
      * 获取到A，除非也将A加入到实体中
      *
      * @param <T>            组件要暴露给外界的接口类型

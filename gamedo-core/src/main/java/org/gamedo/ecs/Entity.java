@@ -78,6 +78,7 @@ public class Entity implements IEntity {
 
     @Override
     public String toString() {
+        //noinspection StringBufferReplaceableByString
         final StringBuilder sb = new StringBuilder("Entity{");
         sb.append("hashCode=").append(hashCode());
         sb.append(", id=").append(id);

@@ -30,11 +30,10 @@ import java.util.stream.IntStream;
 class IGameLoopGroupTest {
 
     private IGameLoopGroup gameLoopGroup;
-    private ConfigurableApplicationContext context;
 
     @BeforeEach
     void setUp() {
-        context = new AnnotationConfigApplicationContext(GameLoopGroupConfiguration.class);
+        ConfigurableApplicationContext context = new AnnotationConfigApplicationContext(GameLoopGroupConfiguration.class);
         gameLoopGroup = context.getBean(IGameLoopGroup.class);
     }
 
@@ -55,7 +54,7 @@ class IGameLoopGroupTest {
         final int i = ThreadLocalRandom.current().nextInt(gameLoopList.size()) + 1;
         gameLoopList.add(new GameLoop("test" + i));
 
-        Assertions.assertThrows(GameLoopException.class, () -> new GameLoopGroup("testGroup", 1, gameLoopList.toArray(IGameLoop[]::new)));
+        Assertions.assertThrows(GameLoopException.class, () -> new GameLoopGroup("testGroup", 500, gameLoopList.toArray(IGameLoop[]::new)));
     }
 
     @Test
@@ -99,7 +98,7 @@ class IGameLoopGroupTest {
                 .toArray(IGameLoop[]::new);
         final IGameLoopGroup gameLoopGroup = new GameLoopGroup("testGameLoopGroup", 0);
 
-        Arrays.stream(gameLoops).parallel().forEach(gameLoop -> gameLoopGroup.register(gameLoop));
+        Arrays.stream(gameLoops).parallel().forEach(gameLoopGroup::register);
 
         Assertions.assertEquals(gameLoopCount, gameLoopGroup.size());
     }
@@ -219,7 +218,7 @@ class IGameLoopGroupTest {
         final long submitFailedCount = submitFutureList.stream()
                 .parallel()
                 .map(CompletableFuture::join)
-                .filter(b -> !b.booleanValue())
+                .filter(b -> !b)
                 .count();
         log.info("finish parallel join");
 
@@ -234,7 +233,7 @@ class IGameLoopGroupTest {
                     }
                     return false;
                 })
-                .filter(b -> !b.booleanValue())
+                .filter(b -> !b)
                 .count();
 
         log.info("finish tick");

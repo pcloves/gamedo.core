@@ -100,15 +100,15 @@ public class GameLoopGroup implements IGameLoopGroup {
 
     @Override
     public void shutdown() {
-        gameLoopList.forEach(gameLoop -> gameLoop.shutdown());
+        gameLoopList.forEach(ExecutorService::shutdown);
     }
 
     @Override
     public List<Runnable> shutdownNow() {
 
         return gameLoopList.stream()
-                .map(gameLoop -> gameLoop.shutdownNow())
-                .flatMap(runnables -> runnables.stream())
+                .map(ExecutorService::shutdownNow)
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
@@ -223,7 +223,7 @@ public class GameLoopGroup implements IGameLoopGroup {
 
         log.error(Markers.GameLoop,
                 "register new gameLoop:{}, index:{}, count:{}",
-                () -> gameLoop.getId(),
+                gameLoop::getId,
                 () -> gameLoopList.indexOf(gameLoop),
                 () -> gameLoopList.size());
 

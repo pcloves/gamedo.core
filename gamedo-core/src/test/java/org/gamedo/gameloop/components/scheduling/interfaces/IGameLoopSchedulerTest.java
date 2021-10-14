@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.junit.platform.commons.util.ReflectionUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -67,9 +68,9 @@ class IGameLoopSchedulerTest {
         log.info("registerEntity begin");
         final CompletableFuture<Boolean> future = gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(entity));
 
-        final Boolean result = Assertions.assertDoesNotThrow(() -> future.get());
+        final Boolean result = Assertions.assertDoesNotThrow((ThrowingSupplier<Boolean>) future::get);
         Assertions.assertTrue(result);
-        log.info("registerEntity finish, result:{}", result);
+        log.info("registerEntity finish." );
 
         final int sleepSecond = ThreadLocalRandom.current().nextInt(10, 31);
         log.info("begin sleep {} seconds", sleepSecond);
@@ -84,12 +85,12 @@ class IGameLoopSchedulerTest {
 
         final ScheduledSubObject object = new ScheduledSubObject();
         final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
-        final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
+        final Integer result = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future::get);
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
 
         final CompletableFuture<Integer> future1 = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
-        final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
+        final Integer result1 = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future1::get);
         log.info("registerSchedule finish.");
         Assertions.assertEquals(0, result1);
 
@@ -107,7 +108,7 @@ class IGameLoopSchedulerTest {
 
         final ScheduledSubObject object = new ScheduledSubObject();
         final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
-        final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
+        final Integer result = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future::get);
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
 
@@ -125,7 +126,7 @@ class IGameLoopSchedulerTest {
         final Method method = methods.get(0);
         final GameLoopFunction<Boolean> function = IGameLoopSchedulerFunction.register(object, method, CRON_5_SECONDLY_EXPRESSION);
         final CompletableFuture<Boolean> future1 = gameLoop.submit(function);
-        final boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get());
+        final boolean result1 = Assertions.assertDoesNotThrow((ThrowingSupplier<Boolean>) future1::get);
         log.info("registerSchedule method {} using {} dynamiclly finish.", method, CRON_5_SECONDLY_EXPRESSION);
         Assertions.assertTrue(result1);
 
@@ -139,7 +140,7 @@ class IGameLoopSchedulerTest {
 
         final ScheduledSubObject object = new ScheduledSubObject();
         final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
-        final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
+        final Integer result = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future::get);
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
 
@@ -152,7 +153,7 @@ class IGameLoopSchedulerTest {
                 () -> "expected:" + expected + ", actual:" + object.value.get());
 
         final CompletableFuture<Integer> future1 = gameLoop.submit(IGameLoopSchedulerFunction.unregister(object.getClass()));
-        final Integer result1 = Assertions.assertDoesNotThrow(() -> future1.get());
+        final Integer result1 = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future1::get);
         log.info("unregisterSchedule finish.");
         Assertions.assertEquals(2, result1);
 
@@ -170,7 +171,7 @@ class IGameLoopSchedulerTest {
 
         final ScheduledSubObject object = new ScheduledSubObject();
         final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopSchedulerFunction.register(object));
-        final Integer result = Assertions.assertDoesNotThrow(() -> future.get());
+        final Integer result = Assertions.assertDoesNotThrow((ThrowingSupplier<Integer>) future::get);
         log.info("registerSchedule finish.");
         Assertions.assertEquals(2, result);
 
@@ -188,7 +189,7 @@ class IGameLoopSchedulerTest {
 
         final GameLoopFunction<Boolean> function = IGameLoopSchedulerFunction.unregister(object.getClass(), methods.get(0));
         final CompletableFuture<Boolean> future1 = gameLoop.submit(function);
-        final Boolean result1 = Assertions.assertDoesNotThrow(() -> future1.get());
+        final Boolean result1 = Assertions.assertDoesNotThrow((ThrowingSupplier<Boolean>) future1::get);
         log.info("unregisterSchedule {} finish.", SCHEDULE_10_SECOND_METHOD_NAME);
         Assertions.assertTrue(result1);
 

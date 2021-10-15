@@ -38,7 +38,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
     }
 
     @Override
-    public boolean registerEntity(IEntity entity) {
+    public <T extends IEntity> boolean registerEntity(T entity) {
 
         final String entityId = entity.getId();
         if (entityMap.containsKey(entityId)) {
@@ -94,8 +94,9 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public Optional<IEntity> unregisterEntity(String entityId) {
+    public <T extends IEntity> Optional<T> unregisterEntity(String entityId) {
 
         final IEntity entity = entityMap.get(entityId);
         if (entity == null) {
@@ -143,7 +144,7 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
 
         metricGauge(entityClazz);
 
-        return Optional.of(entity);
+        return Optional.of((T)entity);
     }
 
     @Override
@@ -151,9 +152,10 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         return entityMap.containsKey(entityId);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public Optional<IEntity> getEntity(String entityId) {
-        return Optional.ofNullable(entityMap.get(entityId));
+    public <T extends IEntity> Optional<T> getEntity(String entityId) {
+        return Optional.ofNullable((T)entityMap.get(entityId));
     }
 
     @Override

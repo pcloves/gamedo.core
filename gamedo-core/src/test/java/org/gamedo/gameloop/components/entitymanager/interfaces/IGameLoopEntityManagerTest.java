@@ -28,15 +28,32 @@ class IGameLoopEntityManagerTest {
         entityMgr = new GameLoopEntityManager(gameLoop);
     }
 
+    @SuppressWarnings("unused")
     @Test
     void testRegisterEntity() {
 
-        final String entityId = UUID.randomUUID().toString();
+        final String entityId1 = UUID.randomUUID().toString();
 
-        assertTrue(entityMgr.registerEntity(new Entity(entityId)));
-        assertTrue(entityMgr.hasEntity(entityId));
+        assertTrue(entityMgr.registerEntity(new Entity(entityId1)));
+        assertTrue(entityMgr.hasEntity(entityId1));
 
-        assertFalse(entityMgr.registerEntity(new Entity(entityId)));
+        final Optional<IPlayerEntity> entity = entityMgr.getEntity(entityId1);
+        assertTrue(entity.isPresent());
+        assertThrows(ClassCastException.class, () -> {
+            final IPlayerEntity iPlayerEntity = entity.get();
+        });
+        assertFalse(entityMgr.registerEntity(new Entity(entityId1)));
+
+        final String entityId2 = "player";
+        assertTrue(entityMgr.registerEntity(new PlayerEntity(entityId2)));
+        assertTrue(entityMgr.hasEntity(entityId2));
+
+        final Optional<IEntity> entity1 = entityMgr.getEntity(entityId2);
+        assertTrue(entity1.isPresent());
+        assertDoesNotThrow(() -> {
+            final IEntity iEntity = entity1.get();
+            final IEntity iEntityPlayer = entity1.get();
+        });
     }
 
     @Test
@@ -73,5 +90,21 @@ class IGameLoopEntityManagerTest {
 
         entityMgr.unregisterEntity(entityId2);
         assertEquals(0, entityMap.size());
+    }
+
+    @SuppressWarnings("unused")
+    interface IPlayerEntity extends IEntity {
+        String getRoleId();
+    }
+
+    public static class PlayerEntity extends Entity implements IPlayerEntity {
+        public PlayerEntity(String id) {
+            super(id);
+        }
+
+        @Override
+        public String getRoleId() {
+            return id;
+        }
     }
 }

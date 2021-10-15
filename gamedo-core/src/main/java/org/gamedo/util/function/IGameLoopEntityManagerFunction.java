@@ -14,7 +14,7 @@ public interface IGameLoopEntityManagerFunction {
      * @param entity 要注册的实体
      * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表注册是否成功
      */
-    static GameLoopFunction<Boolean> registerEntity(final IEntity entity) {
+    static <T extends IEntity> GameLoopFunction<Boolean> registerEntity(final T entity) {
         return gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)
                 .map(iEntityMgr -> iEntityMgr.registerEntity(entity))
                 .orElse(false);
@@ -26,7 +26,7 @@ public interface IGameLoopEntityManagerFunction {
      * @param entityId 要注册的实体的Id
      * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表注册是否成功
      */
-    static GameLoopFunction<Optional<IEntity>> unregisterEntity(final String entityId) {
+    static <T extends IEntity> GameLoopFunction<Optional<T>> unregisterEntity(final String entityId) {
         return gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)
                 .flatMap(iEntityMgr -> iEntityMgr.unregisterEntity(entityId));
     }

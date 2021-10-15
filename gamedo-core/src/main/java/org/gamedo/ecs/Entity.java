@@ -21,6 +21,13 @@ public class Entity implements IEntity {
     public Entity(final String id, Map<Class<?>, Object> componentMap) {
         this.id = id;
         this.componentMap = new HashMap<>(componentMap == null ? Collections.emptyMap() : componentMap);
+
+        this.componentMap.forEach((key, value) -> {
+            if (!key.isInstance(value)) {
+                throw new GamedoException("illegal interface clazz:" + key.getName() + ", instance clazz:" +
+                        value.getClass().getName());
+            }
+        });
     }
 
     public Entity(String id) {

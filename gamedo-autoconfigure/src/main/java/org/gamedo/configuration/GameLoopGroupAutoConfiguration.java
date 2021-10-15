@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
+@SuppressWarnings("unused")
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({GamedoProperties.class, GameLoopProperties.class, MetricProperties.class})
 public class GameLoopGroupAutoConfiguration {
@@ -33,7 +34,8 @@ public class GameLoopGroupAutoConfiguration {
     private final MetricProperties metricProperties;
 
     public GameLoopGroupAutoConfiguration(ApplicationContext context,
-                                          GamedoProperties gamedoProperties, GameLoopProperties gameLoopProperties,
+                                          GamedoProperties gamedoProperties,
+                                          GameLoopProperties gameLoopProperties,
                                           MetricProperties metricProperties) {
         this.context = context;
         this.gamedoProperties = gamedoProperties;
@@ -58,8 +60,8 @@ public class GameLoopGroupAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(Gamedo.class)
-    Gamedo gamedo(ApplicationContext applicationContext, GameLoopProperties gameLoopProperties) {
-        return new Gamedo(applicationContext, gamedoProperties, gameLoopProperties) {
+    Gamedo gamedo(ApplicationContext applicationContext) {
+        return new Gamedo(applicationContext) {
         };
     }
 

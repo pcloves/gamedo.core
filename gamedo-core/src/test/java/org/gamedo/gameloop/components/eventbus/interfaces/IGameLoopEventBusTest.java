@@ -1,11 +1,14 @@
 package org.gamedo.gameloop.components.eventbus.interfaces;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Subscribe;
+import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
+import org.gamedo.ecs.interfaces.IIdentity;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -14,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Log4j2
@@ -110,24 +114,117 @@ class IGameLoopEventBusTest {
         iGameLoopEventBus.post(new EventTest(1));
     }
 
+    @Test
+    void testEntityEventPost() {
+        final String entityId1 = UUID.randomUUID().toString();
+        final String entityId2 = UUID.randomUUID().toString();
+
+        final int value = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+        final MyComponent component1 = new MyComponent(new Entity(entityId1), Integer.MAX_VALUE, Integer.MAX_VALUE);
+        final MyComponent component2 = new MyComponent(new Entity(entityId2), Integer.MAX_VALUE, Integer.MAX_VALUE);
+        final MyObject myObject = new MyObject(Integer.MAX_VALUE);
+
+        iGameLoopEventBus.register(component1);
+        iGameLoopEventBus.register(component2);
+        iGameLoopEventBus.register(myObject);
+
+        iGameLoopEventBus.post(new EventTest(value));
+        //所有组件都会监听到该事件
+        Assertions.assertEquals(value, component1.value);
+        Assertions.assertEquals(value, component2.value);
+        Assertions.assertEquals(Integer.MAX_VALUE, myObject.myIdentityEventValue);
+
+        iGameLoopEventBus.post(new MyIdentityEvent(entityId1, value));
+        //只有一个组件都会监听到该事件
+        Assertions.assertEquals(value, component1.myIdentityEventValue);
+        Assertions.assertEquals(Integer.MAX_VALUE, component2.myIdentityEventValue);
+        Assertions.assertEquals(Integer.MAX_VALUE, myObject.myIdentityEventValue);
+    }
+
+    private static class EventPlayerLevelUpPost implements IIdentityEvent
+    {
+        private final String entityId;
+        private final int levelOld;
+        private final int levelNew;
+
+        private EventPlayerLevelUpPost(String entityId, int levelOld, int levelNew) {
+            this.entityId = entityId;
+            this.levelOld = levelOld;
+            this.levelNew = levelNew;
+        }
+
+        @Override
+        public boolean filter(IIdentity subscriber) {
+            return entityId.equals(subscriber.getId());
+        }
+    }
+
+    private static class MyIdentityEvent implements IIdentityEvent
+    {
+        private final String targetEntityId;
+        private final int value;
+
+        private MyIdentityEvent(String targetEntityId, int value) {
+            this.targetEntityId = targetEntityId;
+            this.value = value;
+        }
+
+        @Override
+        public boolean filter(IIdentity subscriber) {
+            return targetEntityId.equals(subscriber.getId());
+        }
+    }
+
+    @Data
+    private static class MyObject
+    {
+        private int myIdentityEventValue;
+
+        private MyObject(int myIdentityEventValue) {
+            this.myIdentityEventValue = myIdentityEventValue;
+        }
+
+        @SuppressWarnings("unused")
+        @Subscribe
+        private void myEntityEvent(final MyIdentityEvent myEntityEvent) {
+            myIdentityEventValue = myEntityEvent.value;
+        }
+
+        public void setMyIdentityEventValue(int myIdentityEventValue) {
+            this.myIdentityEventValue = myIdentityEventValue;
+        }
+    }
+
     @Value
     private static class EventTest implements IEvent {
         int value;
     }
 
+    @Getter
     private static class MyComponent extends EntityComponent {
-        @Getter
         protected int value;
+        private int myIdentityEventValue;
 
         private MyComponent(IEntity owner) {
             super(owner);
+        }
 
+        private MyComponent(IEntity owner, int value, int myIdentityEventValue) {
+            super(owner);
+            this.value = value;
+            this.myIdentityEventValue = myIdentityEventValue;
         }
 
         @SuppressWarnings("unused")
         @Subscribe
         private void eventTest(final EventTest eventTest) {
             value = eventTest.value;
+        }
+
+        @SuppressWarnings("unused")
+        @Subscribe
+        private void myIdentityEvent(final MyIdentityEvent myEntityEvent) {
+            myIdentityEventValue = myEntityEvent.value;
         }
     }
 

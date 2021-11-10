@@ -7,6 +7,7 @@ import lombok.extern.log4j.Log4j2;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
+import org.gamedo.gameloop.components.eventbus.interfaces.IFilterableEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.logging.GamedoLogContext;
@@ -268,6 +269,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         try {
             final List<EventData> eventDataList = optionalEventDataList.get();
             count = (int) eventDataList.stream()
+                    .filter(eventData -> eventFilter(eventData, iEvent))
                     .filter(eventData -> safeInvoke(eventData, iEvent))
                     .count();
 
@@ -279,5 +281,28 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         }
 
         return count;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked", "MethodMayBeStatic"})
+    private boolean eventFilter(EventData eventData, IEvent iEvent) {
+
+        try {
+            final Object object = eventData.getObject();
+            if (iEvent instanceof IFilterableEvent) {
+                final IFilterableEvent filterableEvent = (IFilterableEvent) iEvent;
+                final Class subscriberClass = filterableEvent.getType();
+                final Class<?> objectClass = object.getClass();
+
+                final boolean assignableFrom = subscriberClass.isAssignableFrom(objectClass);
+                //当且仅当监听者的类型满足需求，才进行过滤检测，否则就表示类型不对，直接检测失败
+                return assignableFrom ? filterableEvent.filter(object) : false;
+            }
+
+            return true;
+        } catch (Exception e) {
+            final Class<? extends IEvent> eventClazz = iEvent.getClass();
+            log.error(Markers.GameLoopEventBus, "exception caught when filter, event:" + eventClazz.getName(), e);
+            return false;
+        }
     }
 }

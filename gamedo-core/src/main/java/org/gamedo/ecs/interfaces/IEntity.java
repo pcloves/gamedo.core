@@ -8,14 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @SuppressWarnings("unused")
-public interface IEntity {
-    /**
-     * 本实体的唯一Id
-     *
-     * @return 唯一Id
-     */
-    String getId();
-
+public interface IEntity extends IIdentity {
     /**
      * 是否拥有某种类型的组件
      *

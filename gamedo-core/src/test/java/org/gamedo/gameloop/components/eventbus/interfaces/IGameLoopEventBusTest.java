@@ -40,7 +40,7 @@ class IGameLoopEventBusTest {
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(myComponent);
-        Assertions.assertEquals(1, registerMethodCount);
+        Assertions.assertEquals(2, registerMethodCount);
 
         final int registerMethodCount1 = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(0, registerMethodCount1);
@@ -53,7 +53,7 @@ class IGameLoopEventBusTest {
         final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
-        Assertions.assertEquals(2, registerMethodCount);
+        Assertions.assertEquals(3, registerMethodCount);
 
         final int registerMethodCount1 = iGameLoopEventBus.register(mySubComponent);
         Assertions.assertEquals(0, registerMethodCount1);
@@ -70,10 +70,10 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(0, unregisterCount);
 
         final int registerCount = iGameLoopEventBus.register(myComponent);
-        Assertions.assertEquals(1, registerCount);
+        Assertions.assertEquals(2, registerCount);
 
         final int unregisterCount1 = iGameLoopEventBus.unregister(myComponent);
-        Assertions.assertEquals(1, unregisterCount1);
+        Assertions.assertEquals(2, unregisterCount1);
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -83,7 +83,7 @@ class IGameLoopEventBusTest {
         final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
-        Assertions.assertEquals(2, registerMethodCount);
+        Assertions.assertEquals(3, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
         iGameLoopEventBus.post(new EventTest(postValue));
@@ -98,7 +98,7 @@ class IGameLoopEventBusTest {
         final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
 
         final int registerMethodCount = iGameLoopEventBus.register(myComponent);
-        Assertions.assertEquals(1, registerMethodCount);
+        Assertions.assertEquals(2, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
         iGameLoopEventBus.post(new EventTest(postValue));

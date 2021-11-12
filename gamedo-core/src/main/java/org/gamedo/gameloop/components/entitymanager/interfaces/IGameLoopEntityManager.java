@@ -18,6 +18,7 @@ public interface IGameLoopEntityManager extends IComponent<IGameLoop> {
      * 注册一个实体到本{@link IGameLoopEntityManager 管理器}中
      *
      * @param entity 要注册的实体
+     * @param <T> 要注册的实体类型
      * @return 当且仅当注册成功时返回true，如果已经存在一个相同Id的实体，则注册失败
      */
     <T extends IEntity> boolean registerEntity(T entity);

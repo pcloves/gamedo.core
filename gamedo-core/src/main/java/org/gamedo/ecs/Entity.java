@@ -1,17 +1,15 @@
+
 package org.gamedo.ecs;
 
 import lombok.EqualsAndHashCode;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GamedoException;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 @EqualsAndHashCode(of = "id")
 @Log4j2
 public class Entity implements IEntity {
@@ -21,17 +19,14 @@ public class Entity implements IEntity {
     public Entity(final String id, Map<Class<?>, Object> componentMap) {
         this.id = id;
         this.componentMap = new HashMap<>(componentMap == null ? Collections.emptyMap() : componentMap);
-
-        this.componentMap.forEach((key, value) -> {
-            if (!key.isInstance(value)) {
-                throw new GamedoException("illegal interface clazz:" + key.getName() + ", instance clazz:" +
-                        value.getClass().getName());
-            }
-        });
     }
 
     public Entity(String id) {
         this(id, null);
+    }
+
+    public Entity() {
+        this(UUID.randomUUID().toString(), null);
     }
 
     @SuppressWarnings("unused")

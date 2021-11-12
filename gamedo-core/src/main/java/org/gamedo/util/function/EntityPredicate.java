@@ -85,6 +85,7 @@ public interface EntityPredicate<T extends IEntity> extends EntityFunction<T, Bo
      * @param p2 第2个参数
      * @param p3 第3个参数
      * @param p4 第4个参数
+     * @param <P> 实体类型
      * @return 返回reduce后的谓词，默认返回FALSE
      */
     static <P extends IEntity> EntityPredicate<P> And(final EntityPredicate<P> p1,

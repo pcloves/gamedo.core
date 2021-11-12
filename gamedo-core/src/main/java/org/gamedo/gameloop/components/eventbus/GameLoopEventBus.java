@@ -52,7 +52,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 })
                 .orElse(Metric.NOOP_TIMER);
 
-        return timer.record(() -> {
+        return Boolean.TRUE.equals(timer.record(() -> {
             try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
                 ReflectionUtils.makeAccessible(method);
                 method.invoke(object, event);
@@ -64,7 +64,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             }
 
             return false;
-        });
+        }));
     }
 
     @Override
@@ -127,7 +127,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     }
 
     private <T extends IEvent> boolean register(Object object, Method method, Class<T> eventClazz) {
-        final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>(32);
+        @SuppressWarnings("DuplicatedCode") final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>(32);
         final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
 
         final EventData eventData = new EventData(object, method);
@@ -140,7 +140,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             return false;
         }
 
-        final boolean add = eventDataList.add(eventData);
+        eventDataList.add(eventData);
 
         final List<EventData> duplicateEventDataList = eventDataList.stream()
                 .filter(eventData1 -> eventData1.getObject() == object)
@@ -148,23 +148,23 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
         if (duplicateEventDataList.size() > 1) {
             final List<Method> list = duplicateEventDataList.stream()
-                    .map(eventData1 -> eventData1.getMethod())
+                    .map(EventData::getMethod)
                     .collect(Collectors.toList());
             log.warn(Markers.GameLoopEventBus, "multiply methods register on the same event:{}, object:{}, " +
                     "method list:{}", eventClazz, object.getClass(), list);
         }
 
         log.debug(Markers.GameLoopEventBus, "register, event clazz:{}, object clazz:{}, method:{}, result:{}",
-                () -> eventClazz.getSimpleName(),
+                eventClazz::getSimpleName,
                 () -> object.getClass().getSimpleName(),
-                () -> method.getName(),
-                () -> add
+                method::getName,
+                () -> true
         );
 
 
         metricGauge(eventClazz, eventDataList);
 
-        return add;
+        return true;
     }
 
     @Override
@@ -214,9 +214,9 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         final boolean remove = eventDataList.remove(eventData);
 
         log.debug(Markers.GameLoopEventBus, "unregister, event clazz:{}, object clazz:{}, method:{}, result:{}",
-                () -> eventClazz.getSimpleName(),
+                eventClazz::getSimpleName,
                 () -> object.getClass().getSimpleName(),
-                () -> method.getName(),
+                method::getName,
                 () -> remove);
 
         metricGauge(eventClazz, eventDataList);
@@ -295,7 +295,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
                 final boolean assignableFrom = subscriberClass.isAssignableFrom(objectClass);
                 //当且仅当监听者的类型满足需求，才进行过滤检测，否则就表示类型不对，直接检测失败
-                return assignableFrom ? filterableEvent.filter(object) : false;
+                return assignableFrom && filterableEvent.filter(object);
             }
 
             return true;

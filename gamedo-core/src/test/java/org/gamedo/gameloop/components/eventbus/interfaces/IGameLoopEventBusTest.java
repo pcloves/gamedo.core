@@ -33,11 +33,10 @@ class IGameLoopEventBusTest {
         gameLoop.addComponent(MySubComponent.class, new MySubComponent(gameLoop));
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testRegister() {
         final Optional<MyComponent> componentOptional = gameLoop.getComponent(MyComponent.class);
-        final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
+        final MyComponent myComponent = Assertions.assertDoesNotThrow(componentOptional::get);
 
         final int registerMethodCount = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(2, registerMethodCount);
@@ -46,11 +45,10 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(0, registerMethodCount1);
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testRegisterInSubClass() {
         final Optional<MySubComponent> componentOptional = gameLoop.getComponent(MySubComponent.class);
-        final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
+        final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(componentOptional::get);
 
         final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
         Assertions.assertEquals(3, registerMethodCount);
@@ -59,12 +57,11 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(0, registerMethodCount1);
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testUnregister() {
 
         final Optional<MyComponent> componentOptional = gameLoop.getComponent(MyComponent.class);
-        final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
+        final MyComponent myComponent = Assertions.assertDoesNotThrow(componentOptional::get);
 
         final int unregisterCount = iGameLoopEventBus.unregister(myComponent);
         Assertions.assertEquals(0, unregisterCount);
@@ -76,11 +73,10 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(2, unregisterCount1);
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testPostInSubClass() {
         final Optional<MySubComponent> componentOptional = gameLoop.getComponent(MySubComponent.class);
-        final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
+        final MySubComponent mySubComponent = Assertions.assertDoesNotThrow(componentOptional::get);
 
         final int registerMethodCount = iGameLoopEventBus.register(mySubComponent);
         Assertions.assertEquals(3, registerMethodCount);
@@ -91,11 +87,10 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(postValue, mySubComponent.getValue());
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     void testPost() {
         final Optional<MyComponent> componentOptional = gameLoop.getComponent(MyComponent.class);
-        final MyComponent myComponent = Assertions.assertDoesNotThrow(() -> componentOptional.get());
+        final MyComponent myComponent = Assertions.assertDoesNotThrow(componentOptional::get);
 
         final int registerMethodCount = iGameLoopEventBus.register(myComponent);
         Assertions.assertEquals(2, registerMethodCount);
@@ -141,6 +136,7 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(Integer.MAX_VALUE, myObject.myIdentityEventValue);
     }
 
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private static class EventPlayerLevelUpPost implements IIdentityEvent
     {
         private final String entityId;
@@ -175,6 +171,7 @@ class IGameLoopEventBusTest {
         }
     }
 
+    @SuppressWarnings("unused")
     @Data
     private static class MyObject
     {

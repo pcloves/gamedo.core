@@ -41,7 +41,7 @@ import org.gamedo.ecs.interfaces.IIdentity;
  * //定义等级事件
  * final EventPlayerLevelChangePost event = newEventPlayerLevelChangePost (entityId, 1, 2);
  * //向所在线程投递升级事件
- * GameLoops.current().map(gameLoop ->  gameLoop.submit(IGameLoopEventBusFunction.post(event)));
+ * GameLoops.current().map(gameLoop -&#62;  gameLoop.submit(IGameLoopEventBusFunction.post(event)));
  * </pre>
  * 实际上，对于玩家等级变化的行为，仍然也可以使用非过滤功能的原生{@link IEvent}向外界投递消息，但是带来的代价就是：
  * <ul>

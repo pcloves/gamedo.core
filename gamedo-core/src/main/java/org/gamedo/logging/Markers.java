@@ -62,6 +62,7 @@ import org.apache.logging.log4j.MarkerManager;
  * <a href="https://logging.apache.org/log4j/2.x/manual/markers.html">官方文档</a>
  * @see GamedoLogContext
  */
+@SuppressWarnings("unused")
 public final class Markers
 {
     public static final Marker GamedoCore = of("gamedo.core");

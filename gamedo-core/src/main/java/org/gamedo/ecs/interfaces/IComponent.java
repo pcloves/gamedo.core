@@ -19,8 +19,8 @@ import org.gamedo.ecs.EntityComponent;
  *      boolean hasItem(int itemId);
  * }
  * </pre>
- * 背包组件的实现类继承自{@link EntityComponent}（也可以实现一个统一的业务组件，例如MyGameEntityComponent，所有的业务逻辑组件都继承自
- * 该组件，从而实现更统一地组件管理），并且实现背包接口
+ * 背包组件的实现类继承自{@link EntityComponent}（或者定义一个业务组件基类，例如：MyGameEntityComponent extends EntityComponent，
+ * 所有的业务逻辑组件都继承自该组件类，从而实现更统一地组件管理），并且实现背包接口：
  * <pre>
  * public class ComPlayerBag extends EntityComponent implements IComPlayerBag {
  *      protected ComPlayerBag(IEntity owner, EntityDbPlayer entityDbPlayer) {

@@ -50,8 +50,8 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
         final int count = annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
         log.debug(Markers.GameLoopTickManager, "register tick finish, clazz:{}, totalCount:{}, successCount:{}",
-                () -> clazz.getSimpleName(),
-                () -> annotatedMethodSet.size(),
+                clazz::getSimpleName,
+                annotatedMethodSet::size,
                 () -> count
         );
 
@@ -87,6 +87,11 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
                             boolean scheduleWithFixedDelay) {
 
         final Class<?> clazz = object.getClass();
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopTickManager, "the {} hasn't a owner yet.", GameLoopTickManager.class.getSimpleName());
+            return false;
+        }
         if (owner.isShutdown()) {
             log.warn(Markers.GameLoopTickManager, "the GameLoop has been shut down, register failed, " +
                             "clazz:{}, method:{}, delay:{}, tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
@@ -174,9 +179,9 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
         tickDataScheduleDataMap.put(tickData, tickRunnable);
 
         log.debug(Markers.GameLoopTickManager, "register tick success, clazz:{}, method:{}, delay:{}, " +
-                        "tick:{}, timeUnit:{}, scheduleWithFixdDelay:{}",
-                () -> clazz.getName(),
-                () -> method.getName(),
+                        "tick:{}, timeUnit:{}, scheduleWithFixedDelay:{}",
+                clazz::getName,
+                method::getName,
                 () -> delay,
                 () -> tick,
                 () -> timeUnit,
@@ -222,7 +227,7 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
 
         log.debug(Markers.GameLoopTickManager, "unregister tick, clazz:{}, method:{}",
                 () -> object.getClass().getName(),
-                () -> method.getName());
+                method::getName);
 
         metricGauge(tickRunnable);
 
@@ -239,6 +244,11 @@ public class GameLoopTickManager extends GameLoopComponent implements IGameLoopT
     }
 
     private void metricGauge(TickRunnable tickRunnable) {
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopTickManager, "the {} hasn't a owner yet.", GameLoopTickManager.class.getSimpleName());
+            return;
+        }
         owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricTickEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {

@@ -3,8 +3,11 @@ package org.gamedo.ecs;
 
 import lombok.EqualsAndHashCode;
 import lombok.extern.log4j.Log4j2;
+import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GamedoException;
+import org.gamedo.logging.Markers;
+
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -61,6 +64,15 @@ public class Entity implements IEntity {
         if (!interfaceClazz.isInstance(component)) {
             throw new GamedoException("illegal interface clazz:" + interfaceClazz.getName() + ", instance clazz:" +
                     component.getClass().getName());
+        }
+
+        if (component instanceof IComponent) {
+            final IComponent<?> com = (IComponent<?>) component;
+            if (com.getOwner() != this) {
+                log.error(Markers.GameLoopEntityManager, "IComponent.setOwner should called before addComponent, component clazz:{}",
+                        component.getClass().getName());
+                return false;
+            }
         }
 
         if (componentMap.containsKey(interfaceClazz)) {

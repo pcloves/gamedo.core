@@ -49,6 +49,11 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         log.debug(Markers.GameLoopEntityManager, "register begin, entityId:{}", () -> entityId);
 
         final Class<? extends IEntity> entityClazz = entity.getClass();
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopEntityManager, "the {} hasn't a owner yet.", GameLoopEntityManager.class.getSimpleName());
+            return false;
+        }
 
         //1 触发Pre事件
         final EventRegisterEntityPre eventRegisterEntityPre = new EventRegisterEntityPre(entityId, owner);
@@ -104,6 +109,11 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
         }
 
         final Class<? extends IEntity> entityClazz = entity.getClass();
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopEntityManager, "the {} hasn't a owner yet.", GameLoopEntityManager.class.getSimpleName());
+            return Optional.empty();
+        }
 
         //1 触发Pre事件
         final EventUnregisterEntityPre eventUnregisterEntityPre = new EventUnregisterEntityPre(entityId, owner);
@@ -169,6 +179,12 @@ public class GameLoopEntityManager extends GameLoopComponent implements IGameLoo
     }
 
     private void metricGauge(Class<? extends IEntity> entityClazz) {
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopEntityManager, "the {} hasn't a owner yet.", GameLoopEntityManager.class.getSimpleName());
+            return;
+        }
+
         owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricEntityEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {

@@ -1,5 +1,6 @@
 package org.gamedo.ecs.interfaces;
 
+import org.gamedo.ecs.Entity;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.util.Collections;
@@ -7,6 +8,25 @@ import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 实体接口，代表了一个组合了多个组件（{@link IComponent}）的实体，在gamedo.core的ecs架构下，组件是逻辑功能的真正承载者，实体只是将
+ * 形形色色具备各种功能的组件进行了组合，在默认实现{@link Entity}中，提供了一个构造函数：{@link Entity#Entity(String, Map)}，这意味
+ * 着：在该构造函数的构造期间，实体就可以通过{@link IEntity#getComponent(Class)}获取到组件。<p>
+ * 在某些情况下，当实体进行构造时，某些组件可能还未实例化，这就需要再实体实例化后，动态为其增加组件（{@link IEntity#addComponent(Class, Object)}），
+ * 这带来的负面效果为：组件的归属周期（{@link IComponent#getOwner()}）和组件的生命周期并非完全契合：在组件实例化之后成为实体组件之前，
+ * 调用{@link IComponent#getOwner()}时都会得到null。为了弱化这种不确定，gamedo.core建议动态增加{@link IComponent}组件时，按照如下
+ * 流程进行：
+ * <ul>
+ * <li> 调用{@link IComponent#setOwner(IEntity)}设置实体归属，当且仅当返回false时执行下一步
+ * <li> 调用{@link IEntity#addComponent(Class, Object)}，在默认实现类{@link Entity}中，当检测到要添加的组件为{@link IComponent}
+ * 类型时，首先会检测{@link IComponent#getOwner()}是否就是当前实体，只有符合条件时，才执行下面的操作
+ * </ul>
+ * 动态删除{@link IComponent}组件时，建议执行如下流程：
+ * <ul>
+ * <li> 调用{@link IEntity#removeComponent(Class)}，将组件从实体中删除
+ * <li> 调用{@link IComponent#setOwner(IEntity)}设置实体归属为null，且这两个步骤不能调换
+ * </ul>
+ */
 @SuppressWarnings("unused")
 public interface IEntity extends IIdentity {
     /**
@@ -55,7 +75,8 @@ public interface IEntity extends IIdentity {
      * @param <R>            组件的真正实现类型
      * @param interfaceClazz 该组件的类型
      * @param component      要添加的组件
-     * @return 添加成功返回true， 如果组件已经存在或者参数检测失败，则返回false
+     * @return 添加成功返回true；如果组件已经存在或者参数检测失败，则返回false；如果组件类型为{@link IComponent}，但是其归属并非当前
+     * 实体，返回false
      */
     <T, R extends T> boolean addComponent(Class<T> interfaceClazz, R component);
 

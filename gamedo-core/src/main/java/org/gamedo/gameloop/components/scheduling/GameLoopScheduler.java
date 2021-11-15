@@ -31,13 +31,18 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     /**
      * cron表达式 --> 该表达式对应的所有运行时数据
      */
-    private final Map<String, SchedulingRunnable> cronToscheduleDataMap = new HashMap<>(32);
+    private final Map<String, SchedulingRunnable> cron2schedulingRunnableMap = new HashMap<>(32);
     /**
      * 收到{@link TaskScheduler}
      */
     private final Function<String, Runnable> runnableFunction = cron -> {
         //注意：该Runnable最终就在owner线程中执行！！
         return () -> {
+            final IGameLoop owner = ownerRef.get();
+            if (owner == null) {
+                log.error(Markers.GameLoopScheduler, "the {} hasn't a owner yet.", GameLoopScheduler.class.getSimpleName());
+                return;
+            }
             if (owner.isShutdown()) {
                 log.warn(Markers.GameLoopScheduler, "the IGameLoop {} has shutdown, stop next schedule", owner.getId());
                 return;
@@ -46,7 +51,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             final int successCount = schedule(cron);
             log.debug(Markers.GameLoopScheduler, "schedule finish, cron:{}, totalCount:{}, successCount:{}",
                     () -> cron,
-                    () -> cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size(),
+                    () -> cron2schedulingRunnableMap.get(cron).getScheduleInvokeDataSet().size(),
                     () -> successCount);
         };
     };
@@ -58,6 +63,11 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     public boolean safeInvoke(SchedulingRunnable schedulingRunnable, ScheduleInvokeData scheduleInvokeData) {
         final Method method = scheduleInvokeData.getMethod();
         final Object object = scheduleInvokeData.getObject();
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopScheduler, "the {} hasn't a owner yet.", GameLoopScheduler.class.getSimpleName());
+            return false;
+        }
         final Timer timer = owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricCronEnable() ? meterRegistry : null)
                 .map(meterRegistry -> {
@@ -77,8 +87,8 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 final Long currentTimeMillis = System.currentTimeMillis();
                 final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
                 final Long lastExecutionTime = Optional.ofNullable(triggerContext.lastActualExecutionTime())
-                        .map(date -> date.getTime())
-                        .orElse(Long.valueOf(-1));
+                        .map(Date::getTime)
+                        .orElse((long) -1);
                 method.invoke(object, currentTimeMillis, lastExecutionTime);
             } catch (Exception e) {
                 final Class<?> clazz = object.getClass();
@@ -95,7 +105,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     public int register(Object object) {
 
         final Class<?> clazz = object.getClass();
-        final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
+        @SuppressWarnings("DuplicatedCode") final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
                 .filter(method -> method.isAnnotationPresent(Cron.class) && !method.isSynthetic())
                 .collect(Collectors.toSet());
 
@@ -109,8 +119,8 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
         final int count = annotatedMethodSet.stream().mapToInt(method -> register(object, method) ? 1 : 0).sum();
 
         log.debug(Markers.GameLoopScheduler, "register schedule finish, clazz:{}, totalCount:{}, successCount:{}",
-                () -> clazz.getSimpleName(),
-                () -> annotatedMethodSet.size(),
+                clazz::getSimpleName,
+                annotatedMethodSet::size,
                 () -> count
         );
 
@@ -136,6 +146,11 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
         final Class<?> clazz = object.getClass();
         final String clazzName = clazz.getName();
         final String methodName = method.getName();
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopScheduler, "the {} hasn't a owner yet.", GameLoopScheduler.class.getSimpleName());
+            return false;
+        }
         if (owner.isShutdown()) {
             log.warn(Markers.GameLoopScheduler, "the GameLoop has been shut down, register failed, clazz:{}, " +
                             "method:{}, cron:{}",
@@ -164,7 +179,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             return false;
         }
 
-        SchedulingRunnable runnable = cronToscheduleDataMap.get(cron);
+        SchedulingRunnable runnable = cron2schedulingRunnableMap.get(cron);
         boolean isNewRunnable = false;
         if (runnable == null) {
             try {
@@ -192,10 +207,10 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
         scheduleInvokeDataSet.add(scheduleInvokeData);
         if (isNewRunnable) {
             if (runnable.schedule()) {
-                cronToscheduleDataMap.put(cron, runnable);
+                cron2schedulingRunnableMap.put(cron, runnable);
 
                 log.debug(Markers.GameLoopScheduler, "register success, clazz:{}, method:{}, cron:{}",
-                        () -> clazz.getSimpleName(),
+                        clazz::getSimpleName,
                         () -> methodName,
                         () -> cron);
             }
@@ -226,20 +241,20 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     @Override
     public boolean unregister(Class<?> clazz, Method method) {
 
-        final List<SchedulingRunnable> schedulingRunnableList = cronToscheduleDataMap.values()
+        final List<SchedulingRunnable> schedulingRunnableList = cron2schedulingRunnableMap.values()
                 .stream()
                 .filter(schedulingRunnable -> schedulingRunnable.containsMethod(method))
                 .filter(schedulingRunnable -> schedulingRunnable.removeMethod(method))
                 .collect(Collectors.toList());
 
-        cronToscheduleDataMap.values().removeIf(runnable -> {
+        cron2schedulingRunnableMap.values().removeIf(runnable -> {
             final boolean empty = runnable.getScheduleInvokeDataSet().isEmpty();
             final CronTrigger trigger = runnable.getTrigger();
             if (empty) {
                 //可能有调度正在等待中，直接取消掉吧
                 final boolean cancel = runnable.getFuture().cancel(false);
                 log.debug(Markers.GameLoopScheduler, "stop schedule {}, cancel:{}",
-                        () -> trigger.getExpression(),
+                        trigger::getExpression,
                         () -> cancel);
             }
 
@@ -254,21 +269,19 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     @Override
     public int unregisterAll() {
 
-        final Collection<SchedulingRunnable> collection = new HashSet<>(cronToscheduleDataMap.values());
+        final Collection<SchedulingRunnable> collection = new HashSet<>(cron2schedulingRunnableMap.values());
         final int sum = collection.stream()
-                .flatMap(schedulingRunnable -> {
-                    return schedulingRunnable.getScheduleInvokeDataSet()
-                            .stream()
-                            .map(scheduleInvokeData -> scheduleInvokeData.getObject().getClass());
-                })
+                .flatMap(schedulingRunnable -> schedulingRunnable.getScheduleInvokeDataSet()
+                        .stream()
+                        .map(scheduleInvokeData -> scheduleInvokeData.getObject().getClass()))
                 .mapToInt(this::unregister)
                 .sum();
 
-        if (!cronToscheduleDataMap.isEmpty()) {
+        if (!cron2schedulingRunnableMap.isEmpty()) {
             log.error(Markers.GameLoopScheduler, "There are remaining {} in the map:{}",
                     SchedulingRunnable.class.getSimpleName(),
-                    cronToscheduleDataMap.values());
-            cronToscheduleDataMap.clear();
+                    cron2schedulingRunnableMap.values());
+            cron2schedulingRunnableMap.clear();
         }
 
         return sum;
@@ -276,11 +289,11 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
 
     private int schedule(String cron) {
 
-        if (!cronToscheduleDataMap.containsKey(cron)) {
+        if (!cron2schedulingRunnableMap.containsKey(cron)) {
             return 0;
         }
 
-        final SchedulingRunnable runnable = cronToscheduleDataMap.get(cron);
+        final SchedulingRunnable runnable = cron2schedulingRunnableMap.get(cron);
         return runnable.getScheduleInvokeDataSet()
                 .stream()
                 .mapToInt(scheduleInvokeData -> safeInvoke(runnable, scheduleInvokeData) ? 1 : 0)
@@ -288,11 +301,16 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
     }
 
     private void metricGauge(String cron) {
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopScheduler, "the {} hasn't a owner yet.", GameLoopScheduler.class.getSimpleName());
+            return;
+        }
         owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricCronEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {
-                    final long countNew = cronToscheduleDataMap.containsKey(cron) ?
-                            cronToscheduleDataMap.get(cron).getScheduleInvokeDataSet().size() : 0;
+                    final long countNew = cron2schedulingRunnableMap.containsKey(cron) ?
+                            cron2schedulingRunnableMap.get(cron).getScheduleInvokeDataSet().size() : 0;
                     cron2GaugeMap.computeIfAbsent(cron, key -> {
 
                         final Tags tags = Metric.tags(owner);

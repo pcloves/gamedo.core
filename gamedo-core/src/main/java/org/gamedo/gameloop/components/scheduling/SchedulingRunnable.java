@@ -65,7 +65,7 @@ class SchedulingRunnable implements Runnable {
 
             log.debug(Markers.GameLoopScheduler, "schedule next delay:{}, cron:{}",
                     () -> delay,
-                    () -> trigger.getExpression());
+                    trigger::getExpression);
 
             return true;
         } else {

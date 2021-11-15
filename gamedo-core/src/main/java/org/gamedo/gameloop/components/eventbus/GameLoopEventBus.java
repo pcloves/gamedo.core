@@ -36,6 +36,11 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     private boolean safeInvoke(EventData eventData, IEvent event) {
         final Object object = eventData.getObject();
         final Method method = eventData.getMethod();
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopEventBus, "the {} hasn't a owner yet.", GameLoopEventBus.class.getSimpleName());
+            return false;
+        }
 
         final Timer timer = owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricEventEnable() ? meterRegistry : null)
@@ -225,6 +230,11 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     }
 
     private <T extends IEvent> void metricGauge(Class<T> eventClazz, List<EventData> eventDataList) {
+        final IGameLoop owner = ownerRef.get();
+        if (owner == null) {
+            log.error(Markers.GameLoopEventBus, "the {} hasn't a owner yet.", GameLoopEventBus.class.getSimpleName());
+            return;
+        }
         owner.getComponent(MeterRegistry.class)
                 .map(meterRegistry -> GamedoConfiguration.isMetricEventEnable() ? meterRegistry : null)
                 .ifPresent(meterRegistry -> {

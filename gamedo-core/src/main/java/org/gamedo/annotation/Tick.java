@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
  * </ul>
  * 使用方式如下：
  * <ul>
- * <li> 定义cron函数
+ * <li> 定义心跳函数
  * <pre>
  *     class MyTickObject
  *     {

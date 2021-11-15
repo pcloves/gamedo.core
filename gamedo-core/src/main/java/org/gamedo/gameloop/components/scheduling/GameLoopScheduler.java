@@ -82,7 +82,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
                 })
                 .orElse(Metric.NOOP_TIMER);
 
-        return timer.record(() -> {
+        return Boolean.TRUE.equals(timer.record(() -> {
             try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
                 final Long currentTimeMillis = System.currentTimeMillis();
                 final SimpleTriggerContext triggerContext = schedulingRunnable.getTriggerContext();
@@ -98,7 +98,7 @@ public class GameLoopScheduler extends GameLoopComponent implements IGameLoopSch
             }
 
             return true;
-        });
+        }));
     }
 
     @Override

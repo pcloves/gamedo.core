@@ -21,7 +21,17 @@ public class Entity implements IEntity {
 
     public Entity(final String id, Map<Class<?>, Object> componentMap) {
         this.id = id;
-        this.componentMap = new HashMap<>(componentMap == null ? Collections.emptyMap() : componentMap);
+        this.componentMap = componentMap;
+
+        //noinspection unchecked
+        final List<Object> failedList = this.componentMap.values().stream()
+                .filter(value -> value instanceof IComponent)
+                .filter(value -> !((IComponent<IEntity>) value).setOwner(this))
+                .collect(Collectors.toList());
+
+        if (!failedList.isEmpty()) {
+            log.error(Markers.GameLoopEntityManager, "setOwner failed when owner Entity initiated, list:{}", failedList);
+        }
     }
 
     public Entity(String id) {

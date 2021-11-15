@@ -81,9 +81,9 @@ import java.util.function.Supplier;
 public abstract class Gamedo extends Entity {
     private static final AtomicReference<Gamedo> GAMEDO_ATOMIC_REFERENCE = new AtomicReference<>(null);
 
-    static ApplicationContext applicationContext;
-    static GameLoopProperties gameLoopProperties;
-    static GamedoProperties gamedoProperties;
+    protected static ApplicationContext applicationContext;
+    protected static GameLoopProperties gameLoopProperties;
+    protected static GamedoProperties gamedoProperties;
 
     protected Gamedo(ApplicationContext applicationContext) {
         super(applicationContext.getBean(GamedoProperties.class).getName());

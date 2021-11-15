@@ -294,7 +294,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 final Class<?> objectClass = object.getClass();
 
                 final boolean assignableFrom = subscriberClass.isAssignableFrom(objectClass);
-                //当且仅当监听者的类型满足需求，才进行过滤检测，否则就表示类型不对，直接检测失败
+                //当且仅当订阅者的类型满足需求，才进行过滤检测，否则就表示类型不对，直接检测失败
                 return assignableFrom && filterableEvent.filter(object);
             }
 

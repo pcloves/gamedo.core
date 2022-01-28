@@ -8,7 +8,6 @@ import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Stack;
 
 /**
@@ -151,7 +150,7 @@ public final class GamedoLogContext {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             popEntityId();
         }
     }

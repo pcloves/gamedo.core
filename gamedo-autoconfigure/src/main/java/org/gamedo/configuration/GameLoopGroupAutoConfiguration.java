@@ -2,10 +2,10 @@ package org.gamedo.configuration;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.gamedo.Gamedo;
+import org.gamedo.event.EventGameLoopCreatePost;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.GameLoopGroup;
-import org.gamedo.gameloop.components.eventbus.event.EventGameLoopCreatePost;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.gamedo.util.GamedoConfiguration;

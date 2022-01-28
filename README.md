@@ -1,7 +1,13 @@
 ![GitHub](https://img.shields.io/github/license/pcloves/gamedo.core?style=flat-square) ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/pcloves/gamedo.core?style=flat-square) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/pcloves/gamedo.core/Java%20CI%20with%20Maven?style=flat-square)
 
-gamedo.core是gamedo游戏服务器框架的核心模块（正在开发中-进度：76%）
+gamedo.core是gamedo游戏服务器框架的核心模块（正在开发中-进度：84%）
 
+# 简单介绍
+简单来说，gamedo.core是一个适用于MMO游戏（ [MMOG](https://en.wikipedia.org/wiki/Massively_multiplayer_online_game) ）服务器开发的核心模型，它内部集成了一些适用于游戏开发的，开箱即用的，且可以定制化配置的核心模块，帮助开发者快速搭建游戏原型，这些内置模块包括：
+* 集成了类似于netty的线程模型（可以参考：[thread model](https://netty.io/wiki/thread-model.html) ），可以快速且高效的进行多线程并发操作
+* 集成了 [ECS](https://en.wikipedia.org/wiki/Entity_component_system) 模块，并以此作为游戏服务的核心开发思想之一（关于游戏开发中的组件系统，可以参考：[component](https://gameprogrammingpatterns.com/component.html) ）
+* 集成了高度灵活的游戏循环机制（ 关于游戏开发中的游戏循环机制，可以参考：[game loop](https://gameprogrammingpatterns.com/game-loop.html) ）
+* 集成了用于解除系统与系统之间、模块与模块之间可能会产生耦合的事件系统（ 关于游戏开发中的事件机制，可以参考：[event](https://gameprogrammingpatterns.com/event-queue.html) ）
 # 快速使用
 
 当使用spring-boot项目后，可以非常方便地使用gamedo.core项目，以下是gamedo.core线程池的开箱使用演示：
@@ -23,7 +29,7 @@ public class Application {
 }
 ```
 
-这是IGameLoop作为ScheduledExecutorService的实现，所带来理所应当的特性，同时IGameLoop作为[ECS](https://en.wikipedia.org/wiki/Entity_component_system) 中的IEntity接口，也提供了组件（component）管理的功能，当将这两者结合，就带来了令人欣喜的线程模型：
+这是IGameLoop作为ScheduledExecutorService的实现，所带来理所应当的特性，同时IGameLoop作为 [ECS](https://en.wikipedia.org/wiki/Entity_component_system) 中的IEntity接口，也提供了组件（component）管理的功能，当将这两者结合，就带来了令人欣喜的线程模型：
 
 ``` java
 @SuppressWarnings("ALL")

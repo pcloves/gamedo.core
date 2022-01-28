@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
  * 除此之外，还可以动态注册反注册心跳函数，详情可以参考{@link IGameLoopTickManager}
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD})
 public @interface Tick {
 
     /**

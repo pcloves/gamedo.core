@@ -1,10 +1,10 @@
 package org.gamedo.annotation;
 
+import org.apache.logging.log4j.core.util.CronExpression;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
-import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 import org.gamedo.gameloop.interfaces.IGameLoop;
-import org.springframework.scheduling.support.CronExpression;
+import org.gamedo.util.function.IGameLoopEntityManagerFunction;
 
 import java.lang.annotation.*;
 
@@ -49,13 +49,13 @@ import java.lang.annotation.*;
  * 当某{@link IEntity}从{@link IGameLoop}反注册后，这两种情况下所有的{@link Cron}函数会被自动反注册<p>
  * 除此之外，还可以动态注册反注册cron函数，详情可以参考{@link IGameLoopScheduler}
  */
-@Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE, ElementType.TYPE})
+@Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Cron {
 
     /**
-     * 以下注释翻译自：{@link CronExpression#parse(String)}<p>
+     * 以下注释翻译自：{@link CronExpression#CronExpression(String)}<p>
      * spring cron表达式字符串，spring cron表达式是一个使用空格分隔且包含6个时间和日期字段的字符串表达式（类似于unix-based cron，但是有所区别，详情可以查看：
      * <a href=https://stackoverflow.com/questions/30887822/spring-cron-vs-normal-cron>stackoverflow: Spring cron vs normal cron?</a>），
      * 其形式为：

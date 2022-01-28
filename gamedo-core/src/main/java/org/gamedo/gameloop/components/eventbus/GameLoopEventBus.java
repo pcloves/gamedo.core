@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 
 @Log4j2
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
+
+    private long counter = 0L;
     private final Map<Class<? extends IEvent>, List<EventData>> eventClazzName2EventDataMap = new HashMap<>(128);
     private final Deque<Class<?>> eventPostStack = new LinkedList<>();
     private final Map<String, Pair<AtomicLong, Gauge>> eventClazzName2GaugeMap = new HashMap<>(128);
@@ -76,9 +78,10 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     public int register(Object object) {
 
         final Class<?> clazz = object.getClass();
-        final Set<Method> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
-                .filter(method -> method.isAnnotationPresent(Subscribe.class) && !method.isSynthetic())
-                .collect(Collectors.toSet());
+        final List<Pair<Method, Subscribe>> annotatedMethodSet = Arrays.stream(ReflectionUtils.getAllDeclaredMethods(clazz))
+                .map(method -> Pair.of(method, method.getAnnotation(Subscribe.class)))
+                .filter(pair -> pair.getV() != null)
+                .collect(Collectors.toList());
 
         if (annotatedMethodSet.isEmpty()) {
             log.info(Markers.GameLoopEventBus, "none annotation {} method found, clazz:{}",
@@ -87,9 +90,9 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             return 0;
         }
 
+
         final int count = (int) annotatedMethodSet.stream()
-                .filter(method -> method.isAnnotationPresent(Subscribe.class) && !method.isSynthetic())
-                .filter(method -> register(object, method))
+                .filter(pair -> register(object, pair.getK(), pair.getV().value()))
                 .count();
 
         log.debug(Markers.GameLoopEventBus, "register eventBus finish, clazz:{}, totalCount:{}, successCount:{}",
@@ -101,15 +104,8 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         return count;
     }
 
-    private boolean register(Object object, Method method) {
-        if (!method.isAnnotationPresent(Subscribe.class)) {
-            log.error(Markers.GameLoopEventBus, "the method {} of class {} is not annotated by '{}'",
-                    method.getName(),
-                    object.getClass().getName(),
-                    Subscribe.class.getSimpleName());
-            return false;
-        }
-
+    @Override
+    public boolean register(Object object, Method method, short priority) {
         if (method.getParameterCount() != 1) {
             log.error(Markers.GameLoopEventBus, "the method {} of class {} is required one parameter.",
                     method.getName(),
@@ -128,14 +124,16 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         }
 
         //noinspection unchecked
-        return register(object, method, (Class<? extends IEvent>) eventClazz);
+        return register(object, method, (Class<? extends IEvent>) eventClazz, priority);
     }
 
-    private <T extends IEvent> boolean register(Object object, Method method, Class<T> eventClazz) {
-        @SuppressWarnings("DuplicatedCode") final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>(32);
+    private <T extends IEvent> boolean register(Object object, Method method, Class<T> eventClazz, short priority) {
+        @SuppressWarnings("DuplicatedCode") final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>();
         final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
 
-        final EventData eventData = new EventData(object, method);
+        //如果优先级相同，那就看谁先注册
+        final long compareValue = ((long) priority << 16) + counter++;
+        final EventData eventData = new EventData(object, method, compareValue);
         if (eventDataList.contains(eventData)) {
             log.warn(Markers.GameLoopEventBus, "the event has registered, event clazz:{}, object clazz:{}, " +
                             "method:{}",
@@ -166,7 +164,6 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 () -> true
         );
 
-
         metricGauge(eventClazz, eventDataList);
 
         return true;
@@ -181,18 +178,11 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 .collect(Collectors.toSet());
 
         return (int) annotatedMethodSet.stream()
-                .filter(method -> method.isAnnotationPresent(Subscribe.class) && !method.isSynthetic())
                 .filter(method -> unregister(object, method))
                 .count();
     }
 
     private boolean unregister(Object object, Method method) {
-
-        if (!method.isAnnotationPresent(Subscribe.class)) {
-            log.error(Markers.GameLoopEventBus, "the method {} is not annotated by '{}'",
-                    method.getName(), Subscribe.class.getSimpleName());
-            return false;
-        }
 
         if (method.getParameterCount() != 1) {
             log.error(Markers.GameLoopEventBus, "the method {} is required one parameter.", method.getName());
@@ -212,7 +202,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
     private <T extends IEvent> boolean unregister(Object object, Method method, Class<T> eventClazz) {
 
-        final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>(32);
+        @SuppressWarnings("DuplicatedCode") final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>();
         final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
 
         final EventData eventData = new EventData(object, method);
@@ -277,8 +267,12 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         eventPostStack.push(eventClazz);
         final int count;
         try {
-            final List<EventData> eventDataList = optionalEventDataList.get();
-            count = (int) eventDataList.stream()
+
+            final ArrayList<EventData> eventDataListSort = new ArrayList<>(optionalEventDataList.get());
+            //TODO: 这里有没有性能更加的方案？
+            eventDataListSort.sort(Comparator.comparingLong(EventData::getCompareValue));
+
+            count = (int) eventDataListSort.stream()
                     .filter(eventData -> eventFilter(eventData, iEvent))
                     .filter(eventData -> safeInvoke(eventData, iEvent))
                     .count();

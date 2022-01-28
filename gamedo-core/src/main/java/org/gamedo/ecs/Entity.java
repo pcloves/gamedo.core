@@ -21,7 +21,7 @@ public class Entity implements IEntity {
 
     public Entity(final String id, Map<Class<?>, Object> componentMap) {
         this.id = id;
-        this.componentMap = new HashMap<>(componentMap == null ? Collections.emptyMap() : componentMap);
+        this.componentMap = new HashMap<>(componentMap == null ? new HashMap<>() : componentMap);
 
         //noinspection unchecked
         final List<Object> failedList = this.componentMap.values().stream()

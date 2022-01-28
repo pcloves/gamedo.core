@@ -10,4 +10,18 @@ import java.lang.reflect.Method;
 public class EventData {
     Object object;
     Method method;
+    @EqualsAndHashCode.Exclude
+    long compareValue;
+
+    public EventData(Object object, Method method) {
+        this.object = object;
+        this.method = method;
+        this.compareValue = 0L;
+    }
+
+    public EventData(Object object, Method method, long compareValue) {
+        this.object = object;
+        this.method = method;
+        this.compareValue = compareValue;
+    }
 }

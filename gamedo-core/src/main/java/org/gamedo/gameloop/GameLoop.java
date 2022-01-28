@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import lombok.experimental.Delegate;
 import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.Entity;
+import org.gamedo.logging.Markers;
 import org.gamedo.util.function.EntityFunction;
 import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Supplier;
 
 @Log4j2
 public class GameLoop extends Entity implements IGameLoop {
@@ -26,15 +28,15 @@ public class GameLoop extends Entity implements IGameLoop {
     private volatile IGameLoopGroup owner;
 
     public GameLoop(final String id) {
-        super(id);
-
-        delegate = new GameLoopScheduledExecutorService(this, id, false);
+       this(id, false);
     }
 
     public GameLoop(final String id, boolean daemon) {
         super(id);
 
         delegate = new GameLoopScheduledExecutorService(this, id, daemon);
+
+        componentMap.put(GameLoopScheduledExecutorService.class, delegate);
     }
 
     public GameLoop(final GameLoopConfig gameLoopConfig) {
@@ -55,6 +57,7 @@ public class GameLoop extends Entity implements IGameLoop {
 
         componentMap.putAll(gameLoopConfig.componentMap(this));
         componentMap.put(MeterRegistry.class, meterRegistry);
+        componentMap.put(GameLoopScheduledExecutorService.class, executorService);
     }
 
     @Override
@@ -101,13 +104,26 @@ public class GameLoop extends Entity implements IGameLoop {
                 return CompletableFuture.failedFuture(t);
             }
         } else {
-            return CompletableFuture.supplyAsync(() -> function.apply(this), this);
+            if (isShutdown()) {
+                log.error(Markers.GameLoop, "the thread has shutdown, id:{}", getId());
+            }
+            return CompletableFuture.supplyAsync(new Supplier<>() {
+                @Override
+                public String toString() {
+                    return function.toString();
+                }
+
+                @Override
+                public R get() {
+                    return function.apply(GameLoop.this);
+                }
+            }, this);
         }
     }
 
     private void checkInThread() {
         if (!inThread()) {
-            throw new GameLoopException("call from anthor thread, gameLoop id:" + id +
+            throw new GameLoopException("call from another thread, gameLoop id:" + id +
                     ", called thread:" + Thread.currentThread().getName());
         }
     }

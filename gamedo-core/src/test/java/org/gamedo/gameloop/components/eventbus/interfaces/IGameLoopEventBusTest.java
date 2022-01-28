@@ -12,10 +12,14 @@ import org.gamedo.ecs.interfaces.IIdentity;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
+import org.gamedo.util.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.util.ReflectionUtils;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -136,9 +140,143 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(Integer.MAX_VALUE, myObject.myIdentityEventValue);
     }
 
+    @Test
+    void testPriorityEvent() {
+        final PriorityObject priorityObject = new PriorityObject();
+
+        //很可惜，通过反射获取到的函数并非按照定义的顺序排序，因此这里需要安装函数名排序，以满足测试用例
+        Arrays.stream(ReflectionUtils.getAllDeclaredMethods(PriorityObject.class))
+                .map(method -> Pair.of(method, method.getAnnotation(Subscribe.class)))
+                .filter(pair -> pair.getV() != null)
+                .sorted(Comparator.comparing(pair -> pair.getK().getName()))
+                .forEach(pair -> iGameLoopEventBus.register(priorityObject, pair.getK(), pair.getV().value()));
+
+        iGameLoopEventBus.post(new EventTest(0));
+
+        Assertions.assertEquals('n', priorityObject.index);
+    }
+
+    @SuppressWarnings("unused")
+    private static class PriorityObject {
+        private char index = '0';
+
+        @Subscribe(Short.MIN_VALUE)
+        private void a(final EventTest eventTest) {
+
+            if (index == '0') {
+                index = 'a';
+            }
+        }
+
+        @Subscribe(Short.MIN_VALUE)
+        private void b(final EventTest eventTest) {
+
+            if (index == 'a') {
+                index = 'b';
+            }
+        }
+
+        @Subscribe(Short.MIN_VALUE + 1)
+        private void c(final EventTest eventTest) {
+
+            if (index == 'b') {
+                index = 'c';
+            }
+        }
+
+        @Subscribe(Short.MIN_VALUE + 1)
+        private void d(final EventTest eventTest) {
+
+            if (index == 'c') {
+                index = 'd';
+            }
+        }
+
+
+        @Subscribe(-1)
+        private void e(final EventTest eventTest) {
+
+            if (index == 'd') {
+                index = 'e';
+            }
+        }
+
+        @Subscribe(-1)
+        private void f(final EventTest eventTest) {
+
+            if (index == 'e') {
+                index = 'f';
+            }
+        }
+
+        @Subscribe
+        private void g(final EventTest eventTest) {
+
+            if (index == 'f') {
+                index = 'g';
+            }
+        }
+
+        @Subscribe
+        private void h(final EventTest eventTest) {
+
+            if (index == 'g') {
+                index = 'h';
+            }
+        }
+
+        @Subscribe(1)
+        private void i(final EventTest eventTest) {
+
+            if (index == 'h') {
+                index = 'i';
+            }
+        }
+
+        @Subscribe(1)
+        private void j(final EventTest eventTest) {
+
+            if (index == 'i') {
+                index = 'j';
+            }
+        }
+
+        @Subscribe(Short.MAX_VALUE - 1)
+        private void k(final EventTest eventTest) {
+
+            if (index == 'j') {
+                index = 'k';
+            }
+        }
+
+        @Subscribe(Short.MAX_VALUE - 1)
+        private void l(final EventTest eventTest) {
+
+            if (index == 'k') {
+                index = 'l';
+            }
+        }
+
+        @Subscribe(Short.MAX_VALUE)
+        private void m(final EventTest eventTest) {
+
+            if (index == 'l') {
+                index = 'm';
+            }
+        }
+
+        @Subscribe(Short.MAX_VALUE)
+        private void n(final EventTest eventTest) {
+
+            if (index == 'm') {
+                index = 'n';
+            }
+        }
+
+    }
+
     @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    private static class EventPlayerLevelUpPost implements IIdentityEvent
-    {
+    private static class EventPlayerLevelUpPost implements IIdentityEvent {
         private final String entityId;
         private final int levelOld;
         private final int levelNew;
@@ -155,8 +293,7 @@ class IGameLoopEventBusTest {
         }
     }
 
-    private static class MyIdentityEvent implements IIdentityEvent
-    {
+    private static class MyIdentityEvent implements IIdentityEvent {
         private final String targetEntityId;
         private final int value;
 
@@ -173,8 +310,7 @@ class IGameLoopEventBusTest {
 
     @SuppressWarnings("unused")
     @Data
-    private static class MyObject
-    {
+    private static class MyObject {
         private int myIdentityEventValue;
 
         private MyObject(int myIdentityEventValue) {

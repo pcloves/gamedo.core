@@ -7,7 +7,7 @@ import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
-import org.gamedo.gameloop.components.eventbus.event.EventGameLoopCreatePost;
+import org.gamedo.event.EventGameLoopCreatePost;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
@@ -20,10 +20,7 @@ import org.gamedo.util.function.IGameLoopEventBusFunction;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -49,7 +46,7 @@ public class GameLoopGroupConfiguration {
                 .nodeCountPerGameLoop(500)
                 .gameLoopIdPrefix("default-")
                 .gameLoopIdCounter(new AtomicInteger(1))
-                .daemon(false)
+                .daemon(true)
                 .gameLoopImplClazz(GameLoop.class)
                 .gameLoopCount(Runtime.getRuntime().availableProcessors())
                 .componentRegister(GameLoopComponentRegister.builder()

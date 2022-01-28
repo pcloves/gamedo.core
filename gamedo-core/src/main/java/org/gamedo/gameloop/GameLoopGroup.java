@@ -221,7 +221,7 @@ public class GameLoopGroup implements IGameLoopGroup {
         //更新成功
         gameLoopList = data.gameLoopList;
 
-        log.error(Markers.GameLoop,
+        log.info(Markers.GameLoop,
                 "register new gameLoop:{}, index:{}, count:{}",
                 gameLoop::getId,
                 () -> gameLoopList.indexOf(gameLoop),

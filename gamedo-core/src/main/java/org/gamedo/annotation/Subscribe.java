@@ -55,4 +55,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Subscribe {
+
+    /**
+     * 代表处理事件的优先级，值越小，代表优先级越高，{@link Short#MAX_VALUE}代表最高优先级
+     * @return 优先级
+     */
+    short value() default 0;
 }

@@ -82,12 +82,10 @@ class SchedulingRunnable implements Runnable {
     @Override
     public void run() {
         final Date actualExecutionTime = new Date(triggerContext.getClock().millis());
-        final String threadName = Thread.currentThread().getName();
         try {
             runnable.run();
         } catch (Throwable e) {
-            log.error(Markers.GameLoopScheduler, "exception caught when run, cron:" + trigger.getExpression() +
-                            ", thread:" + threadName, e);
+            log.error(Markers.GameLoopScheduler, "exception caught when run, cron:" + trigger.getExpression(), e);
         } finally {
             Date completionTime = new Date(triggerContext.getClock().millis());
             triggerContext.update(scheduledExecutionTime, actualExecutionTime, completionTime);

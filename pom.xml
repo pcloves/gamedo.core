@@ -21,8 +21,10 @@
     <artifactId>gamedo-core-parent</artifactId>
     <version>${revision}</version>
 
+
     <properties>
         <revision>0.8.5-SNAPSHOT</revision>
+        <log4j2.version>2.15.0</log4j2.version>
     </properties>
 
     <build>

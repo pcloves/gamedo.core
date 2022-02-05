@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 public class GameLoopProperties {
 
     public static final GameLoopConfigInner DEFAULT = GameLoopConfigInner.builder()
-            .gameLoopGroupId("defaults")
+            .gameLoopGroupId("default")
             .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
-            .daemon(false)
+            .daemon(true)
             .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegister(GameLoopComponentRegisterInner.builder()
                     .allInterface(IGameLoopEntityManager.class.getName())
@@ -58,12 +58,12 @@ public class GameLoopProperties {
      * 默认线程池配置
      */
     private GameLoopConfigInner defaults = GameLoopConfigInner.builder()
-            .gameLoopGroupId("defaults")
+            .gameLoopGroupId("default")
             .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("default-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
-            .daemon(false)
+            .daemon(true)
             .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
@@ -71,41 +71,83 @@ public class GameLoopProperties {
     /**
      * cpu密集型线程池配置
      */
-    private GameLoopConfigInner workers = GameLoopConfigInner.builder()
-            .gameLoopGroupId("workers")
-            .nodeCountPerGameLoop(500)
+    private GameLoopConfigInner worker = GameLoopConfigInner.builder()
+            .gameLoopGroupId("worker")
+            .nodeCountPerGameLoop(0)
             .gameLoopIdPrefix("worker-")
             .gameLoopIdCounter(1)
-            .gameLoopCount(Runtime.getRuntime().availableProcessors() + 1)
+            .gameLoopCount(1)
             .daemon(false)
             .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 
     /**
-     * io密集型线程池配置
+     * 通用io密集型线程池配置
      */
-    private GameLoopConfigInner ios = GameLoopConfigInner.builder()
-            .gameLoopGroupId("ios")
+    private GameLoopConfigInner io = GameLoopConfigInner.builder()
+            .gameLoopGroupId("io")
             .nodeCountPerGameLoop(500)
             .gameLoopIdPrefix("io-")
             .gameLoopIdCounter(1)
             .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
-            .daemon(false)
+            .daemon(true)
             .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();
 
     /**
-     * 强一致性操作线程池配置（只有一个线程）
+     * db线程池配置
      */
-    private GameLoopConfigInner singles = GameLoopConfigInner.builder()
+    private GameLoopConfigInner db = GameLoopConfigInner.builder()
+            .gameLoopGroupId("db")
+            .nodeCountPerGameLoop(500)
+            .gameLoopIdPrefix("db-")
+            .gameLoopIdCounter(1)
+            .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
+            .daemon(true)
+            .gameLoopImplClazz(GameLoop.class.getName())
+            .componentRegisters(DEFAULT.componentRegisters)
+            .build();
+
+    /**
+     * redis线程池配置
+     */
+    private GameLoopConfigInner redis = GameLoopConfigInner.builder()
+            .gameLoopGroupId("redis")
+            .nodeCountPerGameLoop(500)
+            .gameLoopIdPrefix("redis-")
+            .gameLoopIdCounter(1)
+            .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
+            .daemon(true)
+            .gameLoopImplClazz(GameLoop.class.getName())
+            .componentRegisters(DEFAULT.componentRegisters)
+            .build();
+
+    /**
+     * http请求线程池配置
+     */
+    private GameLoopConfigInner http = GameLoopConfigInner.builder()
+            .gameLoopGroupId("http")
+            .nodeCountPerGameLoop(500)
+            .gameLoopIdPrefix("http-")
+            .gameLoopIdCounter(1)
+            .gameLoopCount(Runtime.getRuntime().availableProcessors() * 10)
+            .daemon(true)
+            .gameLoopImplClazz(GameLoop.class.getName())
+            .componentRegisters(DEFAULT.componentRegisters)
+            .build();
+
+    /**
+     * 唯一线程池配置（只有一个线程）
+     */
+    private GameLoopConfigInner single = GameLoopConfigInner.builder()
             .gameLoopGroupId("single")
             .nodeCountPerGameLoop(0)
             .gameLoopIdPrefix("single-")
             .gameLoopIdCounter(1)
             .gameLoopCount(1)
-            .daemon(false)
+            .daemon(true)
             .gameLoopImplClazz(GameLoop.class.getName())
             .componentRegisters(DEFAULT.componentRegisters)
             .build();

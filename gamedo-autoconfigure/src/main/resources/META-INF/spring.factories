@@ -1,3 +1,5 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.gamedo.configuration.GameLoopGroupAutoConfiguration, \
-org.gamedo.configuration.MetricAutoConfiguration
+org.gamedo.configuration.MetricAutoConfiguration, \
+org.gamedo.ApplicationBase, \
+org.gamedo.GameLoopPostProcessor

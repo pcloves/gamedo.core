@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.gamedo</groupId>
         <artifactId>gamedo-pom</artifactId>
-        <version>1.0.0</version>
+        <version>2.6.3.0</version>
         <relativePath/>
     </parent>
 
@@ -24,9 +24,21 @@
 
     <properties>
         <revision>0.8.5-SNAPSHOT</revision>
-        <log4j2.version>2.15.0</log4j2.version>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
             <!--solve https://stackoverflow.com/questions/52173260/how-to-resolve-parent-pom-dependency-issue-failed-to-read-artifact-descriptor/52173650#52173650-->

@@ -17,11 +17,15 @@ public interface IEntityIdConverter {
         if (object instanceof IEntity) {
             id = ((IEntity) object).getId();
         } else if (object instanceof IComponent) {
-            id = ((IComponent<?>) object).getOwner().getId();
+            id = ((IComponent<?>) object).getId();
         } else if (object instanceof String) {
             id = (String) object;
-        } else {
+        } else if (object instanceof Number) {
+            id = String.valueOf(((Number) object).doubleValue());
+        } else if (object != null) {
             id = String.valueOf(object.hashCode());
+        } else {
+            id = "NullPointer";
         }
 
         return id;

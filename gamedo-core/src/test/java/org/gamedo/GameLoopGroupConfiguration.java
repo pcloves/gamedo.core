@@ -92,7 +92,7 @@ public class GameLoopGroupConfiguration {
         Arrays.stream(gameLoopGroup.selectAll())
                 .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))
                 .peek(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop)))
-                .forEach(gameLoop -> gameLoop.submit(IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop))));
+                .forEach(gameLoop -> gameLoop.submit(IGameLoopEventBusFunction.post(EventGameLoopCreatePost.class, () -> new EventGameLoopCreatePost(gameLoop))));
 
         return gameLoopGroup;
     }

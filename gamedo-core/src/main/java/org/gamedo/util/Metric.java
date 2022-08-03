@@ -23,13 +23,13 @@ public final class Metric {
     public static final FunctionCounter NOOP_FUNCTIONCOUNTER = new NoopFunctionCounter(NOOP_ID);
     public static final FunctionTimer NOOP_FUNCTION_TIMER = new NoopFunctionTimer(NOOP_ID);
 
-    public static final String MeterIdEventTimer = "gamedo.gameloop.event";
-    public static final String MeterIdEventRegisterGauge = "gamedo.gameloop.event.register";
-    public static final String MeterIdCronTimer = "gamedo.gameloop.cron";
-    public static final String MeterIdCronRegisterGauge = "gamedo.gameloop.cron.register";
-    public static final String MeterIdTickTimer = "gamedo.gameloop.tick";
-    public static final String MeterIdTickRegisterGauge = "gamedo.gameloop.tick.register";
-    public static final String MeterIdEntityGauge = "gamedo.gameloop.entity";
+    public static final String MeterIdEventTimer = "fusionCore.gameloop.event";
+    public static final String MeterIdEventRegisterGauge = "fusionCore.gameloop.event.register";
+    public static final String MeterIdCronTimer = "fusionCore.gameloop.cron";
+    public static final String MeterIdCronRegisterGauge = "fusionCore.gameloop.cron.register";
+    public static final String MeterIdTickTimer = "fusionCore.gameloop.tick";
+    public static final String MeterIdTickRegisterGauge = "fusionCore.gameloop.tick.register";
+    public static final String MeterIdEntityGauge = "fusionCore.gameloop.entity";
 
     private Metric() {
     }

@@ -86,7 +86,7 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(3, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
-        iGameLoopEventBus.post(new EventTest(postValue));
+        iGameLoopEventBus.post(EventTest.class, () -> new EventTest(postValue));
 
         Assertions.assertEquals(postValue, mySubComponent.getValue());
     }
@@ -100,7 +100,7 @@ class IGameLoopEventBusTest {
         Assertions.assertEquals(2, registerMethodCount);
 
         final int postValue = ThreadLocalRandom.current().nextInt();
-        iGameLoopEventBus.post(new EventTest(postValue));
+        iGameLoopEventBus.post(EventTest.class, () -> new EventTest(postValue));
 
         Assertions.assertEquals(postValue, myComponent.getValue());
     }
@@ -110,7 +110,7 @@ class IGameLoopEventBusTest {
         final CircularComponent component = new CircularComponent(gameLoop, iGameLoopEventBus);
 
         iGameLoopEventBus.register(component);
-        iGameLoopEventBus.post(new EventTest(1));
+        iGameLoopEventBus.post(EventTest.class, () -> new EventTest(1));
     }
 
     @Test
@@ -127,13 +127,13 @@ class IGameLoopEventBusTest {
         iGameLoopEventBus.register(component2);
         iGameLoopEventBus.register(myObject);
 
-        iGameLoopEventBus.post(new EventTest(value));
+        iGameLoopEventBus.post(EventTest.class, () -> new EventTest(value));
         //所有组件都会监听到该事件
         Assertions.assertEquals(value, component1.value);
         Assertions.assertEquals(value, component2.value);
         Assertions.assertEquals(Integer.MAX_VALUE, myObject.myIdentityEventValue);
 
-        iGameLoopEventBus.post(new MyIdentityEvent(entityId1, value));
+        iGameLoopEventBus.post(MyIdentityEvent.class, () -> new MyIdentityEvent(entityId1, value));
         //只有一个组件都会监听到该事件
         Assertions.assertEquals(value, component1.myIdentityEventValue);
         Assertions.assertEquals(Integer.MAX_VALUE, component2.myIdentityEventValue);
@@ -144,14 +144,14 @@ class IGameLoopEventBusTest {
     void testPriorityEvent() {
         final PriorityObject priorityObject = new PriorityObject();
 
-        //很可惜，通过反射获取到的函数并非按照定义的顺序排序，因此这里需要安装函数名排序，以满足测试用例
+        //很可惜，通过反射获取到的函数并非按照定义的顺序排序，因此这里需要按照函数名排序，以满足测试用例
         Arrays.stream(ReflectionUtils.getAllDeclaredMethods(PriorityObject.class))
                 .map(method -> Pair.of(method, method.getAnnotation(Subscribe.class)))
                 .filter(pair -> pair.getV() != null)
                 .sorted(Comparator.comparing(pair -> pair.getK().getName()))
                 .forEach(pair -> iGameLoopEventBus.register(priorityObject, pair.getK(), pair.getV().value()));
 
-        iGameLoopEventBus.post(new EventTest(0));
+        iGameLoopEventBus.post(EventTest.class, () -> new EventTest(0));
 
         Assertions.assertEquals('n', priorityObject.index);
     }
@@ -387,7 +387,7 @@ class IGameLoopEventBusTest {
         @Subscribe
         private void eventTest(final EventTest eventTest) {
             log.info("eventTest {}", eventTest);
-            eventBus.post(new EventTest(count++));
+            eventBus.post(EventTest.class, () -> new EventTest(count++));
         }
     }
 }

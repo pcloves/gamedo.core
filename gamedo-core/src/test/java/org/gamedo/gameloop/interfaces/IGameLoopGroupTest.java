@@ -8,10 +8,12 @@ import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
+import org.gamedo.gameloop.Category;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopGroup;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
+import org.gamedo.util.Pair;
 import org.gamedo.util.function.*;
 import org.junit.jupiter.api.*;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -147,18 +149,18 @@ class IGameLoopGroupTest {
         future.join();
 
         final IEntity entity = new Entity("entity-1");
-        gameLoopGroup.select(IGameLoopEntityManagerFunction.getEntityCount(), Comparator.reverseOrder(), 1)
+        gameLoopGroup.select(IGameLoopEntityManagerFunction.getEntityCount(Category.Entity), Comparator.reverseOrder(), 1)
                 .thenApply(list -> list.get(0))
                 .thenCompose(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(entity)))
                 .thenAccept(r -> log.info("register finish, result:{}", r));
 
         //选择实体数量最多的一个（实际业务中，是选取实体数量最少的一个，这里是为了方便测试）
-        final List<IGameLoop> gameLoopList1 = gameLoopGroup.select(IGameLoopEntityManagerFunction.getEntityCount(), Comparator.reverseOrder(), 1).join();
+        final List<IGameLoop> gameLoopList1 = gameLoopGroup.select(IGameLoopEntityManagerFunction.getEntityCount(Category.Entity), Comparator.reverseOrder(), 1).join();
         Assertions.assertEquals(1, gameLoopList1.size());
         Assertions.assertSame(iGameLoop1, gameLoopList1.get(0));
 
         //选择实体所在的那个IGameLoop
-        final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IGameLoopEntityManagerFunction.hasEntity(id), Comparator.reverseOrder(), 1).join();
+        final List<IGameLoop> gameLoopList2 = gameLoopGroup.select(IGameLoopEntityManagerFunction.hasEntity(id, Category.Entity), Comparator.reverseOrder(), 1).join();
         Assertions.assertEquals(1, gameLoopList2.size());
         Assertions.assertSame(iGameLoop1, gameLoopList2.get(0));
     }
@@ -177,7 +179,7 @@ class IGameLoopGroupTest {
         Assertions.assertEquals(true, collect.get(0));
 
         final List<CompletableFuture<List<IGameLoop>>> futureList = entityIdSet.stream()
-                .map(s -> gameLoopGroup.select(IGameLoopEntityManagerFunction.hasEntity(s),
+                .map(s -> gameLoopGroup.select(IGameLoopEntityManagerFunction.hasEntity(s, Category.Entity),
                         Comparator.reverseOrder(),
                         1))
                 .collect(Collectors.toList());
@@ -224,7 +226,7 @@ class IGameLoopGroupTest {
 
         Assertions.assertEquals(0, submitFailedCount);
 
-        final long tickFailedcount = futureMap.values().stream()
+        final long tickFailedCount = futureMap.values().stream()
                 .parallel()
                 .map(f -> {
                     try {
@@ -237,7 +239,7 @@ class IGameLoopGroupTest {
                 .count();
 
         log.info("finish tick");
-        Assertions.assertEquals(0, tickFailedcount);
+        Assertions.assertEquals(0, tickFailedCount);
 
         gameLoopGroup.shutdown();
         Assertions.assertDoesNotThrow(() -> gameLoopGroup.awaitTermination(10, TimeUnit.SECONDS));
@@ -251,7 +253,7 @@ class IGameLoopGroupTest {
 
         final EntityPredicate<IGameLoop> filter1 = IEntityFunction.hasComponent(Object.class);
         final EntityPredicate<IGameLoop> filter2 = IEntityFunction.hasComponent(IGameLoopEntityManager.class);
-        final GameLoopFunction<Integer> function = IGameLoopEventBusFunction.post(new EventTest("test"));
+        final GameLoopFunction<Integer> function = IGameLoopEventBusFunction.post(EventTest.class, () -> new EventTest("test"));
         final List<Integer> list1 = gameLoopGroup.submit(EntityPredicate.And(filter1, filter2), function).join();
 
         Assertions.assertEquals(1, list1.size());
@@ -282,7 +284,7 @@ class IGameLoopGroupTest {
         IntStream.rangeClosed(1, iGameLoops.length)
                 .forEach(i -> iGameLoops[i - 1].submit(IGameLoopEntityManagerFunction.registerEntity(new EntityTestSubmitAll("entity-" + i))));
 
-        List<Integer> future = gameLoopGroup.submitAll(IGameLoopEventBusFunction.post(new EventTest("eventTest")))
+        List<Integer> future = gameLoopGroup.submitAll(IGameLoopEventBusFunction.post(EventTest.class, () -> new EventTest("eventTest")))
                 .exceptionally(throwable -> Collections.emptyList())
                 .join();
         Assertions.assertEquals(iGameLoops.length, future.size());
@@ -304,7 +306,7 @@ class IGameLoopGroupTest {
     {
         final GameLoopGroup gameLoopGroup = new GameLoopGroup("test", 600, Runtime.getRuntime().availableProcessors());
         final int gameLoopSize = gameLoopGroup.size();
-        final int selectCountPerGameLoop = 10000;
+        final int selectCountPerGameLoop = 100000;
         final Map<String, Integer> statisticMap = new HashMap<>(gameLoopSize);
 
         for (int i = 0; i < gameLoopSize * selectCountPerGameLoop; i++) {
@@ -317,7 +319,114 @@ class IGameLoopGroupTest {
         Assertions.assertEquals(statisticMap.size(), gameLoopGroup.size());
         Assertions.assertTrue(stats.getMin() > selectCountPerGameLoop * 0.9, () -> "stats:" + stats);
         Assertions.assertTrue(stats.getMax() < selectCountPerGameLoop * 1.1, () -> "stats:" + stats);
+
+        final double sum = statisticMap.values().stream()
+                .mapToDouble(integer -> Math.pow(integer - stats.getAverage(), 2))
+                .sum();
+
+        //总体标准偏差
+        final double stdDev = Math.sqrt(sum / statisticMap.size());
+
+        System.out.println("stdDev:" + stdDev);
     }
+
+    @Test
+    void selectHashingByNettyChannelId() {
+        final List<String> channelList = Arrays.asList(
+                "0126f2d4",
+                "03bff0c0",
+                "05cbb917",
+                "0dc0b25a",
+                "0e455fb3",
+                "0f4aeb40",
+                "105e9f02",
+                "14b258c9",
+                "1652d2c4",
+                "1d40d7a6",
+                "1f61eafd",
+                "2300035b",
+                "24d3b6d5",
+                "25d329f9",
+                "269b9ef7",
+                "312ff6a8",
+                "31a22322",
+                "31e32f66",
+                "37475f1e",
+                "39dcf044",
+                "3b88f7a3",
+                "43177bb3",
+                "44487c8c",
+                "49dff97f",
+                "509db2f7",
+                "56d2dba8",
+                "61fffe2c",
+                "6473f7fd",
+                "662ccdd2",
+                "671613a0",
+                "674a109e",
+                "6cbcd35d",
+                "6fe43c19",
+                "72b1d380",
+                "78eb71ec",
+                "7f91c353",
+                "8158da91",
+                "818c1cdc",
+                "8373964c",
+                "882def47",
+                "8d9fb0b7",
+                "90900103",
+                "91569452",
+                "9bcf7199",
+                "a08b98d7",
+                "a7f6308d",
+                "a88c5408",
+                "aef324dc",
+                "b5f080ad",
+                "b9c66614",
+                "bf5fe2d7",
+                "c2c2b058",
+                "c44cc68e",
+                "c7aa7f21",
+                "cb9917a0",
+                "cbc510b7",
+                "d54a2b83",
+                "d5860411",
+                "d7e1c7cf",
+                "dc5f4310",
+                "e2eb712b",
+                "e3d3db56",
+                "e6bfa907",
+                "e93c1562",
+                "e98c717d",
+                "ecd5b097",
+                "f904416c",
+                "fadafa30",
+                "fc15889e",
+                "fc45f5ed"
+        );
+
+        final GameLoopGroup gameLoopGroup = new GameLoopGroup("test", 1000, 30);
+
+        final Map<String, List<Pair<String, String>>> collect = channelList.stream()
+                .map(s -> Pair.of(gameLoopGroup.selectHashing(s).getId(), s))
+                .collect(Collectors.groupingBy(Pair::getK));
+
+        //noinspection unused
+        final Map<String, Integer> map = collect.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
+
+        final double average = (double) channelList.size() / gameLoopGroup.size();
+        final double sum = map.values().stream()
+                .mapToDouble(integer -> Math.pow(integer - average, 2))
+                .sum();
+
+        //总体标准偏差
+        final double stdDev = Math.sqrt(sum / map.size());
+
+        System.out.println(stdDev);
+    }
+
 
     @Value
     private static class EventTest implements IEvent {

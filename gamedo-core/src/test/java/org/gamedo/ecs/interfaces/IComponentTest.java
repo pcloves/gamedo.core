@@ -26,4 +26,17 @@ class IComponentTest {
     public void testGetOwner() {
         Assertions.assertEquals(entity, component.getOwner());
     }
+
+    @Test void testGetSiblingComponent() {
+
+        entity.addComponent(IComponent.class, component);
+        //可以获取到自己
+        Assertions.assertTrue(component.getSiblingComponent(IComponent.class).map(com -> com == component).orElse(false));
+        //未注册的获取不到
+        Assertions.assertTrue(component.getSiblingComponent(Object.class).isEmpty());
+
+        entity.addComponent(Object.class, component);
+        //已经注册的key获取到
+        Assertions.assertTrue(component.getSiblingComponent(Object.class).map(com -> com == component).orElse(false));
+    }
 }

@@ -1,6 +1,7 @@
 package org.gamedo.ecs.interfaces;
 
 import org.gamedo.ecs.Entity;
+import org.gamedo.ecs.EntityComponent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,5 +83,23 @@ class IEntityTest {
 
         assertFalse(removeComponent.isEmpty());
         assertEquals(object, removeComponent.get());
+    }
+
+    @Test
+    void constructor() {
+
+        final EntityComponent component1 = new EntityComponent();
+        final EntityComponent component2 = new EntityComponent();
+
+        final Map<Class<?>, Object> entries = Map.ofEntries(
+                Map.entry(EntityComponent.class, component1),
+                Map.entry(IComponent.class, component2),
+                Map.entry(Object.class, component2)
+                );
+
+        final Entity entity = new Entity("1", entries);
+
+        assertEquals(entity, component1.getOwner());
+        assertEquals(entity, component2.getOwner());
     }
 }

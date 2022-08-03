@@ -30,19 +30,19 @@ public class GameLoopGroup implements IGameLoopGroup {
     private volatile List<IGameLoop> gameLoopList = new ArrayList<>();
 
     static {
-        HASHING = Hashing.KETAMA_HASH;
+        HASHING = Hashing.FNV1A;
     }
 
     private static class Data {
         private final List<IGameLoop> gameLoopList = new ArrayList<>();
-        private final TreeMap<Long, IGameLoop> gameLoopTreeMap = new TreeMap<>();
+        private final TreeMap<Integer, IGameLoop> gameLoopTreeMap = new TreeMap<>();
 
         private Data(List<IGameLoop> gameLoopList, int nodeCountPerGameLoop) {
 
             this.gameLoopList.addAll(gameLoopList);
             this.gameLoopList.forEach(gameLoop -> {
                 for (int i = 0; i < nodeCountPerGameLoop; i++) {
-                    final long hash = HASHING.hash(gameLoop.getId() + '-' + i);
+                    final int hash = HASHING.hash(gameLoop.getId() + '-' + i + '-' + UUID.randomUUID());
                     gameLoopTreeMap.put(hash, gameLoop);
                 }
             });
@@ -250,11 +250,11 @@ public class GameLoopGroup implements IGameLoopGroup {
     @Override
     public IGameLoop selectHashing(String hashKey) {
 
-        final long hashCode = HASHING.hash(hashKey);
+        final int hashCode = HASHING.hash(hashKey);
 
-        final TreeMap<Long, IGameLoop> gameLoopTreeMap = dataAtomicReference.get().gameLoopTreeMap;
+        final TreeMap<Integer, IGameLoop> gameLoopTreeMap = dataAtomicReference.get().gameLoopTreeMap;
         //找到所有大于该hashCode的节点
-        final SortedMap<Long, IGameLoop> tailMap = gameLoopTreeMap.tailMap(hashCode);
+        final SortedMap<Integer, IGameLoop> tailMap = gameLoopTreeMap.tailMap(hashCode);
 
         //没找到的话就返回第一个节点，否则就返回
         return tailMap.isEmpty() ? gameLoopTreeMap.get(gameLoopTreeMap.firstKey()) : gameLoopTreeMap.get(tailMap.firstKey());

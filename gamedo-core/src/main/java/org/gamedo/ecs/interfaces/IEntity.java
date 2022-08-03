@@ -28,7 +28,12 @@ import java.util.Optional;
  * </ul>
  */
 @SuppressWarnings("unused")
-public interface IEntity extends IIdentity {
+public interface IEntity extends IInterfaceQueryable, IIdentity {
+
+    default String getCategory() {
+        return "Entity";
+    }
+
     /**
      * 是否拥有某种类型的组件
      *
@@ -75,8 +80,8 @@ public interface IEntity extends IIdentity {
      * @param <R>            组件的真正实现类型
      * @param interfaceClazz 该组件的类型
      * @param component      要添加的组件
-     * @return 添加成功返回true；如果组件已经存在或者参数检测失败，则返回false；如果组件类型为{@link IComponent}，但是其归属并非当前
-     * 实体，返回false
+     * @return 添加成功返回true；如果组件已经存在或者参数检测失败，则返回false；如果组件类型为{@link IComponent}，但是已经有归属且并非当前
+     * 实体，返回false；如果其归属为空，并且如果能添加成功，则将其owner设为本实体
      */
     <T, R extends T> boolean addComponent(Class<T> interfaceClazz, R component);
 

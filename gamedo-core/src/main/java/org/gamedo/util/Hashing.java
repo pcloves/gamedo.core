@@ -9,11 +9,13 @@ import java.security.MessageDigest;
 public enum Hashing {
 
     NATIVE_HASH,
-    KETAMA_HASH;
+    KETAMA_HASH,
+    FNV1A,
+    ;
 
-    public long hash(String key) {
+    public int hash(String key) {
 
-        long hash = 0;
+        int hash = 0;
         switch (this) {
             case NATIVE_HASH: {
                 hash = key.hashCode();
@@ -21,8 +23,17 @@ public enum Hashing {
             break;
             case KETAMA_HASH: {
                 byte[] bKey = computeMd5(key);
-                hash = (long) (bKey[3] & 0xFF) << 24 | (long) (bKey[2] & 0xFF) << 16
-                        | (long) (bKey[1] & 0xFF) << 8 | bKey[0] & 0xFF;
+                hash = (bKey[3] & 0xFF) << 24 | (bKey[2] & 0xFF) << 16
+                        | (bKey[1] & 0xFF) << 8 | bKey[0] & 0xFF;
+            }
+            break;
+            case FNV1A: {
+                hash = 0x811c9dc5;
+                final byte[] bytes = key.getBytes();
+                for (byte b : bytes) {
+                    hash ^= (b & 0xff);
+                    hash *= 16777619;
+                }
             }
             break;
         }

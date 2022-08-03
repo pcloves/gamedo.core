@@ -10,7 +10,6 @@ import org.gamedo.exception.GameLoopException;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
-import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
 import org.gamedo.gameloop.components.tickManager.interfaces.IGameLoopTickManager;
@@ -26,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * <p>gamedo.core的线程模型借鉴了netty的线程模型：每一个{@link IGameLoop}实例代表一个线程，对应于Netty的EventLoop，而
@@ -39,7 +39,7 @@ import java.util.function.BiConsumer;
  * {@link ScheduledExecutorService}不同的是：当提交线程不在本线程中时，任务被异步执行；当提交线程就在本线程内时，任务会同步立即执行，此时调
  * 用者可以通过{@link CompletableFuture#getNow(Object)}立刻得到结果，对于该函数的使用场景，主要包括以下几种：
  * <ul>
- * <li> 明确不在本线程内：优先推荐使用本函数；例如：{@link IGameLoopEventBusFunction#post(IEvent)}，其次考虑使用
+ * <li> 明确不在本线程内：优先推荐使用本函数；例如：{@link IGameLoopEventBusFunction#post(Class, Supplier)} )}，其次考虑使用
  * {@link ScheduledExecutorService}提供的异步函数或异步延迟函数
  * <li> 明确在本线程内：优先考虑先通过{@link IEntity}接口查询组件，然后使用相应的组件提供的函数；其次考虑使用本函数
  * <li> 不确定是否在本线程内：优先推荐使用本函数；其次考虑使用{@link ScheduledExecutorService}提供的异步函数或异步延迟执行函数
@@ -90,7 +90,7 @@ import java.util.function.BiConsumer;
  * </pre>
  * 然而，需要记住的是：不要以把那些被{@link IGameLoop}线程管理的对象发布到外部线程（除非这是一个
  * <a href=https://en.wikipedia.org/wiki/Immutable_object>不可变对象</a>），实际上不可变对象天然是线程安全的，因此也不必要多此一举：
- * 事先线程安全地将其发布到{@link IGameLoop}中），这会带来包括内存可见性(memeory visibility)、竞态条件（race condition）在内的多线程并
+ * 事先线程安全地将其发布到{@link IGameLoop}中），这会带来包括内存可见性(memory visibility)、竞态条件（race condition）在内的多线程并
  * 发问题，例如：
  * <pre>
  *     gameLoop.submit(gameLoop -&#62; gameLoop.getComponentMap())
@@ -128,7 +128,7 @@ public interface IGameLoop extends ScheduledExecutorService, IEntity {
      * {@link CompletableFuture#getNow(Object)}立刻获得返回结果，否则就提交到{@link IGameLoop}上异步执行，对于该接口的使用场景，
      * 主要包括以下几种：
      * <ul>
-     * <li> 明确不在本线程内：优先推荐使用本函数；例如：{@link IGameLoopEventBusFunction#post(IEvent)}，其次考虑使用
+     * <li> 明确不在本线程内：优先推荐使用本函数；例如：{@link IGameLoopEventBusFunction#post(Class, Supplier)} )}，其次考虑使用
      * {@link ScheduledExecutorService}提供的异步函数或异步延迟函数
      * <li> 明确在本线程内：优先考虑先通过{@link IEntity}接口查询组件，然后使用相应的组件提供的函数；其次考虑使用本函数
      * <li> 不确定是否在本线程内：优先推荐使用本函数；其次考虑使用{@link ScheduledExecutorService}提供的异步函数或异步延迟执行函数
@@ -142,4 +142,9 @@ public interface IGameLoop extends ScheduledExecutorService, IEntity {
      * @return 操作返回结果
      */
     <R> CompletableFuture<R> submit(EntityFunction<IGameLoop, R> function);
+
+    @Override
+    default String getCategory() {
+        return "GameLoop";
+    }
 }

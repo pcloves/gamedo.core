@@ -7,6 +7,7 @@ import org.gamedo.annotation.Tick;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.interfaces.IEntity;
 import org.gamedo.exception.GameLoopException;
+import org.gamedo.gameloop.Category;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.GameLoops;
@@ -212,8 +213,8 @@ class IGameLoopTest {
             Assertions.assertEquals(availableProcessors - 1, failedCount);
         }
 
-        final Integer entityCountActual = gameLoop.submit(IGameLoopEntityManagerFunction.getEntityCount()).join();
-        final Boolean selfRegister = gameLoop.submit(IGameLoopEntityManagerFunction.hasEntity(gameLoop.getId())).join();
+        final Integer entityCountActual = gameLoop.submit(IGameLoopEntityManagerFunction.getEntityCount(Category.Entity)).join();
+        final Boolean selfRegister = gameLoop.submit(IGameLoopEntityManagerFunction.hasEntity(gameLoop.getId(), Category.Entity)).join();
         Assertions.assertEquals(entityCount + (selfRegister ? 1 : 0), entityCountActual);
     }
 

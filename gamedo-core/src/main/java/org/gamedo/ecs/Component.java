@@ -4,7 +4,6 @@ import lombok.extern.log4j.Log4j2;
 import org.gamedo.ecs.interfaces.IComponent;
 import org.gamedo.ecs.interfaces.IEntity;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unused")
@@ -29,11 +28,5 @@ public abstract class Component<T extends IEntity> implements IComponent<T> {
     public boolean setOwner(T owner) {
         final T ownerOld = owner == null ?  getOwner() : null;
         return this.ownerRef.compareAndSet(ownerOld, owner);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <R> Optional<R> getInterface(Class<R> clazz) {
-        return Optional.ofNullable(clazz.isInstance(this) ? (R) this : null);
     }
 }

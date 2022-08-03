@@ -46,7 +46,7 @@ class GameLoopPostProcessorTest {
         final IGameLoop gameLoop = ApplicationBase.context().getBean(IGameLoopGroup.class, gameLoopConfig).selectAll()[1];
         final int value = ThreadLocalRandom.current().nextInt();
 
-        final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopEventBusFunction.post(new TestEvent(value)));
+        final CompletableFuture<Integer> future = gameLoop.submit(IGameLoopEventBusFunction.post(TestEvent.class, () -> new TestEvent(value)));
 
         future.join();
 

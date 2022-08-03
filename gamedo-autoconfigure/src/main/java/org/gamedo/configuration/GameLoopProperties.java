@@ -9,7 +9,6 @@ import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.components.entitymanager.GameLoopEntityManager;
 import org.gamedo.gameloop.components.entitymanager.interfaces.IGameLoopEntityManager;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
-import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IGameLoopEventBus;
 import org.gamedo.gameloop.components.scheduling.GameLoopScheduler;
 import org.gamedo.gameloop.components.scheduling.interfaces.IGameLoopScheduler;
@@ -22,6 +21,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @ConfigurationProperties(prefix = "gamedo.gameloop")
@@ -153,7 +153,7 @@ public class GameLoopProperties {
             .build();
 
     /**
-     * {@link IGameLoopEventBus#post(IEvent)}最大递归投递事件的深度
+     * {@link IGameLoopEventBus#post(Class, Supplier)}最大递归投递事件的深度
      */
     private int maxEventPostDepth = GamedoConfiguration.MAX_EVENT_POST_DEPTH_DEFAULT;
 
@@ -206,7 +206,7 @@ public class GameLoopProperties {
         @SneakyThrows
         @SuppressWarnings("unchecked")
         public GameLoopConfig convert() {
-            return GameLoopConfig.builder()
+            final GameLoopConfig gameLoopConfig = GameLoopConfig.builder()
                     .gameLoopIdPrefix(gameLoopIdPrefix)
                     .nodeCountPerGameLoop(nodeCountPerGameLoop)
                     .gameLoopIdCounter(new AtomicInteger(gameLoopIdCounter))
@@ -219,6 +219,9 @@ public class GameLoopProperties {
                             .collect(Collectors.toList())
                     )
                     .build();
+
+            gameLoopConfig.setComponentRegisters(new ArrayList<>(gameLoopConfig.getComponentRegisters()));
+            return gameLoopConfig;
         }
     }
 

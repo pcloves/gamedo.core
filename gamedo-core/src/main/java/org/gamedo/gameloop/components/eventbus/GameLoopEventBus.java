@@ -21,11 +21,13 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Log4j2
 public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEventBus {
 
+    private static final Function<Class<? extends IEvent>, List<EventData>> EventDataListFunction = eventClazz1 -> new ArrayList<>(32);
     private long counter = 0L;
     private final Map<Class<? extends IEvent>, List<EventData>> eventClazzName2EventDataMap = new HashMap<>(128);
     private final Deque<Class<?>> eventPostStack = new LinkedList<>();
@@ -128,11 +130,9 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
     }
 
     private <T extends IEvent> boolean register(Object object, Method method, Class<T> eventClazz, short priority) {
-        @SuppressWarnings("DuplicatedCode") final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>();
-        final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
-
+        final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, EventDataListFunction);
         //如果优先级相同，那就看谁先注册
-        final long compareValue = ((long) priority << 16) + counter++;
+        final long compareValue = ((long) priority << 48) + counter++;
         final EventData eventData = new EventData(object, method, compareValue);
         if (eventDataList.contains(eventData)) {
             log.warn(Markers.GameLoopEventBus, "the event has registered, event clazz:{}, object clazz:{}, " +
@@ -143,7 +143,9 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
             return false;
         }
 
-        eventDataList.add(eventData);
+        int index = Collections.binarySearch(eventDataList, eventData, Comparator.comparingLong(EventData::getCompareValue));
+        //排序插入
+        eventDataList.add(index < 0 ? ~index : index, eventData);
 
         final List<EventData> duplicateEventDataList = eventDataList.stream()
                 .filter(eventData1 -> eventData1.getObject() == object)
@@ -202,8 +204,7 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
     private <T extends IEvent> boolean unregister(Object object, Method method, Class<T> eventClazz) {
 
-        @SuppressWarnings("DuplicatedCode") final Function<Class<? extends IEvent>, List<EventData>> function = eventClazz1 -> new ArrayList<>();
-        final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, function);
+        final List<EventData> eventDataList = eventClazzName2EventDataMap.computeIfAbsent(eventClazz, EventDataListFunction);
 
         final EventData eventData = new EventData(object, method);
         final boolean remove = eventDataList.remove(eventData);
@@ -244,15 +245,20 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                 });
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public int post(IEvent iEvent) {
+        return post((Class<IEvent>) iEvent.getClass(), () -> iEvent);
+    }
 
-        final Class<? extends IEvent> eventClazz = iEvent.getClass();
+    @Override
+    public <T extends IEvent> int post(Class<T> eventClazz, Supplier<T> eventSupplier) {
         final Optional<List<EventData>> optionalEventDataList = Optional.ofNullable(eventClazzName2EventDataMap.get(eventClazz));
         if (optionalEventDataList.isEmpty()) {
             return 0;
         }
 
+        final T iEvent = eventSupplier.get();
         if (eventPostStack.size() > GamedoConfiguration.getMaxEventPostDepth()) {
             final List<String> eventClazzList = eventPostStack.stream()
                     .map(Class::getSimpleName)
@@ -268,18 +274,15 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         final int count;
         try {
 
-            final ArrayList<EventData> eventDataListSort = new ArrayList<>(optionalEventDataList.get());
-            //TODO: 这里有没有性能更加的方案？
-            eventDataListSort.sort(Comparator.comparingLong(EventData::getCompareValue));
-
-            count = (int) eventDataListSort.stream()
+            count = (int) optionalEventDataList.get().stream()
                     .filter(eventData -> eventFilter(eventData, iEvent))
                     .filter(eventData -> safeInvoke(eventData, iEvent))
                     .count();
 
-            log.debug(Markers.GameLoopEventBus, "event post, event:{}, invoke count:{}",
-                    () -> iEvent.getClass().getSimpleName(),
-                    () -> count);
+            log.debug(Markers.GameLoopEventBus, "event post, eventClazz:{}, invoke count:{}, event:{}",
+                    eventClazz::getSimpleName,
+                    () -> count,
+                    () -> iEvent);
         } finally {
             eventPostStack.pop();
         }

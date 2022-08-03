@@ -12,26 +12,30 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("unused")
 @EqualsAndHashCode(of = "id")
 @Log4j2
 public class Entity implements IEntity {
     protected final String id;
     protected final Map<Class<?>, Object> componentMap;
+    private String toString = "invalid";
 
+    @SuppressWarnings("unchecked")
     public Entity(final String id, Map<Class<?>, Object> componentMap) {
         this.id = id;
         this.componentMap = new HashMap<>(componentMap == null ? new HashMap<>() : componentMap);
 
-        //noinspection unchecked
-        final List<Object> failedList = this.componentMap.values().stream()
+        @SuppressWarnings("rawtypes") final List<Object> failedList = this.componentMap.values().stream()
                 .filter(value -> value instanceof IComponent)
-                .filter(value -> !((IComponent<IEntity>) value).setOwner(this))
+                .map(value -> (IComponent)value)
+                .peek(iComponent -> iComponent.setOwner(this))
+                .filter(iComponent -> iComponent.getOwner() != this)
                 .collect(Collectors.toList());
 
         if (!failedList.isEmpty()) {
             log.error(Markers.GameLoopEntityManager, "setOwner failed when owner Entity initiated, list:{}", failedList);
         }
+
+        updateToString();
     }
 
     public Entity(String id) {
@@ -68,6 +72,7 @@ public class Entity implements IEntity {
         return Collections.unmodifiableMap(componentMap);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T, R extends T> boolean addComponent(Class<T> interfaceClazz, R component) {
 
@@ -76,20 +81,28 @@ public class Entity implements IEntity {
                     component.getClass().getName());
         }
 
-        if (component instanceof IComponent) {
-            final IComponent<?> com = (IComponent<?>) component;
-            if (com.getOwner() != this) {
-                log.error(Markers.GameLoopEntityManager, "IComponent.setOwner should called before addComponent, component clazz:{}",
-                        component.getClass().getName());
-                return false;
-            }
-        }
-
         if (componentMap.containsKey(interfaceClazz)) {
             return false;
         }
 
-        return componentMap.put(interfaceClazz, component) == null;
+        if (component instanceof IComponent) {
+            final IComponent<IEntity> com = (IComponent<IEntity>) component;
+            if (com.getOwner() != null) {
+                if (com.getOwner() != this) {
+                    log.error(Markers.GameLoopEntityManager, "IComponent.setOwner should called before addComponent, component clazz:{}",
+                            component.getClass().getName());
+                    return false;
+                }
+            }
+            else {
+                com.setOwner(this);
+            }
+        }
+
+        componentMap.put(interfaceClazz, component);
+        updateToString();
+
+        return true;
     }
 
     @SuppressWarnings("unchecked")
@@ -97,19 +110,22 @@ public class Entity implements IEntity {
     public <T, R extends T> Optional<R> removeComponent(Class<T> interfaceClazz) {
 
         final R component = (R) componentMap.remove(interfaceClazz);
-        return Optional.ofNullable(component);
+        final Optional<R> optional = Optional.ofNullable(component);
+        updateToString();
+
+        return optional;
     }
 
     @Override
     public String toString() {
-        //noinspection StringBufferReplaceableByString
-        final StringBuilder sb = new StringBuilder("Entity{");
-        sb.append("hashCode=").append(hashCode());
-        sb.append(", id=").append(id);
-        sb.append(", componentMap=").append(componentMap.keySet().stream()
-                .map(Class::getSimpleName)
-                .collect(Collectors.toList()));
-        sb.append('}');
-        return sb.toString();
+        return toString;
+    }
+
+    private void updateToString() {
+        toString = "Entity{" +
+                "id=" + id +
+                ", category=" + getCategory() +
+                ", componentCount=" + this.componentMap.size() +
+                '}';
     }
 }

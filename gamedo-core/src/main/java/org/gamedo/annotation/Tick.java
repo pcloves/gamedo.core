@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 该注解被标注在一个方法上，代表所归属的类具备在{@link IGameLoop}线程内心跳的能力，含有该注解的方法称为：心跳函数。心跳函数的要求：
  * <ul>
- * <li> 返回值为void，包含2个{@link Long}类型的参数，第1个参数代表当前系统时间，第2个参数代表上次心跳时间（首次心跳时为-1）
+ * <li> 返回值为void，包含2个{@link Long}类型的参数，第1个参数代表当前系统时间，第2个参数代表上次心跳时间（首次心跳时两者相同）
  * <li> 某一个类的心跳函数除了包含自己的心跳函数，也包含父类及祖先类内的心跳函数
  * <li> 对于函数重载：假如某函数被子类重载，那么本类或子类只要任意函数上增加了本注解，那么都会成为心跳函数
  * </ul>
@@ -71,7 +71,7 @@ public @interface Tick {
     TimeUnit timeUnit() default TimeUnit.MILLISECONDS;
 
     /**
-     * @return true：以scheduleWithFixedDelay方式执行，false：以scheduleAtFixedRate方式执行
+     * @return true：以scheduleWithFixedDelay方式执行（不追帧），false：以scheduleAtFixedRate方式执行（追帧）
      */
     boolean scheduleWithFixedDelay() default false;
 }

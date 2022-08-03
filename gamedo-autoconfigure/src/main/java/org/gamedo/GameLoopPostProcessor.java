@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -125,34 +126,36 @@ public class GameLoopPostProcessor implements BeanPostProcessor, ApplicationList
         //检测是否关心该spring事件
         if (stage != EventApplicationLifeCycle.Stage.Unknown) {
 
-            final EventApplicationLifeCycle lifeCycle = new EventApplicationLifeCycle(stage);
-            log.info(Markers.GamedoCore, "event post begin, event:{}", lifeCycle);
+            final Supplier<EventApplicationLifeCycle> lifeCycle = () -> new EventApplicationLifeCycle(stage);
+            log.info(Markers.GamedoCore, "event post begin, event:{}", lifeCycle.get());
 
             //此时可以进行注册了
             if (stage == EventApplicationLifeCycle.Stage.Started) {
                 register();
             }
 
-            //将事件投递到所有的gameLoopGroup
-            final List<Pair<String, CompletableFuture<List<Integer>>>> collect = gameLoopGroupMap.values()
+            //将事件投递到所有的gameLoop
+            final List<Pair<String, CompletableFuture<Integer>>> list = gameLoopMap.values()
                     .stream()
-                    .map(iGameLoopGroup -> Pair.of(iGameLoopGroup.getId(), iGameLoopGroup.submitAll(IGameLoopEventBusFunction.post(lifeCycle))))
+                    .map(iGameLoop -> Pair.of(iGameLoop.getId(), iGameLoop.submit(IGameLoopEventBusFunction.post(EventApplicationLifeCycle.class, lifeCycle))))
                     .collect(Collectors.toList());
 
-            final CompletableFuture[] completableFutures = collect.stream().map(Pair::getV).toArray(CompletableFuture[]::new);
+            final CompletableFuture[] completableFutures1 = list.stream().map(Pair::getV).toArray(CompletableFuture[]::new);
+
             List<Object> resultList;
             try {
                 //最多等5分钟
-                CompletableFuture.allOf(collect.stream().map(Pair::getV).toArray(CompletableFuture[]::new)).get(5, TimeUnit.MINUTES);
-                resultList = collect.stream()
-                        .map(pair -> Pair.of(pair.getK(), pair.getV().getNow(Collections.emptyList())))
+                CompletableFuture.allOf(completableFutures1).get(5, TimeUnit.MINUTES);
+                resultList = list.stream()
+                        .map(pair -> Pair.of(pair.getK(), pair.getV().getNow(0)))
+                        .filter(pair -> pair.getV() > 0)
                         .collect(Collectors.toList());
             } catch (Exception exception) {
-                log.error("exception caught", exception);
-                resultList = Collections.singletonList(collect);
+                log.error(Markers.GamedoCore, "exception caught.", exception);
+                resultList = Collections.singletonList(list);
             }
 
-            log.info(Markers.GamedoCore, "event post finish, result:{}", resultList);
+            log.info(Markers.GamedoCore, "event post finish, handle event gameLoop:{}", resultList);
         }
     }
 }

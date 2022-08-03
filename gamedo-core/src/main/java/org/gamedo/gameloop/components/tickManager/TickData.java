@@ -36,7 +36,7 @@ public class TickData {
         this.object = object;
         this.method = method;
         this.firstTickMilliSecond = firstTickMilliSecond;
-        lastTickMilliSecond = -1;
+        lastTickMilliSecond = firstTickMilliSecond;
     }
 
     @Override

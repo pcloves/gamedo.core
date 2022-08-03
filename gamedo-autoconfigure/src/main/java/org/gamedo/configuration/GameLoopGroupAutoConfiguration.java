@@ -6,7 +6,6 @@ import org.gamedo.gameloop.GameLoopConfig;
 import org.gamedo.gameloop.interfaces.IGameLoop;
 import org.gamedo.gameloop.interfaces.IGameLoopGroup;
 import org.gamedo.util.GamedoConfiguration;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -107,33 +106,4 @@ public class GameLoopGroupAutoConfiguration {
     IGameLoopGroup gameLoopGroup(GameLoopConfig config) {
         return ApplicationBase.createGameLoopGroup(config, context);
     }
-
-    @Bean(name = "configWorker")
-    @ConditionalOnMissingBean(name = "configWorker")
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    GameLoopConfig gameLoopConfigWorker() {
-        return gameLoopProperties.getWorker().convert();
-    }
-
-    @Bean(name = "worker")
-    @ConditionalOnMissingBean(name = "worker")
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    IGameLoopGroup gameLoopGroupWorker(@Qualifier("configWorker") GameLoopConfig config) {
-        return ApplicationBase.createGameLoopGroup(config, context);
-    }
-
-    @Bean(name = "configSingle")
-    @ConditionalOnMissingBean(name = "configSingle")
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    GameLoopConfig gameLoopConfigSingle() {
-        return gameLoopProperties.getSingle().convert();
-    }
-
-    @Bean(name = "single")
-    @ConditionalOnMissingBean(name = "single")
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    IGameLoopGroup gameLoopGroupSingle(@Qualifier("configSingle") GameLoopConfig config) {
-        return ApplicationBase.createGameLoopGroup(config, context);
-    }
-
 }

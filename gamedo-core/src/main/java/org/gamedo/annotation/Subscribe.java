@@ -10,6 +10,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.function.Supplier;
 
 /**
  * 该注解被标注在一个方法上，代表所归属的类具备了在{@link IGameLoop}线程内订阅事件、响应事件的能力，含有该注解的方法称为：handle函数。
@@ -48,7 +49,7 @@ import java.lang.annotation.Target;
  * <li> 当{@link Object}被当做组件通过{@link IEntity#addComponent(Class, Object)}添加到{@link IEntity}上后，当{@link IEntity}
  * 被安全发布到{@link IGameLoop}上时，该{@link Object}实现类及其父类下所有的{@link Subscribe}函数都会自动注册
  * </ul>
- * {@link IGameLoopEventBusFunction#post(IEvent)}提供了线程安全的事件安全策略，可以将事件安全发布到任意{@link IGameLoop}线程，出于多
+ * {@link IGameLoopEventBusFunction#post(Class, Supplier)}提供了线程安全的事件安全策略，可以将事件安全发布到任意{@link IGameLoop}线程，出于多
  * 线程并发中的内存可见性的考虑，我们强烈建议{@link IEvent}的成员变量都定义为final类型（可以使用lombok的{@link lombok.Value}注解），并且
  * 绝不允许将已经注册到某{@link IGameLoop}线程的{@link IEntity}及其组件跨线程发布到其他的{@link IGameLoop}
  */
@@ -57,7 +58,7 @@ import java.lang.annotation.Target;
 public @interface Subscribe {
 
     /**
-     * 代表处理事件的优先级，值越小，代表优先级越高，{@link Short#MAX_VALUE}代表最高优先级
+     * 代表处理事件的优先级，值越小，代表优先级越高，{@link Short#MIN_VALUE}代表最高优先级
      * @return 优先级
      */
     short value() default 0;

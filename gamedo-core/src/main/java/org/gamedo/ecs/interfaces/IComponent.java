@@ -3,6 +3,8 @@ package org.gamedo.ecs.interfaces;
 import org.gamedo.ecs.Component;
 import org.gamedo.ecs.EntityComponent;
 
+import java.util.Optional;
+
 /**
  * 实体的组件接口，当实现类实现该接口，意味着：
  * <ul>
@@ -33,18 +35,33 @@ import org.gamedo.ecs.EntityComponent;
  *     }
  * }
  * </pre>
+ *
  * @param <T> 所归属实体的类型
  */
+@SuppressWarnings("unused")
 public interface IComponent<T extends IEntity> extends IInterfaceQueryable, IIdentity {
 
     /**
      * 获取该组件所归属的实体
+     *
      * @return 返回所属实体
      */
     T getOwner();
 
     /**
+     * 获取兄弟组件
+     *
+     * @param interfaceClazz 要获取的兄弟组件类型
+     * @param <R>            兄弟组件的类型
+     * @return 返回兄弟组件
+     */
+    default <R> Optional<R> getSiblingComponent(Class<R> interfaceClazz) {
+        return getOwner().getComponent(interfaceClazz);
+    }
+
+    /**
      * 设置组件归属的实体，实现类需要首先检测{@code owner}下是否已经有该组件，如果尚未
+     *
      * @param owner 要归属的新的实体
      * @return 如果设置成功返回true，如果
      */
@@ -52,10 +69,11 @@ public interface IComponent<T extends IEntity> extends IInterfaceQueryable, IIde
 
     /**
      * 默认返回所属实体的唯一id
+     *
      * @return 返回所属实体的身份id
      */
     @Override
     default String getId() {
-        return getOwner() != null ? getOwner().getId() : "";
+        return getOwner() != null ? getOwner().getId() : "UnknownOwner_" + getClass().getSimpleName();
     }
 }

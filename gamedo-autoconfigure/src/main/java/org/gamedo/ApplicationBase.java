@@ -39,12 +39,6 @@ public class ApplicationBase {
 
     protected static ApplicationContext applicationContext;
 
-    private static IGameLoopGroup workers;
-    private static IGameLoopGroup singles;
-
-    private static IGameLoop worker;
-    private static IGameLoop single;
-
     /**
      * 本构造函数是可重入的，因此可以用来当做父类
      *
@@ -55,12 +49,6 @@ public class ApplicationBase {
         if (init.compareAndSet(false, true)) {
 
             ApplicationBase.applicationContext = applicationContext;
-
-            ApplicationBase.workers = applicationContext.getBean("worker", IGameLoopGroup.class);
-            ApplicationBase.worker = workers.selectAll()[0];
-
-            ApplicationBase.singles = applicationContext.getBean("single", IGameLoopGroup.class);
-            ApplicationBase.single = workers.selectAll()[0];
 
             applicationContext.registerShutdownHook();
         }
@@ -73,24 +61,6 @@ public class ApplicationBase {
      */
     public static ApplicationContext context() {
         return applicationContext;
-    }
-
-    /**
-     * 返回worker线程，且默认线程名为：“worker-1”，如果上层业务主逻辑都在同一个线程中调用，那么可以使用该线程作为主逻辑线程
-     *
-     * @return 计算型线程池
-     */
-    public static IGameLoop worker() {
-        return worker;
-    }
-
-    /**
-     * 返回single线程，且默认线程名为：“single-1”，如果上层业务的操作需要执行一些cpu密集型的操作，可以在该线程中
-     *
-     * @return 单线程线程池
-     */
-    public static IGameLoop single() {
-        return single;
     }
 
     /**
@@ -114,7 +84,7 @@ public class ApplicationBase {
         Arrays.stream(gameLoopGroup.selectAll())
                 .peek(gameLoop -> ((GameLoop) gameLoop).setOwner(gameLoopGroup))
                 .peek(gameLoop -> gameLoop.submit(IGameLoopEntityManagerFunction.registerEntity(gameLoop)))
-                .forEach(gameLoop -> gameLoop.submit(IGameLoopEventBusFunction.post(new EventGameLoopCreatePost(gameLoop))));
+                .forEach(gameLoop -> gameLoop.submit(IGameLoopEventBusFunction.post(EventGameLoopCreatePost.class, () -> new EventGameLoopCreatePost(gameLoop))));
 
         return gameLoopGroup;
     }

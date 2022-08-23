@@ -26,7 +26,7 @@ public class Entity implements IEntity {
 
         @SuppressWarnings("rawtypes") final List<Object> failedList = this.componentMap.values().stream()
                 .filter(value -> value instanceof IComponent)
-                .map(value -> (IComponent)value)
+                .map(value -> (IComponent) value)
                 .peek(iComponent -> iComponent.setOwner(this))
                 .filter(iComponent -> iComponent.getOwner() != this)
                 .collect(Collectors.toList());
@@ -93,8 +93,7 @@ public class Entity implements IEntity {
                             component.getClass().getName());
                     return false;
                 }
-            }
-            else {
+            } else {
                 com.setOwner(this);
             }
         }

@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.*;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.Level;
 import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.GameLoopComponent;
 import org.gamedo.gameloop.components.eventbus.interfaces.IEvent;
@@ -63,13 +64,17 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
 
         return Boolean.TRUE.equals(timer.record(() -> {
             try (final GamedoLogContext.CloseableEntityId ignored = GamedoLogContext.pushEntityIdAuto(object)) {
-                ReflectionUtils.makeAccessible(method);
                 method.invoke(object, event);
                 return true;
             } catch (Exception e) {
                 final Class<? extends IEvent> eventClazz = event.getClass();
-                log.error(Markers.GameLoopEventBus, "exception caught, method:" + method.getName() +
-                        ", event:" + eventClazz.getName(), e);
+                log.atLevel(Level.ERROR)
+                        .withThrowable(e)
+                        .withMarker(Markers.GameLoopEventBus)
+                        .log("exception caught, class:{}, method:{}, event:{}",
+                                object.getClass().getName(),
+                                method.getName(),
+                                eventClazz.getName());
             }
 
             return false;
@@ -142,6 +147,8 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
                     method.getName());
             return false;
         }
+
+        ReflectionUtils.makeAccessible(method);
 
         int index = Collections.binarySearch(eventDataList, eventData, Comparator.comparingLong(EventData::getCompareValue));
         //排序插入
@@ -273,8 +280,9 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         eventPostStack.push(eventClazz);
         final int count;
         try {
-
-            count = (int) optionalEventDataList.get().stream()
+            //处理事件的过程中很有可能触发新的注册或反注册的行为，这会导致optionalEventDataList被增删，因此这里偷一下懒，直接使用一个新列表进行迭代
+            count = (int) new ArrayList<>(optionalEventDataList.get())
+                    .stream()
                     .filter(eventData -> eventFilter(eventData, iEvent))
                     .filter(eventData -> safeInvoke(eventData, iEvent))
                     .count();
@@ -290,19 +298,14 @@ public class GameLoopEventBus extends GameLoopComponent implements IGameLoopEven
         return count;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked", "MethodMayBeStatic"})
+    @SuppressWarnings({"MethodMayBeStatic", "rawtypes", "unchecked"})
     private boolean eventFilter(EventData eventData, IEvent iEvent) {
 
         try {
-            final Object object = eventData.getObject();
             if (iEvent instanceof IFilterableEvent) {
                 final IFilterableEvent filterableEvent = (IFilterableEvent) iEvent;
-                final Class subscriberClass = filterableEvent.getType();
-                final Class<?> objectClass = object.getClass();
-
-                final boolean assignableFrom = subscriberClass.isAssignableFrom(objectClass);
                 //当且仅当订阅者的类型满足需求，才进行过滤检测，否则就表示类型不对，直接检测失败
-                return assignableFrom && filterableEvent.filter(object);
+                return filterableEvent.filter(eventData, filterableEvent);
             }
 
             return true;

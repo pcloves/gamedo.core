@@ -20,7 +20,7 @@ import java.util.Stack;
  * 一般性的做法是：每个功能开发者在记录日志时，额外记录IEntity信息，这和web开发下记录tracId是一个道理，而这种方式带来的缺点也是明确的：由于规范
  * 不统一，这为之后排查日志带来很大的困扰。<p>
  * gamedo.core利用log4j2的<a href=https://logging.apache.org/log4j/2.x/manual/lookups.html>Lookups</a>特性，实现了自定义
- * Plugin：{@link GamedoLookup}，当log4j2请求的Looksup名为：“gamedo:entityId”时，返回当前线程下的维护entityId堆栈的栈顶元素。上层逻
+ * Plugin：{@link GamedoLookup}，当log4j2请求的Lookup名为：“gamedo:entityId”时，返回当前线程下的维护entityId堆栈的栈顶元素。上层逻
  * 辑可以在适当的逻辑点将entityId push到该堆栈中，并在适当位置从堆栈pop出来（以下称这种操作为埋点），那么在这段时间内，log4j2都可以获取到该
  * entityId。因此可以在日志中记录上该entity的id，gamedo.core已经在框架层对所有的逻辑点进行埋点，框架用户（几乎）不需要额外的处理，这些逻辑点
  * 包括：
@@ -62,7 +62,7 @@ import java.util.Stack;
  * {@link GamedoLogContext#setEntityIdConverter(IEntityIdConverter)}实现id转换的自定义设置。
  * @see Markers
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class GamedoLogContext {
 
     public static final ThreadLocal<Stack<String>> ENTITY_ID_STACK = ThreadLocal.withInitial(Stack::new);

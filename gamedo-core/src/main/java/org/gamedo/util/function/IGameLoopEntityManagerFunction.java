@@ -12,7 +12,7 @@ public interface IGameLoopEntityManagerFunction {
     /**
      * 定义一个行为：将某个{@link IEntity}注册到一个{@link IGameLoop}上
      *
-     * @param <T> 要注册的实体类型
+     * @param <T>    要注册的实体类型
      * @param entity 要注册的实体
      * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表注册是否成功
      */
@@ -25,7 +25,7 @@ public interface IGameLoopEntityManagerFunction {
     /**
      * 定义一个行为：将某实体从{@link IGameLoop}上反注册
      *
-     * @param <T> 要注册的实体类型
+     * @param <T>      要注册的实体类型
      * @param entityId 要注册的实体的Id
      * @param category 从哪个分类下反注册
      * @return 返回该行为的定义，其中GameLoopFunction中的Boolean代表注册是否成功
@@ -51,8 +51,8 @@ public interface IGameLoopEntityManagerFunction {
     /**
      * 定义一个行为：检测某个{@link IGameLoopEntityManager}管理的实体的数量
      *
-     * @return 返回该行为的定义，其中GameLoopFunction中的Integer代表实体的数量
      * @param category 从哪个分类下获取
+     * @return 返回该行为的定义，其中GameLoopFunction中的Integer代表实体的数量
      */
     static <T extends IEntity> GameLoopFunction<Integer> getEntityCount(Supplier<String> category) {
         return gameLoop -> gameLoop.getComponent(IGameLoopEntityManager.class)

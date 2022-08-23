@@ -8,7 +8,6 @@ import org.gamedo.annotation.Subscribe;
 import org.gamedo.ecs.Entity;
 import org.gamedo.ecs.EntityComponent;
 import org.gamedo.ecs.interfaces.IEntity;
-import org.gamedo.ecs.interfaces.IIdentity;
 import org.gamedo.gameloop.GameLoop;
 import org.gamedo.gameloop.components.eventbus.GameLoopEventBus;
 import org.gamedo.gameloop.interfaces.IGameLoop;
@@ -35,6 +34,7 @@ class IGameLoopEventBusTest {
 
         gameLoop.addComponent(MyComponent.class, new MyComponent(gameLoop));
         gameLoop.addComponent(MySubComponent.class, new MySubComponent(gameLoop));
+        gameLoop.addComponent(MyGenericComponent.class, new MyGenericComponent(gameLoop));
     }
 
     @Test
@@ -103,6 +103,24 @@ class IGameLoopEventBusTest {
         iGameLoopEventBus.post(EventTest.class, () -> new EventTest(postValue));
 
         Assertions.assertEquals(postValue, myComponent.getValue());
+    }
+
+    @Test
+    void testGenericEventPost() {
+        final Optional<MyGenericComponent> componentOptional = gameLoop.getComponent(MyGenericComponent.class);
+        final MyGenericComponent myComponent = Assertions.assertDoesNotThrow(componentOptional::get);
+
+        final int registerMethodCount = iGameLoopEventBus.register(myComponent);
+        Assertions.assertEquals(2, registerMethodCount);
+
+        iGameLoopEventBus.post(MyGenericEvent.class, () -> new MyGenericEvent<>(Integer.class));
+        iGameLoopEventBus.post(MyGenericEvent.class, () -> new MyGenericEvent<>(Integer.class));
+        Assertions.assertEquals(2, myComponent.getIntValue());
+        Assertions.assertEquals(0, myComponent.getStringValue());
+
+        iGameLoopEventBus.post(MyGenericEvent.class, () -> new MyGenericEvent<>(String.class));
+        Assertions.assertEquals(2, myComponent.getIntValue());
+        Assertions.assertEquals(1, myComponent.getStringValue());
     }
 
     @Test
@@ -272,11 +290,45 @@ class IGameLoopEventBusTest {
                 index = 'n';
             }
         }
-
     }
 
+    public static class MyGenericEvent<R> implements IGenericEvent<R> {
+        private final Class<R> clazz;
+
+        public MyGenericEvent(Class<R> clazz) {
+            this.clazz = clazz;
+        }
+
+        @Override
+        public Class<R> getGenericType() {
+            return clazz;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @Getter
+    private static class MyGenericComponent extends EntityComponent {
+        protected int stringValue;
+        protected int intValue;
+
+        public MyGenericComponent(IEntity owner) {
+            super(owner);
+        }
+
+        @Subscribe
+        private void myGenericEventString(final MyGenericEvent<String> myEntityEvent) {
+            stringValue++;
+        }
+
+        @Subscribe
+        private void myGenericEventInt(final MyGenericEvent<Integer> myEntityEvent) {
+            intValue++;
+        }
+    }
+
+
     @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    private static class EventPlayerLevelUpPost implements IIdentityEvent {
+    private static class EventPlayerLevelUpPost implements IIdentitySelfEvent {
         private final String entityId;
         private final int levelOld;
         private final int levelNew;
@@ -288,12 +340,12 @@ class IGameLoopEventBusTest {
         }
 
         @Override
-        public boolean filter(IIdentity subscriber) {
-            return entityId.equals(subscriber.getId());
+        public String getId() {
+            return entityId;
         }
     }
 
-    private static class MyIdentityEvent implements IIdentityEvent {
+    private static class MyIdentityEvent implements IIdentitySelfEvent {
         private final String targetEntityId;
         private final int value;
 
@@ -303,8 +355,8 @@ class IGameLoopEventBusTest {
         }
 
         @Override
-        public boolean filter(IIdentity subscriber) {
-            return targetEntityId.equals(subscriber.getId());
+        public String getId() {
+            return targetEntityId;
         }
     }
 

@@ -23,7 +23,7 @@
 
 
     <properties>
-        <revision>0.9.0-SNAPSHOT</revision>
+        <revision>1.0.0-SNAPSHOT</revision>
     </properties>
 
     <dependencies>

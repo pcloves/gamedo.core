@@ -73,6 +73,7 @@ public final class Markers
     public static final Marker GameLoopTickManager = of("gamedo.tickManager", GameLoop);
     public static final Marker GameLoopScheduler = of("gamedo.scheduler", GameLoop);
     public static final Marker GameLoopTest = of("gamedo.test", GameLoop);
+    public static final Marker GameLoopContainer = of("gamedo.container", GameLoop);
 
     private Markers() {
     }

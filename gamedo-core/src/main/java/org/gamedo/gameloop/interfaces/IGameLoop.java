@@ -66,7 +66,7 @@ import java.util.function.Supplier;
  * {@link IGameLoop}的组件进行扩展，一般实现流程为：
  * <ul>
  * <li> 定义待扩展组件自己的接口，同时要求extends {@link IComponent}，并建议命名以“IGameLoop”作为前缀，这么做主要是为了和{@link IEntity}
- * 的组件做区分，例如某组件名为MyDemo，则命名为：IGameLoopMyDemo，可以参考{@link org.gamedo.gameloop.components}包内任意组件的接口定义
+ * 的组件做区分，例如某组件名为MyDemo，则命名为：IGameLoopMyDemo，可以参考org.gamedo.gameloop.components包内任意组件的接口定义
  * <li> （可选）创建自己的{@link GameLoopFunction} helper类：IGameLoopMyDemoFunction类，提供可复用的{@link GameLoopFunction}
  * 逻辑，例如：{@link IGameLoopEventBusFunction}
  * <li> 通过{@link GameLoop#GameLoop(GameLoopConfig)}实例化{@link IGameLoop}

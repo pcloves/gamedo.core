@@ -38,7 +38,7 @@ import org.gamedo.gameloop.components.eventbus.EventData;
  * final int levelOld = ...
  * final int levelNew = ...
  * //定义等级事件
- * final Supplier&lt;EventPlayerLevelChangePost&gt; event = () -> new EventPlayerLevelChangePost(entityId, levelOld, levelNew);
+ * final Supplier&lt;EventPlayerLevelChangePost&gt; event = () -&gt; new EventPlayerLevelChangePost(entityId, levelOld, levelNew);
  * //向所在线程投递升级事件
  * GameLoops.current().map(gameLoop -&gt; gameLoop.submit(IGameLoopEventBusFunction.post(EventPlayerLevelChangePost.class, event)));
  * </pre>
